@@ -1,0 +1,7 @@
+spring:
+  application:
+    name: live-stock-checker
+
+server:
+  servlet:
+    context-path: /api/v1
