@@ -1,7 +1,67 @@
 spring:
+  # application name
   application:
     name: live-stock-checker
+  # database
+  datasource:
+    url: jdbc:postgresql://localhost:5432/stoxy
+    username: postgres
+    password: 2004
+    #   refer notes below 1.
+    driver-class-name: org.postgresql.Driver
+
+  jpa:
+    hibernate:
+      # with this, the database isn't created each time but rather the changes are updated.
+      # refer notes 2.
+      ddl-auto: update
+    #   refer notes 3.
+    database-platform: org.hibernate.dialect.PostgreSQLDialect
+
+
 
 server:
   servlet:
-    context-path: /api/v1
+    context-path: /api/v1  # currently version 1 of the api which is based on static part of the app.
+
+
+
+# Notes:
+#  1.driver-class-name:
+#     Every database has a JDBC driver that allows Java programs to communicate with it.
+#     driver-class-name tells Spring Boot which driver to load to connect to your database.
+#     For PostgreSQL: org.postgresql.Driver → official PostgreSQL JDBC driver class.
+#     For MySQL: com.mysql.cj.jdbc.Driver, etc.
+#     Spring Boot must know which driver to use to open a connection, if we have multiple databases.
+#     here we explicitly mention to avoid ambiguity and errors overtime otherwise
+#     Sometimes Spring Boot auto-detects the driver if you have only one DB dependency.
+
+#  2.jpa.hibernate.ddl-auto
+#     Controls how Hibernate manages your database schema.
+#      Options (most common):
+#        none → do nothing (DB schema must exist manually)
+#        validate → check if DB schema matches entities (no changes made)
+#        update → update DB schema to match entities without dropping data
+#        create → drop tables if exist and create new ones
+#        create-drop → same as create, but drops tables when session ends
+
+#      Why it’s needed:
+#      Hibernate maps your Java entities to database tables.
+#      ddl-auto controls if Hibernate auto-creates / updates tables.
+#      In dev environment: update is convenient → tables created automatically, no data loss.
+#      In production: usually validate or none → you don’t want Hibernate messing with your live DB.
+
+#  3.jpa.database-platform
+#      What it is:
+#      Hibernate uses a dialect to generate SQL for the specific database.
+#      Each DB has slightly different SQL syntax and types.
+
+#      PostgreSQLDialect tells Hibernate:
+#      “Generate SQL suitable for PostgreSQL”
+#      Handles types like BOOLEAN, SERIAL, TEXT, etc.
+#      Knows how to paginate, limit, handle sequences, etc.
+
+#      Why it’s needed:
+#      Hibernate is database-agnostic, but it must translate Java types to DB types.
+#      Dialect ensures generated SQL is valid for your chosen database.
+#      Without it, Hibernate might produce SQL that PostgreSQL cannot understand.
