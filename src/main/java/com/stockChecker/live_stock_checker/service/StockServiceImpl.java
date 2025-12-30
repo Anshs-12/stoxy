@@ -1,5 +1,6 @@
 package com.stockChecker.live_stock_checker.service;
 
+import com.stockChecker.live_stock_checker.exceptions.StockNotFoundException;
 import com.stockChecker.live_stock_checker.model.Company;
 import com.stockChecker.live_stock_checker.model.Stock;
 import com.stockChecker.live_stock_checker.payload.CompanyResponseDTO;
@@ -38,7 +39,9 @@ public class StockServiceImpl implements StockService {
     @Override
     public StockDetailResponseDTO getStockBySymbol(String symbol) {
         Stock stockFound = stockRepository.findByStockSymbol(symbol)
-                .orElseGet(() -> saveStockInDB(symbol));
+                .orElseThrow(() ->
+                        new StockNotFoundException("Stock not found with symbol: " + symbol)
+                );
         StockDetailResponseDTO stockFoundDTO = modelMapper.map(stockFound, StockDetailResponseDTO.class);
         // companyDTO remains empty so need to fix and fill that.
         if (stockFound.getCompany() != null) {

@@ -1,6 +1,7 @@
 package com.stockChecker.live_stock_checker.exceptions;
 
 import com.stockChecker.live_stock_checker.payload.APIResponse;
+import com.stockChecker.live_stock_checker.payload.ErrorCode;
 import jakarta.servlet.http.HttpServletRequest;
 import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;
@@ -13,7 +14,8 @@ public class GlobalExceptionHandler {
     @ExceptionHandler(StockNotFoundException.class)
     public ResponseEntity<APIResponse> ResourceNotFoundException(StockNotFoundException ex, HttpServletRequest request) {
         APIResponse response = APIResponse.builder()
-                .error("STOCK_NOT_FOUND")
+                .success(false)
+                .error(ErrorCode.STOCK_NOT_FOUND)
                 .message(ex.getMessage())
                 .path(request.getRequestURI()) // returns /api/v1/stocks/TATA
                 .build();
