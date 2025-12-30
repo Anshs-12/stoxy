@@ -8,11 +8,13 @@ import lombok.NoArgsConstructor;
 @AllArgsConstructor
 @NoArgsConstructor
 
+// used to send all the details of the stock, when clicked on a specific stock
 public class StockDetailResponseDTO {
-
-    private String stockSymbol;
     private String stockName;
-    private String aboutStock;
+    private String stockSymbol;
     private String listedExchangeName;
     private String stockWebsite;
+    private CompanyResponseDTO companyResponseDTO;
 }
+
+

@@ -11,12 +11,17 @@ spring:
     driver-class-name: org.postgresql.Driver
 
   jpa:
-    hibernate:
-      # with this, the database isn't created each time but rather the changes are updated.
-      # refer notes 2.
-      ddl-auto: update
-    #   refer notes 3.
+#    show-sql: true # logging to show the queries being executed
+    properties:
+      hibernate:
+        # with this, the database isn't created each time but rather the changes are updated.
+        # refer notes 2.
+        ddl-auto: update
+        #   refer notes 3.
+#         format_sql: true # make the executed sql queries in a proper format when logging
     database-platform: org.hibernate.dialect.PostgreSQLDialect
+
+
 
 
 

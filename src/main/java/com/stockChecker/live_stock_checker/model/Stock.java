@@ -11,6 +11,13 @@ import lombok.NoArgsConstructor;
 @AllArgsConstructor
 @NoArgsConstructor
 @Builder
+@Table(
+        name = "stock",
+        indexes = {
+                @Index(name = "idx_stock_symbol", columnList = "stock_symbol"),
+                @Index(name = "idx_stock_name", columnList = "stock_name")
+        }
+)
 public class Stock {
     /*
         so these are the values of the stock that never changes,static data of a stock.
@@ -20,11 +27,14 @@ public class Stock {
     @GeneratedValue(strategy = GenerationType.IDENTITY)
     private Integer serialNumber;
 
-    @Column(unique = true,nullable = false)
+    @Column(unique = true, nullable = false)
     private String stockSymbol;
 
     private String stockName;
-    private String aboutStock;
     private String listedExchangeName;
     private String stockWebsite;
+
+    @OneToOne
+    @JoinColumn(name = "companyInfo_id")
+    private Company company;
 }
