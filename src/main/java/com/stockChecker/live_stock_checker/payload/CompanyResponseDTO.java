@@ -5,6 +5,8 @@ import lombok.AllArgsConstructor;
 import lombok.Data;
 import lombok.NoArgsConstructor;
 
+import java.time.LocalDate;
+
 @Data
 @AllArgsConstructor
 @NoArgsConstructor
@@ -12,7 +14,9 @@ import lombok.NoArgsConstructor;
 public class CompanyResponseDTO {
     private String companyName;
     private String aboutCompany;
-    private String sector;
+    private String isIN;
+    private String subIndustry;
     private String industry;
-    private Integer foundedYear;
+    private String sector;
+    private String listingDate;
 }

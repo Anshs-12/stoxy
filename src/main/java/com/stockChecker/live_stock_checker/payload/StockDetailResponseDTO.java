@@ -14,6 +14,7 @@ public class StockDetailResponseDTO {
     private String stockSymbol;
     private String listedExchangeName;
     private String stockWebsite;
+    private PriceInfoDTO priceInfoDTO;
     private CompanyResponseDTO companyResponseDTO;
 }
 
