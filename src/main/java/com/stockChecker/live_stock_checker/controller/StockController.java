@@ -1,16 +1,13 @@
 package com.stockChecker.live_stock_checker.controller;
 
+import com.fasterxml.jackson.core.JsonProcessingException;
 import com.stockChecker.live_stock_checker.payload.StockDetailResponseDTO;
 import com.stockChecker.live_stock_checker.payload.StockResponse;
-import com.stockChecker.live_stock_checker.payload.StockSearchResponseDTO;
 import com.stockChecker.live_stock_checker.service.StockService;
 import org.springframework.beans.factory.annotation.Autowired;
-import org.springframework.data.domain.Page;
 import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;
 import org.springframework.web.bind.annotation.*;
-
-import java.util.List;
 
 @RestController
 @RequestMapping("/stocks")
@@ -34,7 +31,7 @@ public class StockController {
 
     // get entire stock object
     @GetMapping("/search/{stockSymbol}")
-    public ResponseEntity<StockDetailResponseDTO> searchStockBySymbol(@PathVariable String stockSymbol) {
+    public ResponseEntity<StockDetailResponseDTO> searchStockBySymbol(@PathVariable String stockSymbol) throws JsonProcessingException {
         StockDetailResponseDTO stockDetailDTO = stockService.getStockBySymbol(stockSymbol);
         return new ResponseEntity<>(stockDetailDTO, HttpStatus.OK);
     }
