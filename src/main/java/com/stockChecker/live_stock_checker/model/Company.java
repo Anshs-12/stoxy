@@ -19,8 +19,11 @@ public class Company {
     private String companyName;
     private String aboutCompany;
     private String sector;
+    private String subIndustry;
     private String industry;
-    private Integer foundedYear;
+    private String listingDate;
+    private String isIN;
+
 
     @OneToOne(mappedBy = "company", cascade = CascadeType.ALL)
     private Stock stock;

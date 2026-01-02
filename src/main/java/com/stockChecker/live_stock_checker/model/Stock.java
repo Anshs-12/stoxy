@@ -29,7 +29,7 @@ public class Stock {
 
     @Column(unique = true, nullable = false)
     private String stockSymbol;
-
+    @Column(unique = true, nullable = false)
     private String stockName;
     private String listedExchangeName;
     private String stockWebsite;
