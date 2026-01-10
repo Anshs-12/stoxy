@@ -1,4 +1,4 @@
-package com.stockChecker.live_stock_checker.payload;
+package com.stockChecker.live_stock_checker.payload.StockPayload;
 
 import lombok.AllArgsConstructor;
 import lombok.Data;

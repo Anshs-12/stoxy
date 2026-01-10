@@ -1,11 +1,9 @@
-package com.stockChecker.live_stock_checker.payload;
+package com.stockChecker.live_stock_checker.payload.StockPayload;
 
 
 import lombok.AllArgsConstructor;
 import lombok.Data;
 import lombok.NoArgsConstructor;
-
-import java.time.LocalDate;
 
 @Data
 @AllArgsConstructor

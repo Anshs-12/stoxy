@@ -1,4 +1,4 @@
-package com.stockChecker.live_stock_checker.payload;
+package com.stockChecker.live_stock_checker.payload.StockPayload;
 
 import lombok.AllArgsConstructor;
 import lombok.Data;
@@ -14,7 +14,7 @@ public class StockDetailResponseDTO {
     private String stockSymbol;
     private String listedExchangeName;
     private String stockWebsite;
-    private PriceInfoDTO priceInfoDTO;
+    private StockPriceInfoDTO stockPriceInfoDTO;
     private CompanyResponseDTO companyResponseDTO;
 }
 

@@ -1,4 +1,4 @@
-package com.stockChecker.live_stock_checker.payload;
+package com.stockChecker.live_stock_checker.payload.StockPayload;
 
 import lombok.AllArgsConstructor;
 import lombok.Data;
@@ -9,7 +9,7 @@ import java.math.BigDecimal;
 @Data
 @AllArgsConstructor
 @NoArgsConstructor
-public class PriceInfoDTO {
+public class StockPriceInfoDTO {
 
     private BigDecimal lastPrice;
     private BigDecimal change;
