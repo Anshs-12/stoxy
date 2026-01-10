@@ -12,7 +12,7 @@ import org.springframework.web.bind.annotation.RestControllerAdvice;
 public class GlobalExceptionHandler {
 
     @ExceptionHandler(StockNotFoundException.class)
-    public ResponseEntity<APIResponse> ResourceNotFoundException(StockNotFoundException ex, HttpServletRequest request) {
+    public ResponseEntity<APIResponse> handleStockNotFoundException(StockNotFoundException ex, HttpServletRequest request) {
         APIResponse response = APIResponse.builder()
                 .success(false)
                 .error(ErrorCode.STOCK_NOT_FOUND)
@@ -21,4 +21,16 @@ public class GlobalExceptionHandler {
                 .build();
         return new ResponseEntity<>(response, HttpStatus.NOT_FOUND);
     }
+
+    @ExceptionHandler(IndexNotFoundException.class)
+    public ResponseEntity<APIResponse> handleIndexNotFoundException(IndexNotFoundException ex, HttpServletRequest request) {
+        APIResponse response = APIResponse.builder()
+                .success(false)
+                .error(ErrorCode.INDEX_NOT_FOUND)
+                .message(ex.getMessage())
+                .path(request.getRequestURI()) // returns /api/v1/stocks/TATA
+                .build();
+        return new ResponseEntity<>(response, HttpStatus.NOT_FOUND);
+    }
+
 }
