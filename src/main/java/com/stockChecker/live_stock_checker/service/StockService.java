@@ -2,12 +2,8 @@ package com.stockChecker.live_stock_checker.service;
 
 
 import com.fasterxml.jackson.core.JsonProcessingException;
-import com.stockChecker.live_stock_checker.payload.StockDetailResponseDTO;
-import com.stockChecker.live_stock_checker.payload.StockResponse;
-import com.stockChecker.live_stock_checker.payload.StockSearchResponseDTO;
-import org.springframework.data.domain.Page;
-
-import java.util.List;
+import com.stockChecker.live_stock_checker.payload.StockPayload.StockDetailResponseDTO;
+import com.stockChecker.live_stock_checker.payload.StockPayload.StockResponse;
 
 public interface StockService {
     StockDetailResponseDTO getStockBySymbol(String symbol) throws JsonProcessingException;

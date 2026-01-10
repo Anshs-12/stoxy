@@ -1,8 +1,8 @@
 package com.stockChecker.live_stock_checker.controller;
 
 import com.fasterxml.jackson.core.JsonProcessingException;
-import com.stockChecker.live_stock_checker.payload.StockDetailResponseDTO;
-import com.stockChecker.live_stock_checker.payload.StockResponse;
+import com.stockChecker.live_stock_checker.payload.StockPayload.StockDetailResponseDTO;
+import com.stockChecker.live_stock_checker.payload.StockPayload.StockResponse;
 import com.stockChecker.live_stock_checker.service.StockService;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.http.HttpStatus;

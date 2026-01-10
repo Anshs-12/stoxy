@@ -6,7 +6,7 @@ import com.fasterxml.jackson.databind.ObjectMapper;
 import com.stockChecker.live_stock_checker.exceptions.StockNotFoundException;
 import com.stockChecker.live_stock_checker.model.Company;
 import com.stockChecker.live_stock_checker.model.Stock;
-import com.stockChecker.live_stock_checker.payload.*;
+import com.stockChecker.live_stock_checker.payload.StockPayload.*;
 import com.stockChecker.live_stock_checker.repository.CompanyRepository;
 import com.stockChecker.live_stock_checker.repository.StockRepository;
 import org.modelmapper.ModelMapper;
@@ -96,30 +96,30 @@ public class StockServiceImpl implements StockService {
             CompanyResponseDTO companyResponseDTO = modelMapper.map(stockFound.getCompany(), CompanyResponseDTO.class);
             stockFoundDTO.setCompanyResponseDTO(companyResponseDTO);
         }
-        // creating a PriceInfoDTO
-        PriceInfoDTO priceInfoDTO = new PriceInfoDTO();
-        priceInfoDTO.setLastPrice(new BigDecimal(priceInfoNode.get("lastPrice").asText()));
-        priceInfoDTO.setChange(new BigDecimal(priceInfoNode.get("change").asText()));
-        priceInfoDTO.setPChange(new BigDecimal(priceInfoNode.get("pChange").asText()));
-        priceInfoDTO.setPreviousClose(new BigDecimal(priceInfoNode.get("previousClose").asText()));
-        priceInfoDTO.setOpen(new BigDecimal(priceInfoNode.get("open").asText()));
-        priceInfoDTO.setClose(new BigDecimal(priceInfoNode.get("close").asText()));
+        // creating a StockPriceInfoDTO
+        StockPriceInfoDTO stockPriceInfoDTO = new StockPriceInfoDTO();
+        stockPriceInfoDTO.setLastPrice(new BigDecimal(priceInfoNode.get("lastPrice").asText()));
+        stockPriceInfoDTO.setChange(new BigDecimal(priceInfoNode.get("change").asText()));
+        stockPriceInfoDTO.setPChange(new BigDecimal(priceInfoNode.get("pChange").asText()));
+        stockPriceInfoDTO.setPreviousClose(new BigDecimal(priceInfoNode.get("previousClose").asText()));
+        stockPriceInfoDTO.setOpen(new BigDecimal(priceInfoNode.get("open").asText()));
+        stockPriceInfoDTO.setClose(new BigDecimal(priceInfoNode.get("close").asText()));
         // setting the high-low of the day
-        priceInfoDTO.setDayHigh(new BigDecimal(priceInfoNode.get("intraDayHighLow").get("max").asText()));
-        priceInfoDTO.setDayLow(new BigDecimal(priceInfoNode.get("intraDayHighLow").get("min").asText()));
+        stockPriceInfoDTO.setDayHigh(new BigDecimal(priceInfoNode.get("intraDayHighLow").get("max").asText()));
+        stockPriceInfoDTO.setDayLow(new BigDecimal(priceInfoNode.get("intraDayHighLow").get("min").asText()));
 
         // setting the high-low of the week
-        priceInfoDTO.setWeekLow(new BigDecimal(priceInfoNode.get("weekHighLow").get("min").asText()));
-        priceInfoDTO.setWeekLowDate(priceInfoNode.get("weekHighLow").get("minDate").asText());
-        priceInfoDTO.setWeekHigh(new BigDecimal(priceInfoNode.get("weekHighLow").get("max").asText()));
-        priceInfoDTO.setWeekHighDate(priceInfoNode.get("weekHighLow").get("maxDate").asText());
+        stockPriceInfoDTO.setWeekLow(new BigDecimal(priceInfoNode.get("weekHighLow").get("min").asText()));
+        stockPriceInfoDTO.setWeekLowDate(priceInfoNode.get("weekHighLow").get("minDate").asText());
+        stockPriceInfoDTO.setWeekHigh(new BigDecimal(priceInfoNode.get("weekHighLow").get("max").asText()));
+        stockPriceInfoDTO.setWeekHighDate(priceInfoNode.get("weekHighLow").get("maxDate").asText());
 
         // setting the lowerCircuitPrice and upperCircuitPrice
-        priceInfoDTO.setLowerCP(new BigDecimal(priceInfoNode.get("lowerCP").asText()));
-        priceInfoDTO.setUpperCP(new BigDecimal(priceInfoNode.get("upperCP").asText()));
-        priceInfoDTO.setBasePrice(new BigDecimal(priceInfoNode.get("basePrice").asText()));
+        stockPriceInfoDTO.setLowerCP(new BigDecimal(priceInfoNode.get("lowerCP").asText()));
+        stockPriceInfoDTO.setUpperCP(new BigDecimal(priceInfoNode.get("upperCP").asText()));
+        stockPriceInfoDTO.setBasePrice(new BigDecimal(priceInfoNode.get("basePrice").asText()));
 
-        stockFoundDTO.setPriceInfoDTO(priceInfoDTO);
+        stockFoundDTO.setStockPriceInfoDTO(stockPriceInfoDTO);
 //      Combined stored metadata with real-time price data and returning complete StockFoundDTO
         return stockFoundDTO;
     }
