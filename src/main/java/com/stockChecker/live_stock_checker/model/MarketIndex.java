@@ -2,6 +2,7 @@ package com.stockChecker.live_stock_checker.model;
 
 import jakarta.persistence.*;
 import lombok.AllArgsConstructor;
+import lombok.Builder;
 import lombok.Data;
 import lombok.NoArgsConstructor;
 
@@ -9,6 +10,7 @@ import lombok.NoArgsConstructor;
 @Data
 @AllArgsConstructor
 @NoArgsConstructor
+@Builder
 @Table(
         name = "index_table",
         indexes = {
@@ -25,9 +27,16 @@ public class MarketIndex {
 
     private String indexName;
     private String indexIdentifier;
-
     @Column(unique = true)
     private String indexSymbol;
-
     private Integer indexPriority;
+
+    // metadata of an Index. (added manually for now till, we find any API)
+    private Integer numberOfConstituents;
+    private String launchDate;
+    private String baseDate;
+    private String methodology;
+    private String description;
+    private Boolean isActive;
+
 }
