@@ -12,6 +12,7 @@ import com.stockChecker.live_stock_checker.payload.IndexPayload.IndexPriceInfoDT
 import com.stockChecker.live_stock_checker.repository.IndexRepository;
 import org.modelmapper.ModelMapper;
 import org.springframework.beans.factory.annotation.Autowired;
+import org.springframework.cache.annotation.Cacheable;
 import org.springframework.stereotype.Service;
 import org.springframework.web.reactive.function.client.WebClient;
 
@@ -55,8 +56,13 @@ public class IndexServiceImpl implements IndexService {
 //    }
 
     @Override
+    @Cacheable(
+            cacheNames = "indices",
+            key = "#indexSymbol",
+            unless = "#indexSymbol == null"
+    )
     public IndexDetailResponseDTO getIndexBySymbol(String indexSymbol) throws JsonProcessingException {
-
+        System.out.println("===== METHOD EXECUTING - FETCHING FROM DB AND API =====");
         String jsonResponse = fetchIndexData(indexSymbol);
         JsonNode rootNode = objectMapper.readTree(jsonResponse);
 
