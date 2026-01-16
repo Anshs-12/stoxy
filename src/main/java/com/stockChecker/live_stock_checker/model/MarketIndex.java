@@ -14,7 +14,8 @@ import lombok.NoArgsConstructor;
 @Table(
         name = "index_table",
         indexes = {
-                @Index(name = "idx_indexSymbol", columnList = "index_symbol")
+                @Index(name = "idx_indexSymbol", columnList = "index_symbol"),
+                @Index(name = "idx_indexIdentifier", columnList = "index_identifier")
         }
 )
 

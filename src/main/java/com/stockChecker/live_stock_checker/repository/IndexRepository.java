@@ -8,5 +8,5 @@ import java.util.Optional;
 
 @Repository
 public interface IndexRepository extends JpaRepository<MarketIndex,Long> {
-    Optional<MarketIndex> findByIndexSymbol(String upperCase);
+    Optional<MarketIndex> findByIndexIdentifier(String upperCase);
 }

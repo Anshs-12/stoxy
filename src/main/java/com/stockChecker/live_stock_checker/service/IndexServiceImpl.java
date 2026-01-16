@@ -58,10 +58,12 @@ public class IndexServiceImpl implements IndexService {
     @Override
     @Cacheable(
             cacheNames = "indices",
-            key = "#indexSymbol",
-            unless = "#indexSymbol == null"
+            key = "#indexSymbol.toUpperCase().trim().replace(' ', '_')",
+            condition = "#indexSymbol !=null",
+            unless = "#result == null"
     )
     public IndexDetailResponseDTO getIndexBySymbol(String indexSymbol) throws JsonProcessingException {
+        String indexIdentifier = indexSymbol.toUpperCase().trim().replace(" ", "_");
         System.out.println("===== METHOD EXECUTING - FETCHING FROM DB AND API =====");
         String jsonResponse = fetchIndexData(indexSymbol);
         JsonNode rootNode = objectMapper.readTree(jsonResponse);
@@ -71,7 +73,7 @@ public class IndexServiceImpl implements IndexService {
         }
 
 
-        MarketIndex indexFound = indexRepository.findByIndexSymbol(indexSymbol.toUpperCase())
+        MarketIndex indexFound = indexRepository.findByIndexIdentifier(indexIdentifier)
                 .orElseThrow(() -> new IndexNotFoundException("Index with indexSymbol " + indexSymbol + " does not exist!"));
 
         IndexMetadataDTO indexMetadataDTO = modelMapper.map(indexFound, IndexMetadataDTO.class);
