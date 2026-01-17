@@ -25,17 +25,44 @@ public class CacheConfig {
         SimpleCacheManager simpleCacheManager = new SimpleCacheManager();
         List<CaffeineCache> cacheList = new ArrayList<>();
 
+
         // configuring first cacheName.
-        cacheList.add(new CaffeineCache("indices",
+        cacheList.add(new CaffeineCache("indicesLive",
                 Caffeine.newBuilder()
                         .expireAfterWrite(15, TimeUnit.SECONDS)
                         .maximumSize(100)
                         .build()));
+
         // configuring second cacheName.
-        cacheList.add(new CaffeineCache("stocks",
+        cacheList.add(new CaffeineCache("stocksLive",
                 Caffeine.newBuilder()
-                        .expireAfterWrite(60, TimeUnit.SECONDS)
+                        .expireAfterWrite(1, TimeUnit.MINUTES)
                         .maximumSize(5000)
+                        .build()));
+
+        // configuring offline caching
+        cacheList.add(new CaffeineCache("indicesWeekDayClosed",
+                Caffeine.newBuilder()
+                        .expireAfterWrite(1065, TimeUnit.MINUTES)
+                        .maximumSize(100)
+                        .build()));
+
+        cacheList.add(new CaffeineCache("indicesWeekendClosed",
+                Caffeine.newBuilder()
+                        .expireAfterWrite(3945, TimeUnit.MINUTES)
+                        .maximumSize(100)
+                        .build()));
+
+        cacheList.add(new CaffeineCache("stockWeekDayClosed",
+                Caffeine.newBuilder()
+                        .expireAfterWrite(1065, TimeUnit.MINUTES)
+                        .maximumSize(100)
+                        .build()));
+
+        cacheList.add(new CaffeineCache("stockWeekendClosed",
+                Caffeine.newBuilder()
+                        .expireAfterWrite(3945, TimeUnit.MINUTES)
+                        .maximumSize(100)
                         .build()));
 
         // assigning the list to SimpleCacheManager
