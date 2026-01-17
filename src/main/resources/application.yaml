@@ -1,5 +1,7 @@
 spring:
   # application name
+  main:
+    allow-circular-references: true
   application:
     name: live-stock-checker
   # database
