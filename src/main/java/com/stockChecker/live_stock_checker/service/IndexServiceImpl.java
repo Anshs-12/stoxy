@@ -9,6 +9,7 @@ import com.stockChecker.live_stock_checker.payload.IndexPayload.IndexAdvanceDTO;
 import com.stockChecker.live_stock_checker.payload.IndexPayload.IndexDetailResponseDTO;
 import com.stockChecker.live_stock_checker.payload.IndexPayload.IndexMetadataDTO;
 import com.stockChecker.live_stock_checker.payload.IndexPayload.IndexPriceInfoDTO;
+import com.stockChecker.live_stock_checker.payload.MarketStatusResponse;
 import com.stockChecker.live_stock_checker.repository.IndexRepository;
 import org.modelmapper.ModelMapper;
 import org.springframework.beans.factory.annotation.Autowired;
@@ -33,6 +34,34 @@ public class IndexServiceImpl implements IndexService {
     @Autowired
     private ObjectMapper objectMapper;
 
+    @Autowired
+    private MarketStatusService marketStatusService;
+
+    /*
+
+        SELF-INJECTION PATTERN FOR AOP PROXY ACCESS
+
+        Why we inject IndexService into itself:
+
+        Problem:
+        - When a method in this class calls another method in the SAME class (internal call),
+          Spring's AOP proxy is bypassed
+        - @Cacheable annotations don't work on internal method calls
+        - Example: getIndexBySymbol() calls getIndexLive() directly → cache ignored
+
+        Solution:
+        - Inject the service into itself as 'self'
+        - Call methods through 'self' instead of 'this'
+        - self.getIndexLive() goes through Spring proxy → cache works
+
+        Trade-offs:
+        - Creates circular dependency (requires spring.main.allow-circular-references=true)
+        - Not ideal design, but acceptable for AOP patterns
+        - Alternative would be splitting into separate services (unnecessary complexity)
+    */
+
+    @Autowired
+    private IndexService self;
     /*
         Note:
             Top 25 indices from NSE have been added in the database, which was done manually
@@ -56,13 +85,54 @@ public class IndexServiceImpl implements IndexService {
 //    }
 
     @Override
+    public IndexDetailResponseDTO getIndexBySymbol(String indexSymbol) throws JsonProcessingException {
+        MarketStatusResponse response = marketStatusService.isMarketOpen();
+
+        if (response.getIsOpen()) {
+            return self.getIndexLive(indexSymbol);
+        }
+        if (response.getNextOpeningDay().equals("MONDAY")) {
+            return self.getIndicesWeekendClosed(indexSymbol);
+        }
+        return self.getIndicesWeekdayClosed(indexSymbol);
+    }
+
     @Cacheable(
-            cacheNames = "indices",
+            cacheNames = "indicesLive",
             key = "#indexSymbol.toUpperCase().trim().replace(' ', '_')",
             condition = "#indexSymbol !=null",
             unless = "#result == null"
     )
-    public IndexDetailResponseDTO getIndexBySymbol(String indexSymbol) throws JsonProcessingException {
+    public IndexDetailResponseDTO getIndexLive(String indexSymbol) throws JsonProcessingException {
+        System.out.println("===================================IndexLive METHOD IS BEING CALLED===================================");
+        return fetchCompleteIndexData(indexSymbol);
+    }
+
+    @Cacheable(
+            cacheNames = "indicesWeekDayClosed",
+            key = "#indexSymbol.toUpperCase().trim().replace(' ', '_')",
+            condition = "#indexSymbol !=null",
+            unless = "#result == null"
+    )
+    public IndexDetailResponseDTO getIndicesWeekdayClosed(String indexSymbol) throws JsonProcessingException {
+        System.out.println("===================================Weekday METHOD IS BEING CALLED===================================");
+        return fetchCompleteIndexData(indexSymbol);
+    }
+
+    @Cacheable(
+            cacheNames = "indicesWeekendClosed",
+            key = "#indexSymbol.toUpperCase().trim().replace(' ', '_')",
+            condition = "#indexSymbol !=null",
+            unless = "#result == null"
+    )
+    public IndexDetailResponseDTO getIndicesWeekendClosed(String indexSymbol) throws JsonProcessingException {
+        System.out.println("===================================weekend METHOD IS BEING CALLED===================================");
+
+        return fetchCompleteIndexData(indexSymbol);
+    }
+
+
+    private IndexDetailResponseDTO fetchCompleteIndexData(String indexSymbol) throws JsonProcessingException {
         String indexIdentifier = indexSymbol.toUpperCase().trim().replace(" ", "_");
         System.out.println("===== METHOD EXECUTING - FETCHING FROM DB AND API =====");
         String jsonResponse = fetchIndexData(indexSymbol);
@@ -91,6 +161,7 @@ public class IndexServiceImpl implements IndexService {
                 .indexPriceInfoDTO(priceDTO)
                 .build();
     }
+
 
     private String fetchIndexData(String indexSymbol) {
         return webClient.get()
