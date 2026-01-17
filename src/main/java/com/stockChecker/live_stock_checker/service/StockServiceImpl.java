@@ -11,6 +11,7 @@ import com.stockChecker.live_stock_checker.repository.CompanyRepository;
 import com.stockChecker.live_stock_checker.repository.StockRepository;
 import org.modelmapper.ModelMapper;
 import org.springframework.beans.factory.annotation.Autowired;
+import org.springframework.cache.annotation.Cacheable;
 import org.springframework.data.domain.Page;
 import org.springframework.data.domain.PageRequest;
 import org.springframework.data.domain.Pageable;
@@ -46,6 +47,12 @@ public class StockServiceImpl implements StockService {
         if not then we call to save into the Database, and then it returns that stock back.
     */
 
+    @Cacheable(
+            cacheNames = "stocks",
+            key = "#symbol",
+            condition = "#symbol!=null",
+            unless = "#result==null"
+    )
     @Override
     public StockDetailResponseDTO getStockBySymbol(String symbol) throws JsonProcessingException {
         /*
