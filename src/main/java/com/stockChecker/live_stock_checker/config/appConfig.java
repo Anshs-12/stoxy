@@ -5,7 +5,7 @@ import org.springframework.context.annotation.Bean;
 import org.springframework.context.annotation.Configuration;
 import org.springframework.http.HttpHeaders;
 import org.springframework.http.MediaType;
-import org.springframework.web.reactive.function.client.WebClient;
+import org.springframework.web.client.RestClient;
 
 @Configuration
 public class appConfig {
@@ -16,8 +16,8 @@ public class appConfig {
     }
 
     @Bean
-    public WebClient webClient() {
-        return WebClient.builder()
+    public RestClient restClient() {
+        return RestClient.builder()
                 .baseUrl("https://www.nseindia.com/api/")
                 .defaultHeader(HttpHeaders.CONTENT_TYPE,
                         MediaType.APPLICATION_JSON_VALUE)
@@ -37,7 +37,7 @@ public class appConfig {
                 So we create a request each time telling that this is coming from a browser.
 
                 A brief story:
-                    When an api request is made, it is then checked that if it's coming from the a browser or a HttpClient
+                    When an api request is made, it is then checked that if it's coming from the browser or a HttpClient
                     like Postman/Httpie so on.
                     So then the requests are allowed otherwise bots can destroy the endpoint by too many requests or other things,
                     this way in our backend we add in the header responsible to tell where the request is coming from, and is done
