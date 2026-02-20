@@ -3,7 +3,8 @@ package com.stockChecker.live_stock_checker.payload;
 public enum ErrorCode {
 
     STOCK_NOT_FOUND,
+    INDEX_NOT_FOUND,
     INVALID_REQUEST,
-    INTERNAL_ERROR,
-    INDEX_NOT_FOUND
+    INTERNAL_SERVER_ERROR,
+    RESOURCE_NOT_FOUND
 }
