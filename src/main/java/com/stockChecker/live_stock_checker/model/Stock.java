@@ -1,10 +1,7 @@
 package com.stockChecker.live_stock_checker.model;
 
 import jakarta.persistence.*;
-import lombok.AllArgsConstructor;
-import lombok.Builder;
-import lombok.Data;
-import lombok.NoArgsConstructor;
+import lombok.*;
 
 @Entity
 @Data
@@ -35,6 +32,11 @@ public class Stock {
     private String stockWebsite;
 
     @OneToOne
+    @ToString.Exclude
     @JoinColumn(name = "companyInfo_id")
     private Company company;
+
+    @ToString.Exclude
+    @OneToOne(mappedBy = "stock",cascade = {CascadeType.PERSIST, CascadeType.MERGE},fetch = FetchType.EAGER)
+    private StockFinancials stockFinancials;
 }
