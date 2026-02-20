@@ -18,6 +18,7 @@ public class StockController {
 
     // search stock
     @GetMapping("/search")
+    // this is when a user tries to search something, eg: "Ta" so it gives paginated result of all the stocks having "Ta".
     public ResponseEntity<StockResponse> searchStockByName(
             @RequestParam String query,
             @RequestParam(name = "pageNumber", defaultValue = "0", required = false) Integer pageNumber,
@@ -30,7 +31,7 @@ public class StockController {
     }
 
     // get entire stock object
-    @GetMapping("/search/{stockSymbol}")
+    @GetMapping("/search/details/{stockSymbol}")
     public ResponseEntity<StockDetailResponseDTO> searchStockBySymbol(@PathVariable String stockSymbol) throws JsonProcessingException {
         StockDetailResponseDTO stockDetailDTO = stockService.getStockBySymbol(stockSymbol);
         return new ResponseEntity<>(stockDetailDTO, HttpStatus.OK);
