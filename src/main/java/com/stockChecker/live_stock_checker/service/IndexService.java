@@ -7,10 +7,4 @@ import com.stockChecker.live_stock_checker.payload.IndexPayload.IndexDetailRespo
 public interface IndexService {
 
     IndexDetailResponseDTO getIndexBySymbol(String indexSymbol) throws JsonProcessingException;
-
-    IndexDetailResponseDTO getIndexLive(String indexSymbol) throws JsonProcessingException;
-
-    IndexDetailResponseDTO getIndicesWeekendClosed(String indexSymbol) throws JsonProcessingException;
-
-    IndexDetailResponseDTO getIndicesWeekdayClosed(String indexSymbol) throws JsonProcessingException;
 }

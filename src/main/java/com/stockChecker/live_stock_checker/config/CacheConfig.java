@@ -26,18 +26,12 @@ public class CacheConfig {
         List<CaffeineCache> cacheList = new ArrayList<>();
 
 
+        // ----------------------------- Index Caching -----------------------------
         // configuring first cacheName.
         cacheList.add(new CaffeineCache("indicesLive",
                 Caffeine.newBuilder()
                         .expireAfterWrite(15, TimeUnit.SECONDS)
                         .maximumSize(100)
-                        .build()));
-
-        // configuring second cacheName.
-        cacheList.add(new CaffeineCache("stocksLive",
-                Caffeine.newBuilder()
-                        .expireAfterWrite(1, TimeUnit.MINUTES)
-                        .maximumSize(5000)
                         .build()));
 
         // configuring offline caching
@@ -51,6 +45,14 @@ public class CacheConfig {
                 Caffeine.newBuilder()
                         .expireAfterWrite(3945, TimeUnit.MINUTES)
                         .maximumSize(100)
+                        .build()));
+
+        // ----------------------------- Stocks Caching -----------------------------
+        // configuring second cacheName.
+        cacheList.add(new CaffeineCache("stockLive",
+                Caffeine.newBuilder()
+                        .expireAfterWrite(1, TimeUnit.MINUTES)
+                        .maximumSize(5000)
                         .build()));
 
         cacheList.add(new CaffeineCache("stockWeekDayClosed",

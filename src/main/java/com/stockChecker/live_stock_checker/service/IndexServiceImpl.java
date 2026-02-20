@@ -15,6 +15,7 @@ import org.modelmapper.ModelMapper;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.cache.annotation.Cacheable;
 import org.springframework.stereotype.Service;
+import org.springframework.web.client.RestClient;
 import org.springframework.web.reactive.function.client.WebClient;
 
 import java.math.BigDecimal;
@@ -29,7 +30,7 @@ public class IndexServiceImpl implements IndexService {
     private ModelMapper modelMapper;
 
     @Autowired
-    private WebClient webClient;
+    private RestClient restClient;
 
     @Autowired
     private ObjectMapper objectMapper;
@@ -37,6 +38,8 @@ public class IndexServiceImpl implements IndexService {
     @Autowired
     private MarketStatusService marketStatusService;
 
+    @Autowired
+    private  IndexCacheService indexCacheService;
     /*
 
         SELF-INJECTION PATTERN FOR AOP PROXY ACCESS
@@ -60,8 +63,6 @@ public class IndexServiceImpl implements IndexService {
         - Alternative would be splitting into separate services (unnecessary complexity)
     */
 
-    @Autowired
-    private IndexService self;
     /*
         Note:
             Top 25 indices from NSE have been added in the database, which was done manually
@@ -89,114 +90,12 @@ public class IndexServiceImpl implements IndexService {
         MarketStatusResponse response = marketStatusService.isMarketOpen();
 
         if (response.getIsOpen()) {
-            return self.getIndexLive(indexSymbol);
+            return indexCacheService.getIndexLive(indexSymbol);
         }
         if (response.getNextOpeningDay().equals("MONDAY")) {
-            return self.getIndicesWeekendClosed(indexSymbol);
+            return indexCacheService.getIndicesWeekendClosed(indexSymbol);
         }
-        return self.getIndicesWeekdayClosed(indexSymbol);
-    }
-
-    @Cacheable(
-            cacheNames = "indicesLive",
-            key = "#indexSymbol.toUpperCase().trim().replace(' ', '_')",
-            condition = "#indexSymbol !=null",
-            unless = "#result == null"
-    )
-    public IndexDetailResponseDTO getIndexLive(String indexSymbol) throws JsonProcessingException {
-        System.out.println("===================================IndexLive METHOD IS BEING CALLED===================================");
-        return fetchCompleteIndexData(indexSymbol);
-    }
-
-    @Cacheable(
-            cacheNames = "indicesWeekDayClosed",
-            key = "#indexSymbol.toUpperCase().trim().replace(' ', '_')",
-            condition = "#indexSymbol !=null",
-            unless = "#result == null"
-    )
-    public IndexDetailResponseDTO getIndicesWeekdayClosed(String indexSymbol) throws JsonProcessingException {
-        System.out.println("===================================Weekday METHOD IS BEING CALLED===================================");
-        return fetchCompleteIndexData(indexSymbol);
-    }
-
-    @Cacheable(
-            cacheNames = "indicesWeekendClosed",
-            key = "#indexSymbol.toUpperCase().trim().replace(' ', '_')",
-            condition = "#indexSymbol !=null",
-            unless = "#result == null"
-    )
-    public IndexDetailResponseDTO getIndicesWeekendClosed(String indexSymbol) throws JsonProcessingException {
-        System.out.println("===================================weekend METHOD IS BEING CALLED===================================");
-
-        return fetchCompleteIndexData(indexSymbol);
-    }
-
-
-    private IndexDetailResponseDTO fetchCompleteIndexData(String indexSymbol) throws JsonProcessingException {
-        String indexIdentifier = indexSymbol.toUpperCase().trim().replace(" ", "_");
-        System.out.println("===== METHOD EXECUTING - FETCHING FROM DB AND API =====");
-        String jsonResponse = fetchIndexData(indexSymbol);
-        JsonNode rootNode = objectMapper.readTree(jsonResponse);
-
-        if (rootNode == null || rootNode.isEmpty()) {
-            throw new IndexNotFoundException("Index with indexSymbol " + indexSymbol + " does not exist!");
-        }
-
-
-        MarketIndex indexFound = indexRepository.findByIndexIdentifier(indexIdentifier)
-                .orElseThrow(() -> new IndexNotFoundException("Index with indexSymbol " + indexSymbol + " does not exist!"));
-
-        IndexMetadataDTO indexMetadataDTO = modelMapper.map(indexFound, IndexMetadataDTO.class);
-
-        // Extracting data node (first element in data array)
-        JsonNode dataNode = rootNode.get("data").get(0);
-        IndexAdvanceDTO advanceDTO = mapAdvanceData(rootNode.get("advance"));
-        IndexPriceInfoDTO priceDTO = mapPriceData(dataNode);
-
-        return IndexDetailResponseDTO.builder()
-                .name(rootNode.get("name").asText())
-                .time(rootNode.get("timestamp").asText())
-                .indexMetadataDTO(indexMetadataDTO)
-                .indexAdvanceDTO(advanceDTO)
-                .indexPriceInfoDTO(priceDTO)
-                .build();
-    }
-
-
-    private String fetchIndexData(String indexSymbol) {
-        return webClient.get()
-                .uri("/equity-stockIndices?index=" + indexSymbol.toUpperCase())
-                .retrieve()
-                .bodyToMono(String.class)
-                .block();
-    }
-
-    private IndexAdvanceDTO mapAdvanceData(JsonNode advanceNode) {
-        return IndexAdvanceDTO.builder()
-                .declines(Integer.parseInt(advanceNode.get("declines").asText()))
-                .advances(Integer.parseInt(advanceNode.get("advances").asText()))
-                .unChanged(Integer.parseInt(advanceNode.get("unchanged").asText()))
-                .build();
-    }
-
-    private IndexPriceInfoDTO mapPriceData(JsonNode dataNode) {
-        return IndexPriceInfoDTO.builder()
-                .indexSymbol(dataNode.get("symbol").asText())
-                .ffmc(new BigDecimal(dataNode.get("ffmc").asText()))
-                .open(new BigDecimal(dataNode.get("open").asText()))
-                .lastPrice(new BigDecimal(dataNode.get("lastPrice").asText()))
-                .previousClose(new BigDecimal(dataNode.get("previousClose").asText()))
-                .dayHigh(new BigDecimal(dataNode.get("dayHigh").asText()))
-                .dayLow(new BigDecimal(dataNode.get("dayLow").asText()))
-                .change(new BigDecimal(dataNode.get("change").asText()))
-                .pChange(new BigDecimal(dataNode.get("pChange").asText()))
-                .yearHigh(new BigDecimal(dataNode.get("yearHigh").asText()))
-                .yearLow(new BigDecimal(dataNode.get("yearLow").asText()))
-                .totalTradedVolume(new BigDecimal(dataNode.get("totalTradedVolume").asText()))
-                .totalTradedValue(new BigDecimal(dataNode.get("totalTradedValue").asText()))
-                .nearWKH(new BigDecimal(dataNode.get("nearWKH").asText()))
-                .nearWKL(new BigDecimal(dataNode.get("nearWKL").asText()))
-                .build();
+        return indexCacheService.getIndicesWeekdayClosed(indexSymbol);
     }
 
     // right now manually feeding indices until we find w working api
