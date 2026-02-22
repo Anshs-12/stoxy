@@ -73,7 +73,7 @@ public class StockCacheService {
     }
 
     @Transactional
-    private StockDetailResponseDTO fetchCompleteStockData(String stockSymbol) throws JsonProcessingException {
+    public StockDetailResponseDTO fetchCompleteStockData(String stockSymbol) throws JsonProcessingException {
         log.info("Fetching from API and DB for stock: {}", stockSymbol);
         String jsonResponseString = fetchStockDataFromAPI(stockSymbol);
         JsonNode rootNode = objectMapper.readTree(jsonResponseString);
@@ -105,7 +105,7 @@ public class StockCacheService {
 
     private String fetchStockDataFromAPI(String stockSymbol) {
         return restClient.get()
-                .uri("/quote-equity?symbol=" + stockSymbol.toUpperCase())
+                .uri("/quote-equity?symbol={symbol}", stockSymbol.toUpperCase())
                 .retrieve()
                 .body(String.class);
     }

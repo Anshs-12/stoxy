@@ -109,7 +109,7 @@ public class IndexCacheService {
 
     private String fetchIndexDataFromAPI(String indexSymbol) {
         return restClient.get()
-                .uri("/equity-stockIndices?index=" + indexSymbol.toUpperCase())
+                .uri("/equity-stockIndices?index={indexSymbol}", indexSymbol.toUpperCase())
                 .retrieve()
                 .body(String.class);
     }
