@@ -23,6 +23,11 @@ spring:
     #        format_sql: true # make the executed sql queries in a proper format when logging
     #   refer notes 3.
     database-platform: org.hibernate.dialect.PostgreSQLDialect
+    # byDefault Spring keeps the database connection alive for the entire during of webRequests
+    # even when database is not required anymore, wastes connections and performance issues
+    # setting it to false means DB connection is only held during database operations.
+    open-in-view: false
+
 
 server:
   servlet:
