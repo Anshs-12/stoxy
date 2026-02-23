@@ -1,37 +1,34 @@
 package com.stockChecker.live_stock_checker.service;
 
 import com.fasterxml.jackson.core.JsonProcessingException;
+import com.stockChecker.live_stock_checker.Specification.StockScreenerSpec;
 import com.stockChecker.live_stock_checker.model.Stock;
 import com.stockChecker.live_stock_checker.payload.MarketStatusResponse;
-import com.stockChecker.live_stock_checker.payload.StockPayload.StockDetailResponseDTO;
-import com.stockChecker.live_stock_checker.payload.StockPayload.StockResponse;
-import com.stockChecker.live_stock_checker.payload.StockPayload.StockSearchResponseDTO;
+import com.stockChecker.live_stock_checker.payload.StockPayload.*;
 import com.stockChecker.live_stock_checker.repository.StockRepository;
+import lombok.RequiredArgsConstructor;
 import org.modelmapper.ModelMapper;
-import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.data.domain.Page;
 import org.springframework.data.domain.PageRequest;
 import org.springframework.data.domain.Pageable;
 import org.springframework.data.domain.Sort;
+import org.springframework.data.jpa.domain.Specification;
 import org.springframework.stereotype.Service;
 
 import java.util.List;
 
 
 @Service
+@RequiredArgsConstructor
 public class StockServiceImpl implements StockService {
 
-    @Autowired
-    private StockRepository stockRepository;
+    private final StockRepository stockRepository;
 
-    @Autowired
-    private ModelMapper modelMapper;
+    private final ModelMapper modelMapper;
 
-    @Autowired
-    private MarketStatusService marketStatusService;
+    private final MarketStatusService marketStatusService;
 
-    @Autowired
-    private StockCacheService stockCacheService;
+    private final StockCacheService stockCacheService;
 
     /*
         entire flow, first checking if the stock exits in database,
@@ -75,5 +72,58 @@ public class StockServiceImpl implements StockService {
         stockResponse.setLast(stockList.isLast());
         stockResponse.setFirst(stockList.isFirst());
         return stockResponse;
+    }
+
+    @Override
+    public StockScreenerDTO searchScreenStocks(Double minPe, Double maxPe, String sector, String industry,
+                                               Integer pageNumber, Integer pageSize, String sortBy, String sortOrder) {
+        // initial spec that returns no predicate (match all)
+        Specification<Stock> spec = (root, query, cb) -> null;
+        if (minPe != null) {
+            spec = spec.and(StockScreenerSpec.hasMinPe(minPe));
+        }
+        if (maxPe != null) {
+            spec = spec.and(StockScreenerSpec.hasMaxPe(maxPe));
+        }
+        if (sector != null && !sector.isBlank()) {
+            spec = spec.and(StockScreenerSpec.hasSector(sector));
+        }
+        if (industry != null && !industry.isBlank()) {
+            spec = spec.and(StockScreenerSpec.hasIndustry(industry));
+        }
+
+        // build pageable + sorting
+        Sort sortAndOrder = sortOrder.equalsIgnoreCase("asc") ? Sort.by(sortBy).ascending() : Sort.by(sortBy).descending();
+        Pageable pageable = PageRequest.of(pageNumber, pageSize, sortAndOrder);
+
+        Page<Stock> pageStockScreenerList = stockRepository.findAll(spec, pageable);
+        List<StockScreenerResponseDTO> stockScreenerResponseDTOList =
+                pageStockScreenerList.getContent()
+                        .stream()
+                        .map((eachStock) -> mapToScreenerDTO(eachStock))
+                        .toList();
+
+        return mapPageDetails(stockScreenerResponseDTOList, pageStockScreenerList);
+    }
+
+    private StockScreenerDTO mapPageDetails(List<StockScreenerResponseDTO> stockScreenerResponseDTOList, Page<Stock> pageStockScreenerList) {
+        StockScreenerDTO StockScreenerDTO = new StockScreenerDTO();
+        StockScreenerDTO.setContent(stockScreenerResponseDTOList);
+        StockScreenerDTO.setPageNumber(pageStockScreenerList.getNumber());
+        StockScreenerDTO.setPageSize(pageStockScreenerList.getSize());
+        StockScreenerDTO.setTotalPages(pageStockScreenerList.getTotalPages());
+        StockScreenerDTO.setTotalElements(pageStockScreenerList.getTotalElements());
+        StockScreenerDTO.setLast(pageStockScreenerList.isLast());
+        StockScreenerDTO.setFirst(pageStockScreenerList.isFirst());
+        return StockScreenerDTO;
+    }
+
+    private StockScreenerResponseDTO mapToScreenerDTO(Stock stock) {
+        StockScreenerResponseDTO stockScreenerResponseDTO = new StockScreenerResponseDTO();
+        stockScreenerResponseDTO.setStockName(stock.getStockName());
+        stockScreenerResponseDTO.setStockSymbol(stock.getStockSymbol());
+        stockScreenerResponseDTO.setCompanyResponseDTO(modelMapper.map(stock.getCompany(), CompanyResponseDTO.class));
+        stockScreenerResponseDTO.setStockFinancialsDTO(modelMapper.map(stock.getStockFinancials(), StockFinancialsDTO.class));
+        return stockScreenerResponseDTO;
     }
 }
