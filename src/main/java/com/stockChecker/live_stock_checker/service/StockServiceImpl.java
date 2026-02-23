@@ -7,6 +7,7 @@ import com.stockChecker.live_stock_checker.payload.MarketStatusResponse;
 import com.stockChecker.live_stock_checker.payload.StockPayload.*;
 import com.stockChecker.live_stock_checker.repository.StockRepository;
 import lombok.RequiredArgsConstructor;
+import lombok.extern.slf4j.Slf4j;
 import org.modelmapper.ModelMapper;
 import org.springframework.data.domain.Page;
 import org.springframework.data.domain.PageRequest;
@@ -20,6 +21,7 @@ import java.util.List;
 
 @Service
 @RequiredArgsConstructor
+@Slf4j
 public class StockServiceImpl implements StockService {
 
     private final StockRepository stockRepository;
@@ -77,6 +79,7 @@ public class StockServiceImpl implements StockService {
     @Override
     public StockScreenerDTO searchScreenStocks(Double minPe, Double maxPe, String sector, String industry,
                                                Integer pageNumber, Integer pageSize, String sortBy, String sortOrder) {
+        log.info("Screening stocks - minPe: {}, maxPe: {}, sector: {}, industry: {}, page: {}, size: {}", minPe, maxPe, sector, industry, pageNumber, pageSize);
         // initial spec that returns no predicate (match all)
         Specification<Stock> spec = (root, query, cb) -> null;
         if (minPe != null) {
@@ -102,7 +105,7 @@ public class StockServiceImpl implements StockService {
                         .stream()
                         .map((eachStock) -> mapToScreenerDTO(eachStock))
                         .toList();
-
+        log.info("Screening complete - totalResults: {}", pageStockScreenerList.getTotalElements());
         return mapPageDetails(stockScreenerResponseDTOList, pageStockScreenerList);
     }
 
