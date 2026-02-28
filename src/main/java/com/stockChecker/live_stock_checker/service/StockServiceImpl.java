@@ -33,8 +33,8 @@ public class StockServiceImpl implements StockService {
     private final StockCacheService stockCacheService;
 
     /*
-        entire flow, first checking if the stock exits in database,
-        if not then we call to save into the Database, and then it returns that stock back.
+        entire flow, first checking if the stock exits in a database,
+        if not, then we call to save into the Database, and then it returns that stock.
     */
 
     @Override
