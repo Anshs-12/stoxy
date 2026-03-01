@@ -38,7 +38,7 @@ public class WebSecurityConfig {
         http.authorizeHttpRequests((eachRequest) -> eachRequest
                 .requestMatchers("/api/v1/stocks/**").permitAll()
                 .requestMatchers("/api/v1/indices/**").permitAll()
-                .requestMatchers("/oauth2/**").permitAll()
+                .requestMatchers("/auth/**").permitAll()
                 .requestMatchers("/login/**").permitAll()
                 .requestMatchers("/swagger-ui/**").permitAll()
                 .requestMatchers("/v3/api-docs/**").permitAll()

@@ -14,7 +14,7 @@ import org.springframework.web.bind.annotation.RequestMapping;
 import org.springframework.web.bind.annotation.RestController;
 
 @RestController
-@RequestMapping("/oauth2")
+@RequestMapping("/auth")
 @RequiredArgsConstructor
 public class AuthController {
 
@@ -26,7 +26,7 @@ public class AuthController {
     private final AuthService authService;
     private final JwtUtils jwtUtils;
 
-    @GetMapping("/user")
+    @GetMapping("/userInfo")
     public ResponseEntity<UserInfoResponseDTO> userInfo() {
         String userEmail =
                 SecurityContextHolder.getContext().getAuthentication().getPrincipal().toString();
