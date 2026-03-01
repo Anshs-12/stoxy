@@ -12,6 +12,22 @@ spring:
     #   refer notes below 1.
     driver-class-name: org.postgresql.Driver
 
+  app:
+    jwtExpirationsMS: 86400000
+    jwtSecretKey: ${jwtSecretKey}
+    jwtCookieName: ${jwtCookieName}
+
+  security:
+    oauth2:
+      client:
+        registration:
+          google:
+            client-id: ${google_auth_clientId}
+            client-secret: ${google_auth_clientSecret}
+            scope:
+              - email
+              - profile
+
   jpa:
     #    show-sql: true # logging to show the queries being executed
     hibernate:
