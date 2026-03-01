@@ -64,3 +64,37 @@ public class WebSecurityConfig {
         return http.build();
     }
 }
+/*
+    ENTIRE FLOW OF THE OAuth2 and JWT :
+
+    User clicks Login with Google button
+    → redirected to Google
+    → Google authenticates user
+    → Google sends code back to your backend (not frontend)
+    → Spring exchanges code for user info automatically
+    → OAuth2SuccessHandler fires → saves user → generates YOUR JWT
+    → JWT sent back in response headers (cookie + Authorization)
+    → frontend stores the JWT
+    → every future request → frontend sends JWT
+    → AuthTokenFilter validates JWT → sets SecurityContext
+    → request reaches controller
+
+
+    No — JavaScript origins are different from redirect URI.
+
+    Redirect URI (`/api/v1/login/oauth2/code/google`) → Google sends the code here → this is your backend.
+    Spring handles it, exchanges code for user info, runs `OAuth2SuccessHandler`, generates JWT.
+
+    After that — you configure in `OAuth2SuccessHandler` where to redirect the user next.
+    Right now you're not redirecting anywhere, just sending JWT in headers.
+
+    In a real app you'd add in `OAuth2SuccessHandler`:
+        response.sendRedirect("http://localhost:3000/dashboard");
+
+
+    Frontend receives the redirect with JWT in the cookie.
+    the user lands on the dashboard page logged in.
+
+    JavaScript origins — just tells Google which domains are allowed to make OAuth requests from browser JavaScript.
+    Not related to redirect flow.
+*/
