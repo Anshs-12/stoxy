@@ -38,12 +38,18 @@ public class OAuth2SuccessHandler implements AuthenticationSuccessHandler {
         String email = oAuth2User.getAttribute("email");
         if (email == null)
             throw new RuntimeException("Email not received!");
+        log.info("OAuth2 login - provider: {}, email: {}", provider, email);
+
         User findUserOrCreate = userRepository.findByUserMailId(email)
                 .orElseGet(() -> saveUserInDB(oAuth2User, provider));
 
+        log.info("User found or created - email: {}", findUserOrCreate.getUserMailId());
 
         String jwtToken = jwtUtils.generateJwtTokenFromEmail(email);
         ResponseCookie jwtTokenCookie = jwtUtils.generateJwtCookieFromEmail(email);
+
+        log.info("JWT generated and sent for email: {}", email);
+
         response.setContentType("application/json");
         response.setStatus(HttpServletResponse.SC_OK);
         response.addHeader("Set-Cookie", jwtTokenCookie.toString());

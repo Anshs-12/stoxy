@@ -42,9 +42,11 @@ public class AuthTokenFilter extends OncePerRequestFilter {
                                 .buildDetails(request)
                 );
                 SecurityContextHolder.getContext().setAuthentication(usernamePasswordAuthenticationToken);
+                log.debug("JWT validated, email set in SecurityContext: {}", email);
             }
         } catch (Exception ex) {
             log.error("Cannot set user authentication: {}", ex.getMessage());
+
         }
 
         filterChain.doFilter(request, response);

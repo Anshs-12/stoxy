@@ -37,6 +37,7 @@ public class JwtUtils {
     // cookie-based JWT
     public String getJwtFromCookie(HttpServletRequest request) {
         Cookie myCookie = WebUtils.getCookie(request, jwtCookieName);
+        log.debug("Fetching JWT from cookie for: {}", request.getRequestURI());
         if (myCookie != null) {
             return myCookie.getValue();
         }
@@ -47,6 +48,7 @@ public class JwtUtils {
     public String getJwtFromHeader(HttpServletRequest request) {
         String bearerToken = request.getHeader("Authorization");
         if (bearerToken != null && bearerToken.startsWith("Bearer ")) {
+            log.debug("Authorization Header: {}", bearerToken);
             return bearerToken.substring(7);
         }
         return null;
@@ -67,6 +69,7 @@ public class JwtUtils {
 
     // generate JwtToken for the user with received email.
     public String generateJwtTokenFromEmail(String email) {
+        log.debug("Generating JWT for email: {}", email);
         return Jwts.builder()
                 .subject(email)
                 .issuedAt(new Date())
