@@ -6,10 +6,10 @@ spring:
     name: live-stock-checker
   # database
   datasource:
-    url: jdbc:postgresql://localhost:5432/stoxy
-    username: postgres
-    password: 2004
-    #   refer notes below 1.
+    url: ${database_url}
+    username: ${database_username}
+    password: ${database_password}
+    #   refer to notes below 1.
     driver-class-name: org.postgresql.Driver
 
   app:
@@ -32,15 +32,15 @@ spring:
     #    show-sql: true # logging to show the queries being executed
     hibernate:
       # with this, the database isn't created each time but rather the changes are updated.
-      # refer notes 2.
+      # refer to notes 2.
       ddl-auto: update
     properties:
       hibernate:
-    #        format_sql: true # make the executed sql queries in a proper format when logging
+    #        format_sql: true # make the executed SQL queries in a proper format when logging
     #   refer notes 3.
     database-platform: org.hibernate.dialect.PostgreSQLDialect
     # byDefault Spring keeps the database connection alive for the entire during of webRequests
-    # even when database is not required anymore, wastes connections and performance issues
+    # even when a database is not required anymore, wastes connections and performance issues
     # setting it to false means DB connection is only held during database operations.
     open-in-view: false
 
@@ -54,11 +54,11 @@ server:
 # Notes:
 #  1.driver-class-name:
 #     Every database has a JDBC driver that allows Java programs to communicate with it.
-#     driver-class-name tells Spring Boot which driver to load to connect to your database.
+#     driver-class-name tells Spring Boot, which driver is to load to connect to your database.
 #     For PostgreSQL: org.postgresql.Driver → official PostgreSQL JDBC driver class.
 #     For MySQL: com.mysql.cj.jdbc.Driver, etc.
-#     Spring Boot must know which driver to use to open a connection, if we have multiple databases.
-#     here we explicitly mention to avoid ambiguity and errors overtime otherwise
+#     Spring Boot must know which driver to use to open a connection if we have multiple databases.
+#     here we explicitly mention it to avoid ambiguity and errors overtime otherwise
 #     Sometimes Spring Boot auto-detects the driver if you have only one DB dependency.
 
 #  2.jpa.hibernate.ddl-auto
@@ -68,7 +68,7 @@ server:
 #        validate → check if DB schema matches entities (no changes made)
 #        update → update DB schema to match entities without dropping data
 #        create → drop tables if exist and create new ones
-#        create-drop → same as create, but drops tables when session ends
+#        create-drop → same as create, but drops tables when the session ends
 
 #      Why it’s needed:
 #      Hibernate maps your Java entities to database tables.
@@ -86,7 +86,7 @@ server:
 #      Handles types like BOOLEAN, SERIAL, TEXT, etc.
 #      Knows how to paginate, limit, handle sequences, etc.
 
-#      Why it’s needed:
+#      Why it’s necessary:
 #      Hibernate is database-agnostic, but it must translate Java types to DB types.
 #      Dialect ensures generated SQL is valid for your chosen database.
 #      Without it, Hibernate might produce SQL that PostgreSQL cannot understand.
