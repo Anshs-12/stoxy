@@ -25,7 +25,7 @@ public class AuthEntryPoint implements AuthenticationEntryPoint {
     public void commence(HttpServletRequest request,
                          HttpServletResponse response,
                          AuthenticationException authException) throws IOException, ServletException {
-        log.error("UnAuthorized Error : {}", authException.getMessage());
+        log.warn("Unauthorized request - path: {}, reason: {}", request.getServletPath(), authException.getMessage());
         generateErrorResponseDTO(request, response, authException);
     }
 
@@ -36,7 +36,7 @@ public class AuthEntryPoint implements AuthenticationEntryPoint {
         response.setStatus(HttpServletResponse.SC_UNAUTHORIZED);
         APIResponse apiResponse = APIResponse.builder()
                 .success(false)
-                .message("UnAuthorized")
+                .message("UnAuthorized Request")
                 .error(ErrorCode.UNAUTHORIZED)
                 .path(request.getServletPath())
                 .build();

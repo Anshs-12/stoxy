@@ -111,13 +111,13 @@ public class JwtUtils {
                     .parseSignedClaims(authToken);
             return true;
         } catch (MalformedJwtException e) {
-            log.error("Invalid JWT Token: {}", e.getMessage());
+            log.warn("Invalid JWT Token: {}", e.getMessage());
         } catch (ExpiredJwtException e) {
-            log.error("JWT Token is Expired: {}", e.getMessage());
+            log.warn("JWT Token is Expired: {}", e.getMessage());
         } catch (UnsupportedJwtException e) {
-            log.error("JWT Token is unsupported: {}", e.getMessage());
+            log.warn("JWT Token is unsupported: {}", e.getMessage());
         } catch (IllegalArgumentException e) {
-            log.error("JWT claims String is empty: {}", e.getMessage());
+            log.warn("JWT claims String is empty: {}", e.getMessage());
         }
         return false;
     }
