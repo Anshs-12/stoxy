@@ -2,7 +2,8 @@ package com.stockChecker.live_stock_checker.security;
 
 import com.fasterxml.jackson.databind.ObjectMapper;
 import com.github.benmanes.caffeine.cache.Caffeine;
-import com.stockChecker.live_stock_checker.payload.RateLimitResponseDTO;
+import com.stockChecker.live_stock_checker.payload.APIResponse;
+import com.stockChecker.live_stock_checker.payload.ErrorCode;
 import io.github.bucket4j.Bandwidth;
 import io.github.bucket4j.Bucket;
 import io.github.bucket4j.BucketConfiguration;
@@ -19,6 +20,7 @@ import org.springframework.web.filter.OncePerRequestFilter;
 
 import java.io.IOException;
 import java.time.Duration;
+import java.time.LocalDateTime;
 
 @Slf4j
 public class RateLimitFilter extends OncePerRequestFilter {
@@ -83,13 +85,14 @@ public class RateLimitFilter extends OncePerRequestFilter {
         response.setContentType(MediaType.APPLICATION_JSON_VALUE);
         response.setStatus(429);
 
-        RateLimitResponseDTO rateLimitResponseDTO = RateLimitResponseDTO.builder()
-                .status(429)
+        APIResponse apiResponse = APIResponse.builder()
+                .success(false)
                 .message("Too Many Requests")
-                .error("Rate limit exceeded. Please slow down.")
+                .error(ErrorCode.RATE_LIMIT_EXCEEDED)
                 .path(request.getServletPath())
+                .time(LocalDateTime.now())
                 .build();
-        objectMapper.writeValue(response.getOutputStream(), rateLimitResponseDTO);
+        objectMapper.writeValue(response.getOutputStream(), apiResponse);
     }
 }
 

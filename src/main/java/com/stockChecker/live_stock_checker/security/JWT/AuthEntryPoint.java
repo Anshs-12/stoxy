@@ -1,7 +1,8 @@
 package com.stockChecker.live_stock_checker.security.JWT;
 
 import com.fasterxml.jackson.databind.ObjectMapper;
-import com.stockChecker.live_stock_checker.payload.AuthEntryPointResponseDTO;
+import com.stockChecker.live_stock_checker.payload.APIResponse;
+import com.stockChecker.live_stock_checker.payload.ErrorCode;
 import jakarta.servlet.ServletException;
 import jakarta.servlet.http.HttpServletRequest;
 import jakarta.servlet.http.HttpServletResponse;
@@ -12,6 +13,7 @@ import org.springframework.security.web.AuthenticationEntryPoint;
 import org.springframework.stereotype.Component;
 
 import java.io.IOException;
+import java.time.LocalDateTime;
 
 @Component
 @Slf4j
@@ -25,22 +27,23 @@ public class AuthEntryPoint implements AuthenticationEntryPoint {
                          HttpServletResponse response,
                          AuthenticationException authException) throws IOException, ServletException {
         log.error("UnAuthorized Error : {}", authException.getMessage());
-        generateAuthEntryPointResponse(request, response, authException);
+        generateErrorResponseDTO(request, response, authException);
     }
 
-    public void generateAuthEntryPointResponse(HttpServletRequest request,
-                                               HttpServletResponse response,
-                                               AuthenticationException authException) throws IOException {
+    public void generateErrorResponseDTO(HttpServletRequest request,
+                                         HttpServletResponse response,
+                                         AuthenticationException authException) throws IOException {
         response.setContentType(MediaType.APPLICATION_JSON_VALUE);
         response.setStatus(HttpServletResponse.SC_UNAUTHORIZED);
-        AuthEntryPointResponseDTO authEntryPointResponseDTO = AuthEntryPointResponseDTO.builder()
-                .status(401)
+        APIResponse apiResponse = APIResponse.builder()
+                .success(false)
                 .message("UnAuthorized")
-                .error(authException.getMessage())
+                .error(ErrorCode.UNAUTHORIZED)
                 .path(request.getServletPath())
+                .time(LocalDateTime.now())
                 .build();
 
 
-        objectMapper.writeValue(response.getOutputStream(), authEntryPointResponseDTO);
+        objectMapper.writeValue(response.getOutputStream(), apiResponse);
     }
 }
