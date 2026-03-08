@@ -13,7 +13,6 @@ import org.springframework.security.web.AuthenticationEntryPoint;
 import org.springframework.stereotype.Component;
 
 import java.io.IOException;
-import java.time.LocalDateTime;
 
 @Component
 @Slf4j
@@ -40,7 +39,6 @@ public class AuthEntryPoint implements AuthenticationEntryPoint {
                 .message("UnAuthorized")
                 .error(ErrorCode.UNAUTHORIZED)
                 .path(request.getServletPath())
-                .time(LocalDateTime.now())
                 .build();
 
 

@@ -20,7 +20,6 @@ import org.springframework.web.filter.OncePerRequestFilter;
 
 import java.io.IOException;
 import java.time.Duration;
-import java.time.LocalDateTime;
 
 @Slf4j
 public class RateLimitFilter extends OncePerRequestFilter {
@@ -90,7 +89,6 @@ public class RateLimitFilter extends OncePerRequestFilter {
                 .message("Too Many Requests")
                 .error(ErrorCode.RATE_LIMIT_EXCEEDED)
                 .path(request.getServletPath())
-                .time(LocalDateTime.now())
                 .build();
         objectMapper.writeValue(response.getOutputStream(), apiResponse);
     }
