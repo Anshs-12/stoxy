@@ -110,7 +110,7 @@
             <scope>test</scope>
         </dependency>
 
-        <!--   oAuth2 Security Dependencies    -->
+        <!--   OAuth2 Security Dependencies    -->
 
         <dependency>
             <groupId>org.springframework.boot</groupId>
@@ -148,6 +148,19 @@
             <groupId>me.paulschwarz</groupId>
             <artifactId>spring-dotenv</artifactId>
             <version>4.0.0</version>
+        </dependency>
+
+        <!--   Bucket4J dependencies     -->
+        <dependency>
+            <groupId>com.bucket4j</groupId>
+            <artifactId>bucket4j_jdk17-core</artifactId>
+            <version>8.16.1</version>
+        </dependency>
+
+        <dependency>
+            <groupId>com.bucket4j</groupId>
+            <artifactId>bucket4j_jdk17-caffeine</artifactId>
+            <version>8.16.1</version>
         </dependency>
 
     </dependencies>
