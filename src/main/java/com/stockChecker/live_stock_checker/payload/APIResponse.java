@@ -1,5 +1,6 @@
 package com.stockChecker.live_stock_checker.payload;
 
+import com.fasterxml.jackson.annotation.JsonInclude;
 import lombok.AllArgsConstructor;
 import lombok.Builder;
 import lombok.Data;
@@ -11,7 +12,7 @@ import java.time.LocalDateTime;
 @AllArgsConstructor
 @NoArgsConstructor
 @Builder
-
+@JsonInclude(JsonInclude.Include.NON_NULL) // this tells Jackson to skip null fields entirely when serializing.
 public class APIResponse {
     Boolean success;
     ErrorCode error;
