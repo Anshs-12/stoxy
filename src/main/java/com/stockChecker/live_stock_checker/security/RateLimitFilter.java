@@ -73,6 +73,7 @@ public class RateLimitFilter extends OncePerRequestFilter {
             if (generalBucket.tryConsume(1)) {
                 filterChain.doFilter(request, response);
             } else {
+                log.warn("Rate limit exceeded - IP: {}, path: {}", ipAddress, requestURI);
                 sendRateLimitResponse(request, response);
             }
         }
@@ -90,6 +91,7 @@ public class RateLimitFilter extends OncePerRequestFilter {
                 .error(ErrorCode.RATE_LIMIT_EXCEEDED)
                 .path(request.getServletPath())
                 .build();
+
         objectMapper.writeValue(response.getOutputStream(), apiResponse);
     }
 }
