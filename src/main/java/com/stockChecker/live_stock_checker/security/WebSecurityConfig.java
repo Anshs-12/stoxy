@@ -36,8 +36,8 @@ public class WebSecurityConfig {
         http.csrf((eachCheck) -> eachCheck.disable());
 
         http.authorizeHttpRequests((eachRequest) -> eachRequest
-                .requestMatchers("/api/v1/stocks/**").permitAll()
-                .requestMatchers("/api/v1/indices/**").permitAll()
+                .requestMatchers("/stocks/**").permitAll()
+                .requestMatchers("/indices/**").permitAll()
                 .requestMatchers("/auth/**").permitAll()
                 .requestMatchers("/login/**").permitAll()
                 .requestMatchers("/swagger-ui/**").permitAll()
