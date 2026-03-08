@@ -11,6 +11,7 @@ import com.stockChecker.live_stock_checker.payload.IndexPayload.IndexMetadataDTO
 import com.stockChecker.live_stock_checker.payload.IndexPayload.IndexPriceInfoDTO;
 import com.stockChecker.live_stock_checker.payload.MarketStatusResponse;
 import com.stockChecker.live_stock_checker.repository.IndexRepository;
+import lombok.extern.slf4j.Slf4j;
 import org.modelmapper.ModelMapper;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.cache.annotation.Cacheable;
@@ -21,6 +22,7 @@ import org.springframework.web.reactive.function.client.WebClient;
 import java.math.BigDecimal;
 
 @Service
+@Slf4j
 public class IndexServiceImpl implements IndexService {
 
     @Autowired
@@ -88,7 +90,7 @@ public class IndexServiceImpl implements IndexService {
     @Override
     public IndexDetailResponseDTO getIndexBySymbol(String indexSymbol) throws JsonProcessingException {
         MarketStatusResponse response = marketStatusService.isMarketOpen();
-
+        log.info("Fetching index - symbol: {}, marketOpen: {}", indexSymbol, response.getIsOpen());
         if (response.getIsOpen()) {
             return indexCacheService.getIndexLive(indexSymbol);
         }
