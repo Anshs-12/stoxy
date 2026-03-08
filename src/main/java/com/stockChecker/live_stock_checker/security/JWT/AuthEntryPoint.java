@@ -1,6 +1,7 @@
 package com.stockChecker.live_stock_checker.security.JWT;
 
 import com.fasterxml.jackson.databind.ObjectMapper;
+import com.stockChecker.live_stock_checker.payload.AuthEntryPointResponseDTO;
 import jakarta.servlet.ServletException;
 import jakarta.servlet.http.HttpServletRequest;
 import jakarta.servlet.http.HttpServletResponse;
@@ -11,12 +12,12 @@ import org.springframework.security.web.AuthenticationEntryPoint;
 import org.springframework.stereotype.Component;
 
 import java.io.IOException;
-import java.util.HashMap;
-import java.util.Map;
 
 @Component
 @Slf4j
 public class AuthEntryPoint implements AuthenticationEntryPoint {
+
+    private final ObjectMapper objectMapper = new ObjectMapper();
 
     // this class basically is for catching the unAuthorized requests and send back a error response
     @Override
@@ -24,16 +25,22 @@ public class AuthEntryPoint implements AuthenticationEntryPoint {
                          HttpServletResponse response,
                          AuthenticationException authException) throws IOException, ServletException {
         log.error("UnAuthorized Error : {}", authException.getMessage());
+        generateAuthEntryPointResponse(request, response, authException);
+    }
+
+    public void generateAuthEntryPointResponse(HttpServletRequest request,
+                                               HttpServletResponse response,
+                                               AuthenticationException authException) throws IOException {
         response.setContentType(MediaType.APPLICATION_JSON_VALUE);
         response.setStatus(HttpServletResponse.SC_UNAUTHORIZED);
+        AuthEntryPointResponseDTO authEntryPointResponseDTO = AuthEntryPointResponseDTO.builder()
+                .status(401)
+                .message("UnAuthorized")
+                .error(authException.getMessage())
+                .path(request.getServletPath())
+                .build();
 
-        final Map<String, Object> body = new HashMap<>();
-        body.put("status", HttpServletResponse.SC_UNAUTHORIZED);
-        body.put("message", "UnAuthorized");
-        body.put("error", authException.getMessage());
-        body.put("path", request.getServletPath());
 
-        final ObjectMapper mapper = new ObjectMapper();
-        mapper.writeValue(response.getOutputStream(), body);
+        objectMapper.writeValue(response.getOutputStream(), authEntryPointResponseDTO);
     }
 }
