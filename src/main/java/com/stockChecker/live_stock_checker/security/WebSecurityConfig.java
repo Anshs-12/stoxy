@@ -30,6 +30,11 @@ public class WebSecurityConfig {
     }
 
     @Bean
+    public RateLimitFilter rateLimitFilter() {
+        return new RateLimitFilter();
+    }
+
+    @Bean
     public SecurityFilterChain securityFilterChain(HttpSecurity http) throws Exception {
 
         // csrf disabling
@@ -59,7 +64,7 @@ public class WebSecurityConfig {
                 .loginPage("/oauth2/authorization/google")
         );
 
-
+        http.addFilterBefore(rateLimitFilter(), UsernamePasswordAuthenticationFilter.class);
         http.addFilterBefore(authTokenFilter(), UsernamePasswordAuthenticationFilter.class);
         return http.build();
     }
@@ -98,3 +103,33 @@ public class WebSecurityConfig {
     JavaScript origins — just tells Google which domains are allowed to make OAuth requests from browser JavaScript.
     Not related to redirect flow.
 */
+
+// When the spring boot application starts, spring sees the configuration class and
+// creates and stores all the @Bean inside its context.
+// Now whichever method or parameter or object requires it, it injects it in the place
+// like here spring creates and injects the authRateLimitCache, generalRateLimitCache
+    /*
+        What if parameter names were different?
+
+        Example:
+
+        @Bean
+        public RateLimitFilter rateLimitFilter(
+                Cache<String, Bucket> a,
+                Cache<String, Bucket> b
+        )
+
+        Now Spring cannot match names.
+
+        Then you must use:
+
+        @Qualifier
+
+        like:
+
+        @Bean
+        public RateLimitFilter rateLimitFilter(
+                @Qualifier("authRateLimitCache") Cache<String, Bucket> a,
+                @Qualifier("generalRateLimitCache") Cache<String, Bucket> b
+        )
+    */
