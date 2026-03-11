@@ -54,6 +54,7 @@ public class OAuth2SuccessHandler implements AuthenticationSuccessHandler {
         response.setStatus(HttpServletResponse.SC_OK);
         response.addHeader("Set-Cookie", jwtTokenCookie.toString());
         response.addHeader("Authorization", "Bearer " + jwtToken);
+        response.sendRedirect("/swagger-ui/index.html");
 
     }
 
