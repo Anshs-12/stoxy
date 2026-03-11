@@ -16,7 +16,7 @@ import java.util.List;
 @NoArgsConstructor
 @Builder
 @Table(name = "watchlist_table")
-public class WatchList {
+public class Watchlist {
 
     @GeneratedValue(strategy = GenerationType.IDENTITY)
     @Id
@@ -31,7 +31,7 @@ public class WatchList {
     private User user;
 
     @OneToMany(mappedBy = "watchList")
-    private List<WatchListStock> watchListStockList;
+    private List<WatchlistStock> watchlist;
 
 }
 

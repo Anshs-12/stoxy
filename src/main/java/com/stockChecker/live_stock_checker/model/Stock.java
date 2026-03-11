@@ -41,6 +41,6 @@ public class Stock {
     private StockFinancials stockFinancials;
 
 //    @OneToMany(mappedBy = "stock")
-//    private List<WatchListStock> watchListStock;
-//    The above relationship is optional in StockEntity as we would never stock.getWatchListStockList().
+//    private List<WatchlistStock> watchListStock;
+//    The above relationship is optional in StockEntity as we would never stock.getWatchlist().
 }

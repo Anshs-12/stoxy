@@ -15,14 +15,14 @@ import java.time.LocalDateTime;
 @NoArgsConstructor
 @Builder
 @Table(name = "watchlistStock_table")
-public class WatchListStock {
+public class WatchlistStock {
 
     @Id
     @GeneratedValue(strategy = GenerationType.IDENTITY)
     private Long id;
 
     @ManyToOne
-    private WatchList watchList;
+    private Watchlist watchList;
 
     @ManyToOne
     private Stock stock;
