@@ -1,10 +1,7 @@
 package com.stockChecker.live_stock_checker.controller;
 
 import com.stockChecker.live_stock_checker.config.AuthUtils;
-import com.stockChecker.live_stock_checker.payload.WatchlistPayload.CreateWatchRequestDTO;
-import com.stockChecker.live_stock_checker.payload.WatchlistPayload.WatchlistResponseDTO;
-import com.stockChecker.live_stock_checker.payload.WatchlistPayload.WatchlistSummaryDTO;
-import com.stockChecker.live_stock_checker.repository.StockRepository;
+import com.stockChecker.live_stock_checker.payload.WatchlistPayload.*;
 import com.stockChecker.live_stock_checker.service.WatchlistService;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
@@ -29,15 +26,29 @@ public class WatchlistController {
     public ResponseEntity<WatchlistResponseDTO> createWatchlist(
             @RequestBody CreateWatchRequestDTO createWatchRequestDTO
     ) {
-        String userEmail = authUtils.getLoggedInUserEmail();
+        String userEmail = getEmail();
         WatchlistResponseDTO watchlistResponseDTO = watchlistService.createWatchlist(userEmail, createWatchRequestDTO);
         return new ResponseEntity<>(watchlistResponseDTO, HttpStatus.CREATED);
     }
 
     @GetMapping("/")
     public ResponseEntity<List<WatchlistSummaryDTO>> getAllWatchlists() {
-        String userEmail = authUtils.getLoggedInUserEmail();
+        String userEmail = getEmail();
         List<WatchlistSummaryDTO> allWatchlists = watchlistService.getAllWatchlists(userEmail);
         return new ResponseEntity<>(allWatchlists, HttpStatus.OK);
+    }
+
+    @PostMapping("/{watchlistId}/stocks")
+    public ResponseEntity<WatchlistStockResponseDTO> addStockToWatchlist(
+            @PathVariable Long watchlistId, @RequestBody AddStockRequestDTO addStockRequestDTO) {
+        String userEmail = getEmail();
+        WatchlistStockResponseDTO watchlistStockResponseDTO =
+                watchlistService.addStockToWatchlist(userEmail, watchlistId, addStockRequestDTO);
+        return new ResponseEntity<>(watchlistStockResponseDTO, HttpStatus.OK);
+    }
+
+    private String getEmail() {
+        return authUtils.getLoggedInUserEmail();
+
     }
 }

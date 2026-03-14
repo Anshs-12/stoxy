@@ -2,14 +2,18 @@ package com.stockChecker.live_stock_checker.service;
 
 import com.stockChecker.live_stock_checker.config.AuthUtils;
 import com.stockChecker.live_stock_checker.exceptions.ResourceExistsException;
+import com.stockChecker.live_stock_checker.exceptions.ResourceNotFoundException;
+import com.stockChecker.live_stock_checker.exceptions.StockNotFoundException;
+import com.stockChecker.live_stock_checker.mapper.WatchlistStockMapper;
 import com.stockChecker.live_stock_checker.mapper.WatchlistSummaryMapper;
+import com.stockChecker.live_stock_checker.model.Stock;
 import com.stockChecker.live_stock_checker.model.User;
 import com.stockChecker.live_stock_checker.model.Watchlist;
-import com.stockChecker.live_stock_checker.payload.WatchlistPayload.CreateWatchRequestDTO;
-import com.stockChecker.live_stock_checker.payload.WatchlistPayload.WatchlistResponseDTO;
-import com.stockChecker.live_stock_checker.payload.WatchlistPayload.WatchlistStockResponseDTO;
-import com.stockChecker.live_stock_checker.payload.WatchlistPayload.WatchlistSummaryDTO;
+import com.stockChecker.live_stock_checker.model.WatchlistStock;
+import com.stockChecker.live_stock_checker.payload.WatchlistPayload.*;
+import com.stockChecker.live_stock_checker.repository.StockRepository;
 import com.stockChecker.live_stock_checker.repository.WatchlistRepository;
+import com.stockChecker.live_stock_checker.repository.WatchlistStockRepository;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.stereotype.Service;
@@ -26,9 +30,17 @@ public class WatchlistStockServiceImpl implements WatchlistService {
 
     private final WatchlistRepository watchlistRepository;
 
+    private final WatchlistStockRepository watchlistStockRepository;
+
     private final AuthUtils authUtils;
 
     private final WatchlistSummaryMapper watchlistSummaryMapper;
+
+    private final StockRepository stockRepository;
+
+    private final StockService stockService;
+
+    private final WatchlistStockMapper watchlistStockMapper;
 
     // creating a new Watchlist
     public WatchlistResponseDTO createWatchlist(String userEmail, CreateWatchRequestDTO createWatchRequestDTO) {
@@ -81,5 +93,33 @@ public class WatchlistStockServiceImpl implements WatchlistService {
 
         return watchlistSummaryMapper.toSummaryDTOList(watchlistList);
 
+    }
+
+    @Override
+    public WatchlistStockResponseDTO addStockToWatchlist(String userEmail, Long watchlistId, AddStockRequestDTO addStockRequestDTO) {
+
+        Stock stock = stockRepository.findByStockSymbol(addStockRequestDTO.getStockSymbol())
+                .orElseThrow(() -> new StockNotFoundException("Stock not found: " + addStockRequestDTO.getStockSymbol()));
+
+        Watchlist watchlist = watchlistRepository.findById(watchlistId)
+                .orElseThrow(() -> new ResourceNotFoundException("Watchlist not found"));
+
+        if (watchlistStockRepository.existsByWatchListAndStock(watchlist, stock)) {
+            throw new ResourceExistsException("Stock already exists in the specified watchlist");
+        }
+
+
+        if (!watchlist.getUser().getUserMailId().equals(userEmail)) {
+            throw new ResourceNotFoundException("Watchlist not found");
+        }
+
+        WatchlistStock newWatchlistStock = WatchlistStock.builder()
+                .watchList(watchlist)
+                .stock(stock)
+                .priceAddedAt(stockService.getStockBySymbol(addStockRequestDTO.getStockSymbol()).getStockPriceInfoDTO().getLastPrice())
+                .addedAt(LocalDateTime.now())
+                .build();
+        watchlistStockRepository.save(newWatchlistStock);
+        return watchlistStockMapper.toWatchlistStockResponseDTO(newWatchlistStock);
     }
 }
