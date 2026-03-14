@@ -14,6 +14,7 @@ import java.time.LocalDateTime;
 @Builder
 
 public class WatchlistStockResponseDTO {
+    // lightWeight stock response object which would be sent when a watchlist is requested, instead of the entire stockObject!
     String stockName;
     String stockSymbol;
     BigDecimal priceAddedAt;
