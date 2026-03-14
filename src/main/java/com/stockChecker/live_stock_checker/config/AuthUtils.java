@@ -6,6 +6,7 @@ import com.stockChecker.live_stock_checker.repository.UserRepository;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.context.annotation.Configuration;
+import org.springframework.security.core.context.SecurityContextHolder;
 
 @Configuration
 @Slf4j
@@ -18,5 +19,13 @@ public class AuthUtils {
     public User getloggedInUser(String userEmail) {
         return userRepository.findByUserMailId(userEmail)
                 .orElseThrow(() -> new ResourceNotFoundException("User not found with emailId: " + userEmail));
+    }
+
+    public String getLoggedInUserEmail() {
+        return SecurityContextHolder
+                .getContext()
+                .getAuthentication()
+                .getPrincipal()
+                .toString();
     }
 }
