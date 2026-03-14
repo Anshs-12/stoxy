@@ -43,7 +43,7 @@ public class StockCacheService {
             condition = "#stockSymbol !=null",
             unless = "#result == null"
     )
-    public StockDetailResponseDTO getStockLive(String stockSymbol) throws JsonProcessingException {
+    public StockDetailResponseDTO getStockLive(String stockSymbol) {
         log.info("Fetching LIVE stock data for: {}", stockSymbol);
         return fetchCompleteStockData(stockSymbol);
     }
@@ -55,7 +55,7 @@ public class StockCacheService {
             condition = "#stockSymbol !=null",
             unless = "#result == null"
     )
-    public StockDetailResponseDTO getStockWeekdayClosed(String stockSymbol) throws JsonProcessingException {
+    public StockDetailResponseDTO getStockWeekdayClosed(String stockSymbol) {
         log.info("Fetching WEEKDAY CLOSED stock data for: {}", stockSymbol);
         return fetchCompleteStockData(stockSymbol);
     }
@@ -67,16 +67,21 @@ public class StockCacheService {
             condition = "#stockSymbol !=null",
             unless = "#result == null"
     )
-    public StockDetailResponseDTO getStockWeekendClosed(String stockSymbol) throws JsonProcessingException {
+    public StockDetailResponseDTO getStockWeekendClosed(String stockSymbol) {
         log.info("Fetching WEEKEND CLOSED stock data for: {}", stockSymbol);
         return fetchCompleteStockData(stockSymbol);
     }
 
     @Transactional
-    public StockDetailResponseDTO fetchCompleteStockData(String stockSymbol) throws JsonProcessingException {
+    public StockDetailResponseDTO fetchCompleteStockData(String stockSymbol) {
         log.info("Fetching from API and DB for stock: {}", stockSymbol);
         String jsonResponseString = fetchStockDataFromAPI(stockSymbol);
-        JsonNode rootNode = objectMapper.readTree(jsonResponseString);
+        JsonNode rootNode;
+        try {
+            rootNode = objectMapper.readTree(jsonResponseString);
+        } catch (JsonProcessingException e) {
+            throw new RuntimeException("Failed to parse stock data for: " + stockSymbol, e);
+        }
 
         if (rootNode.has("error") || rootNode.has("message")) {
             throw new StockNotFoundException("Stock not found: " + stockSymbol);
@@ -85,7 +90,7 @@ public class StockCacheService {
         JsonNode infoNode = rootNode.get("info");
         JsonNode priceInfoNode = rootNode.get("priceInfo");
 
-        // finding the stock through database otherwise saving it then.
+        // finding the stock through a database otherwise saving it then.
         Stock stockFound = stockRepository.findByStockSymbol(stockSymbol.toUpperCase())
                 .orElseGet(() -> stockDBService.saveStockInDB(stockSymbol, rootNode, infoNode));
         // Lazy Initialization - object creation delayed until first access
@@ -163,10 +168,10 @@ public class StockCacheService {
 //====================================================================================
 
 /*
-    checking if the stock is valid or not as both invalid and valid response's have 200 status code.
-    Now,to fix this we would manually check if error field exists->throw Exception
+    checking if the stock is valid or not as both invalid and valid response's have 200 status codes.
+    Now, to fix this, we would manually check if the error field exists->throw Exception
 
-    Otherwise,if the "error" field doesn't exist then it's a valid stockSymbol, and we got a valid
+    Otherwise, if the "error" field doesn't exist, then it's a valid stockSymbol, and we got a valid
     realTime stock response.
  */
 
@@ -174,14 +179,14 @@ public class StockCacheService {
 /*
     Understanding Mono<T> in SpringBoot
 
-    So whenever you use a webClient, the output of it is always Mono,which can have different values like
+    So whenever you use a webClient, the output of it is always Mono, which can have different values like
     Mono<String> or Mono<ResponseEntity<String>> so on.
 
-    understand mono to be a container, since webclient is reactive in nature, allowing non-blocking asynchronous
-    calling/execution of requests so the value is empty first which is mono but later on when the response is
-    received, it has to be assigned somewhere again so it gets filled in that mono container which was assigned
+    understand mono to be a container, since the webclient is reactive in nature, allowing non-blocking asynchronous
+    calling/execution of requests, so the value is empty first which is mono, but later on when the response is
+    received, it has to be assigned somewhere again, so it gets filled in that mono container which was assigned
     to our variable.
 
-    Initially, Mono is assigned until the response is received back and as we get so it gets filled by the response
-    basically a container holding/reserving a place for the response to be kept in later when its received.
+    Initially, Mono is assigned until the response is received back, and as we get so, it gets filled by the response
+    basically a container holding/reserving a place for the response to be kept in later when it's received.
 */
