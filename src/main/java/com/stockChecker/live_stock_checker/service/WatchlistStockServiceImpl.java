@@ -53,6 +53,7 @@ public class WatchlistStockServiceImpl implements WatchlistService {
 
         // checking first if the sameName watchlist already exists for the user!
         if (watchlistRepository.existsByNameAndUser(watchlistName, loggedInUser)) {
+            log.warn("Duplicate watchlist name - user: {}, name: {}", userEmail, watchlistName);
             throw new ResourceExistsException("Watchlist with this name already exists!");
         }
 
@@ -63,6 +64,7 @@ public class WatchlistStockServiceImpl implements WatchlistService {
                 .watchlistStockList(new ArrayList<>())
                 .build();
         watchlistRepository.save(newWatchlist);
+        log.info("Watchlist created - user: {}, name: {}", userEmail, watchlistName);
 
 
         List<WatchlistStockResponseDTO> watchlistStockResponseDTOList =
@@ -110,6 +112,7 @@ public class WatchlistStockServiceImpl implements WatchlistService {
                 .orElseThrow(() -> new ResourceNotFoundException("Watchlist not found"));
 
         if (watchlistStockRepository.existsByWatchListAndStock(watchlist, stock)) {
+            log.warn("Duplicate stock in watchlist - watchlistId: {}, symbol: {}", watchlistId, watchlistStockRequestDTO.getStockSymbol());
             throw new ResourceExistsException("Stock already exists in the specified watchlist");
         }
 
@@ -120,6 +123,7 @@ public class WatchlistStockServiceImpl implements WatchlistService {
                 .addedAt(LocalDateTime.now())
                 .build();
         watchlistStockRepository.save(newWatchlistStock);
+        log.info("Stock added to watchlist - watchlistId: {}, symbol: {}", watchlistId, watchlistStockRequestDTO.getStockSymbol());
         return watchlistStockMapper.toWatchlistStockResponseDTO(newWatchlistStock);
     }
 
@@ -131,9 +135,11 @@ public class WatchlistStockServiceImpl implements WatchlistService {
                 .orElseThrow(() -> new ResourceNotFoundException("Watchlist not found"));
 
         if (!watchlistStockRepository.existsByWatchListAndStock_StockSymbol(watchlist, watchlistStockRequestDTO.getStockSymbol())) {
+            log.warn("Stock not found in watchlist - watchlistId: {}, symbol: {}", watchlistId, watchlistStockRequestDTO.getStockSymbol());
             throw new ResourceNotFoundException("Stock not found in this watchlist");
         }
         watchlistStockRepository.deleteByWatchListAndStock_StockSymbol(watchlist, watchlistStockRequestDTO.getStockSymbol());
+        log.info("Stock removed from watchlist - watchlistId: {}, symbol: {}", watchlistId, watchlistStockRequestDTO.getStockSymbol());
     }
 
     @Override
@@ -157,5 +163,6 @@ public class WatchlistStockServiceImpl implements WatchlistService {
         Watchlist watchlist = watchlistRepository.findByIdAndUser_UserMailId(watchlistId, userEmail)
                 .orElseThrow(() -> new ResourceNotFoundException("Watchlist not found"));
         watchlistRepository.delete(watchlist);
+        log.info("Watchlist deleted - user: {}, watchlistId: {}", userEmail, watchlistId);
     }
 }
