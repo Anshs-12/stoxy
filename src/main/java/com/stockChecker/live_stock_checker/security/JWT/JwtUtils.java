@@ -58,10 +58,10 @@ public class JwtUtils {
     public ResponseCookie generateJwtCookieFromEmail(String email) {
         String jwtToken = generateJwtTokenFromEmail(email);
         return ResponseCookie.from(jwtCookieName, jwtToken)
-                .path("/api")
+                .path("/api/v1")
                 .maxAge(259200) // 3-day total cookie expirationTime
                 .httpOnly(true)
-                .sameSite("Strict")
+                .sameSite("Lax")
                 .secure(true)
                 .build();
     }
@@ -92,7 +92,7 @@ public class JwtUtils {
     public ResponseCookie generateCleanJwtCookie() {
         return ResponseCookie
                 .from(jwtCookieName, "")
-                .path("/api")
+                .path("/api/v1")
                 .build();
     }
 

@@ -8,7 +8,7 @@ import org.springframework.http.MediaType;
 import org.springframework.web.client.RestClient;
 
 @Configuration
-public class appConfig {
+public class AppConfig {
 
     @Bean
     public ModelMapper modelMapper() {

@@ -29,4 +29,6 @@ public class User {
     @Enumerated(EnumType.STRING)
     private OAuth2Provider authProvider;
 
+    // here a watchlist object isn't required as we can directly get the watchlists associated
+    // with this user by doing watchlistRepository.findByUser(userObject);
 }

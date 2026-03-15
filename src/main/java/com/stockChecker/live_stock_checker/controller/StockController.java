@@ -1,6 +1,5 @@
 package com.stockChecker.live_stock_checker.controller;
 
-import com.fasterxml.jackson.core.JsonProcessingException;
 import com.stockChecker.live_stock_checker.payload.StockPayload.StockDetailResponseDTO;
 import com.stockChecker.live_stock_checker.payload.StockPayload.StockResponse;
 import com.stockChecker.live_stock_checker.payload.StockPayload.StockScreenerDTO;
@@ -21,7 +20,7 @@ public class StockController {
 
     // search stock
     @GetMapping("/search")
-    // this is when a user tries to search something, eg: "Ta" so it gives paginated result of all the stocks having "Ta".
+    // this is when a user tries to search something, eg: "Ta" so it gives a paginated result of all the stocks having "Ta".
     public ResponseEntity<StockResponse> searchStockByName(
             @RequestParam String query,
             @RequestParam(name = "pageNumber", defaultValue = "0", required = false) Integer pageNumber,
@@ -36,7 +35,7 @@ public class StockController {
 
     // get the entire stock object
     @GetMapping("/search/details/{stockSymbol}")
-    public ResponseEntity<StockDetailResponseDTO> searchStockBySymbol(@PathVariable String stockSymbol) throws JsonProcessingException {
+    public ResponseEntity<StockDetailResponseDTO> searchStockBySymbol(@PathVariable String stockSymbol) {
         log.info("Stock detail request - symbol: {}", stockSymbol);
         StockDetailResponseDTO stockDetailDTO = stockService.getStockBySymbol(stockSymbol);
         return new ResponseEntity<>(stockDetailDTO, HttpStatus.OK);

@@ -1,6 +1,5 @@
 package com.stockChecker.live_stock_checker.service;
 
-import com.fasterxml.jackson.core.JsonProcessingException;
 import com.stockChecker.live_stock_checker.Specification.StockScreenerSpec;
 import com.stockChecker.live_stock_checker.model.Stock;
 import com.stockChecker.live_stock_checker.payload.MarketStatusResponse;
@@ -38,7 +37,7 @@ public class StockServiceImpl implements StockService {
     */
 
     @Override
-    public StockDetailResponseDTO getStockBySymbol(String stockSymbol) throws JsonProcessingException {
+    public StockDetailResponseDTO getStockBySymbol(String stockSymbol) {
         MarketStatusResponse response = marketStatusService.isMarketOpen();
         if (response.getIsOpen()) {
             return stockCacheService.getStockLive(stockSymbol);
@@ -50,7 +49,7 @@ public class StockServiceImpl implements StockService {
     }
 
     @Override
-    // this method needs no caching as it's used for seach bar when a user tries to search a stock name.
+    // this method needs no caching as it's used for search bar when a user tries to search a stock name.
     public StockResponse searchStockByName(String query, Integer pageNumber, Integer pageSize, String sortBy, String sortOrder) {
         // spring data jpa translate's Containing to LIKE %VALUE%
         Sort sortAndOrder = sortOrder.equalsIgnoreCase("asc") ? Sort.by(sortBy).ascending() : Sort.by(sortBy).descending();

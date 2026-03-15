@@ -37,6 +37,10 @@ public class Stock {
     private Company company;
 
     @ToString.Exclude
-    @OneToOne(mappedBy = "stock",cascade = {CascadeType.PERSIST, CascadeType.MERGE},fetch = FetchType.EAGER)
+    @OneToOne(mappedBy = "stock", cascade = {CascadeType.PERSIST, CascadeType.MERGE}, fetch = FetchType.EAGER)
     private StockFinancials stockFinancials;
+
+//    @OneToMany(mappedBy = "stock")
+//    private List<WatchlistStock> watchListStock;
+//    The above relationship is optional in StockEntity as we would never stock.getWatchlist().
 }

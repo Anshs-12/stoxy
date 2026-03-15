@@ -57,7 +57,7 @@ public class GlobalExceptionHandler {
 
     @ExceptionHandler(Exception.class)
     public ResponseEntity<APIResponse> internalServerErrorExceptionHandler(Exception ex, HttpServletRequest request) {
-        log.error("Unexpected error at {} : {}",request.getRequestURI(),ex.getMessage(),ex);
+        log.error("Unexpected error at {} : {}", request.getRequestURI(), ex.getMessage(), ex);
         APIResponse response = APIResponse.builder()
                 .success(false)
                 .error(ErrorCode.INTERNAL_SERVER_ERROR)
@@ -66,5 +66,18 @@ public class GlobalExceptionHandler {
                 .path(request.getRequestURI())
                 .build();
         return new ResponseEntity<>(response, HttpStatus.INTERNAL_SERVER_ERROR);
+    }
+
+    @ExceptionHandler(ResourceExistsException.class)
+    public ResponseEntity<APIResponse> resourceExistsExceptionHandler(ResourceExistsException ex, HttpServletRequest request) {
+        log.warn("Resource found at {} : {}", request.getRequestURI(), ex.getMessage());
+        APIResponse response = APIResponse.builder()
+                .success(false)
+                .error(ErrorCode.RESOURCE_ALREADY_EXISTS)
+                .message(ex.getMessage())
+                .time(ZonedDateTime.now(ZoneId.of("Asia/Kolkata")).toLocalDateTime())
+                .path(request.getRequestURI())
+                .build();
+        return new ResponseEntity<>(response, HttpStatus.CONFLICT);
     }
 }
