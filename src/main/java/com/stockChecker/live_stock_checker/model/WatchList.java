@@ -6,6 +6,7 @@ import lombok.AllArgsConstructor;
 import lombok.Builder;
 import lombok.Data;
 import lombok.NoArgsConstructor;
+import org.springframework.data.repository.cdi.Eager;
 
 import java.time.LocalDateTime;
 import java.util.List;
@@ -30,7 +31,7 @@ public class Watchlist {
     @ManyToOne
     private User user;
 
-    @OneToMany(mappedBy = "watchList")
+    @OneToMany(mappedBy = "watchList",cascade = CascadeType.ALL, orphanRemoval = true)
     private List<WatchlistStock> watchlistStockList;
 
 }
