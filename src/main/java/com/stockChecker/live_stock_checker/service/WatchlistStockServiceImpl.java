@@ -4,6 +4,7 @@ import com.stockChecker.live_stock_checker.config.AuthUtils;
 import com.stockChecker.live_stock_checker.exceptions.ResourceExistsException;
 import com.stockChecker.live_stock_checker.exceptions.ResourceNotFoundException;
 import com.stockChecker.live_stock_checker.exceptions.StockNotFoundException;
+import com.stockChecker.live_stock_checker.mapper.WatchlistResponseMapper;
 import com.stockChecker.live_stock_checker.mapper.WatchlistStockMapper;
 import com.stockChecker.live_stock_checker.mapper.WatchlistSummaryMapper;
 import com.stockChecker.live_stock_checker.model.Stock;
@@ -43,6 +44,8 @@ public class WatchlistStockServiceImpl implements WatchlistService {
 
     private final WatchlistStockMapper watchlistStockMapper;
 
+    private final WatchlistResponseMapper watchlistResponseMapper;
+
     // creating a new Watchlist
     public WatchlistResponseDTO createWatchlist(String userEmail, CreateWatchRequestDTO createWatchRequestDTO) {
         String watchlistName = createWatchRequestDTO.getWatchlistName();
@@ -57,13 +60,13 @@ public class WatchlistStockServiceImpl implements WatchlistService {
                 .name(watchlistName)
                 .createdAt(LocalDateTime.now())
                 .user(loggedInUser)
-                .watchlist(new ArrayList<>())
+                .watchlistStockList(new ArrayList<>())
                 .build();
         watchlistRepository.save(newWatchlist);
 
 
         List<WatchlistStockResponseDTO> watchlistStockResponseDTOList =
-                newWatchlist.getWatchlist()
+                newWatchlist.getWatchlistStockList()
                         .stream()
                         .map((eachObject) -> {
                             WatchlistStockResponseDTO watchlistStockResponseDTO = new WatchlistStockResponseDTO();
@@ -78,7 +81,7 @@ public class WatchlistStockServiceImpl implements WatchlistService {
         WatchlistResponseDTO watchlistResponseDTO = new WatchlistResponseDTO();
         watchlistResponseDTO.setWatchlistName(newWatchlist.getName());
         watchlistResponseDTO.setCreatedAt(newWatchlist.getCreatedAt());
-        watchlistResponseDTO.setWatchlistStockDTO(new ArrayList<>());
+        watchlistResponseDTO.setWatchlistStocks(new ArrayList<>());
         return watchlistResponseDTO;
     }
 
@@ -131,5 +134,20 @@ public class WatchlistStockServiceImpl implements WatchlistService {
             throw new ResourceNotFoundException("Stock not found in this watchlist");
         }
         watchlistStockRepository.deleteByWatchListAndStock_StockSymbol(watchlist, watchlistStockRequestDTO.getStockSymbol());
+    }
+
+    @Override
+    @Transactional
+    public WatchlistResponseDTO getWatchlistById(String userEmail, Long watchlistId) {
+        // retrieving the watchlist user requested.
+        Watchlist watchlist = watchlistRepository.findByIdAndUser_UserMailId(watchlistId, userEmail)
+                .orElseThrow(() -> new ResourceNotFoundException("Watchlist not found"));
+
+        return watchlistResponseMapper.toResponseDTO(watchlist);
+
+        // Transactional annotation is necessary here since we want to load the watchlistStock when fetching watchlist,
+        // so this annotation keeps the connection on until it all things are mapped and used, otherwise the connection
+        // gets closed as the watchlist is retrieved so when Mapper requires watchlistStock for creating the list, it throws
+        // lazy error!
     }
 }

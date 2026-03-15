@@ -14,4 +14,6 @@ public interface WatchlistService {
 
     void deleteStockFromWatchlist(String userEmail, Long watchlistId, WatchlistStockRequestDTO watchlistStockRequestDTO);
 
+    WatchlistResponseDTO getWatchlistById(String userEmail, Long watchlistId);
+
 }

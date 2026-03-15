@@ -56,6 +56,15 @@ public class WatchlistController {
         return ResponseEntity.noContent().build();
     }
 
+    @GetMapping("{watchlistId}")
+    public ResponseEntity<WatchlistResponseDTO> getWatchlistById(
+            @PathVariable Long watchlistId) {
+        String userEmail = getEmail();
+        WatchlistResponseDTO watchlistResponseDTO =
+                watchlistService.getWatchlistById(userEmail, watchlistId);
+        return new ResponseEntity<>(watchlistResponseDTO, HttpStatus.OK);
+    }
+
     private String getEmail() {
         return authUtils.getLoggedInUserEmail();
 
