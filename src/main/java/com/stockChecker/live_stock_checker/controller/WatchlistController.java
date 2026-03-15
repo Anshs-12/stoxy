@@ -65,6 +65,13 @@ public class WatchlistController {
         return new ResponseEntity<>(watchlistResponseDTO, HttpStatus.OK);
     }
 
+    @DeleteMapping("/{watchlistId}")
+    public ResponseEntity<Void> deleteWatchlistById(@PathVariable Long watchlistId) {
+        String userEmail = getEmail();
+        watchlistService.deleteWatchlistById(userEmail, watchlistId);
+        return ResponseEntity.noContent().build();
+    }
+
     private String getEmail() {
         return authUtils.getLoggedInUserEmail();
 

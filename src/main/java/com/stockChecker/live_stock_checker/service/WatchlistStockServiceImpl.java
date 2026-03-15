@@ -150,4 +150,12 @@ public class WatchlistStockServiceImpl implements WatchlistService {
         // gets closed as the watchlist is retrieved so when Mapper requires watchlistStock for creating the list, it throws
         // lazy error!
     }
+
+    @Override
+    @Transactional
+    public void deleteWatchlistById(String userEmail, Long watchlistId) {
+        Watchlist watchlist = watchlistRepository.findByIdAndUser_UserMailId(watchlistId, userEmail)
+                .orElseThrow(() -> new ResourceNotFoundException("Watchlist not found"));
+        watchlistRepository.delete(watchlist);
+    }
 }

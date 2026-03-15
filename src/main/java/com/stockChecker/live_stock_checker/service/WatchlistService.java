@@ -16,4 +16,5 @@ public interface WatchlistService {
 
     WatchlistResponseDTO getWatchlistById(String userEmail, Long watchlistId);
 
+    void deleteWatchlistById(String userEmail, Long watchlistId);
 }
