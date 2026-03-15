@@ -8,6 +8,7 @@ import lombok.NoArgsConstructor;
 @AllArgsConstructor
 @NoArgsConstructor
 
-public class AddStockRequestDTO {
+public class WatchlistStockRequestDTO {
+    // this is for request stockSymbol in addStockToWatchlist or deleteStockFromWatchlist
     private String stockSymbol;
 }
