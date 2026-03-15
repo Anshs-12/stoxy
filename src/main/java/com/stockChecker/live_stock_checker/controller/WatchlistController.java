@@ -40,11 +40,20 @@ public class WatchlistController {
 
     @PostMapping("/{watchlistId}/stocks")
     public ResponseEntity<WatchlistStockResponseDTO> addStockToWatchlist(
-            @PathVariable Long watchlistId, @RequestBody AddStockRequestDTO addStockRequestDTO) {
+            @PathVariable Long watchlistId, @RequestBody WatchlistStockRequestDTO watchlistStockRequestDTO) {
         String userEmail = getEmail();
         WatchlistStockResponseDTO watchlistStockResponseDTO =
-                watchlistService.addStockToWatchlist(userEmail, watchlistId, addStockRequestDTO);
+                watchlistService.addStockToWatchlist(userEmail, watchlistId, watchlistStockRequestDTO);
         return new ResponseEntity<>(watchlistStockResponseDTO, HttpStatus.OK);
+    }
+
+    @DeleteMapping("/{watchlistId}/stocks")
+    public ResponseEntity<Void> deleteStockFromWatchlist(
+            @PathVariable Long watchlistId, @RequestBody WatchlistStockRequestDTO watchlistStockRequestDTO
+    ) {
+        String userEmail = getEmail();
+        watchlistService.deleteStockFromWatchlist(userEmail, watchlistId, watchlistStockRequestDTO);
+        return ResponseEntity.noContent().build();
     }
 
     private String getEmail() {

@@ -14,6 +14,7 @@ import com.stockChecker.live_stock_checker.payload.WatchlistPayload.*;
 import com.stockChecker.live_stock_checker.repository.StockRepository;
 import com.stockChecker.live_stock_checker.repository.WatchlistRepository;
 import com.stockChecker.live_stock_checker.repository.WatchlistStockRepository;
+import jakarta.transaction.Transactional;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.stereotype.Service;
@@ -96,30 +97,39 @@ public class WatchlistStockServiceImpl implements WatchlistService {
     }
 
     @Override
-    public WatchlistStockResponseDTO addStockToWatchlist(String userEmail, Long watchlistId, AddStockRequestDTO addStockRequestDTO) {
+    @Transactional
+    public WatchlistStockResponseDTO addStockToWatchlist(String userEmail, Long watchlistId, WatchlistStockRequestDTO watchlistStockRequestDTO) {
 
-        Stock stock = stockRepository.findByStockSymbol(addStockRequestDTO.getStockSymbol())
-                .orElseThrow(() -> new StockNotFoundException("Stock not found: " + addStockRequestDTO.getStockSymbol()));
+        Stock stock = stockRepository.findByStockSymbol(watchlistStockRequestDTO.getStockSymbol())
+                .orElseThrow(() -> new StockNotFoundException("Stock not found: " + watchlistStockRequestDTO.getStockSymbol()));
 
-        Watchlist watchlist = watchlistRepository.findById(watchlistId)
+        Watchlist watchlist = watchlistRepository.findByIdAndUser_UserMailId(watchlistId, userEmail)
                 .orElseThrow(() -> new ResourceNotFoundException("Watchlist not found"));
 
         if (watchlistStockRepository.existsByWatchListAndStock(watchlist, stock)) {
             throw new ResourceExistsException("Stock already exists in the specified watchlist");
         }
 
-
-        if (!watchlist.getUser().getUserMailId().equals(userEmail)) {
-            throw new ResourceNotFoundException("Watchlist not found");
-        }
-
         WatchlistStock newWatchlistStock = WatchlistStock.builder()
                 .watchList(watchlist)
                 .stock(stock)
-                .priceAddedAt(stockService.getStockBySymbol(addStockRequestDTO.getStockSymbol()).getStockPriceInfoDTO().getLastPrice())
+                .priceAddedAt(stockService.getStockBySymbol(watchlistStockRequestDTO.getStockSymbol()).getStockPriceInfoDTO().getLastPrice())
                 .addedAt(LocalDateTime.now())
                 .build();
         watchlistStockRepository.save(newWatchlistStock);
         return watchlistStockMapper.toWatchlistStockResponseDTO(newWatchlistStock);
+    }
+
+    @Override
+    @Transactional
+    public void deleteStockFromWatchlist(String userEmail, Long watchlistId, WatchlistStockRequestDTO watchlistStockRequestDTO) {
+
+        Watchlist watchlist = watchlistRepository.findByIdAndUser_UserMailId(watchlistId, userEmail)
+                .orElseThrow(() -> new ResourceNotFoundException("Watchlist not found"));
+
+        if (!watchlistStockRepository.existsByWatchListAndStock_StockSymbol(watchlist, watchlistStockRequestDTO.getStockSymbol())) {
+            throw new ResourceNotFoundException("Stock not found in this watchlist");
+        }
+        watchlistStockRepository.deleteByWatchListAndStock_StockSymbol(watchlist, watchlistStockRequestDTO.getStockSymbol());
     }
 }
