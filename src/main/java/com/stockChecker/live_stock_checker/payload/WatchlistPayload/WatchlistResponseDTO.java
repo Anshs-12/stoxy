@@ -16,7 +16,7 @@ import java.util.List;
 public class WatchlistResponseDTO {
     // returns a full watchlist of a user with lightWeight stocks list!
     String watchlistName;
-    List<WatchlistStockResponseDTO> watchlistStockDTO;
+    List<WatchlistStockResponseDTO> watchlistStocks;
     LocalDateTime createdAt;
 
 }

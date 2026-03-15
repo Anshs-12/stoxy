@@ -31,7 +31,7 @@ public class Watchlist {
     private User user;
 
     @OneToMany(mappedBy = "watchList")
-    private List<WatchlistStock> watchlist;
+    private List<WatchlistStock> watchlistStockList;
 
 }
 
