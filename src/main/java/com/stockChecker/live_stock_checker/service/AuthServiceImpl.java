@@ -4,6 +4,7 @@ import com.stockChecker.live_stock_checker.model.User;
 import com.stockChecker.live_stock_checker.payload.UserInfoResponseDTO;
 import com.stockChecker.live_stock_checker.repository.UserRepository;
 import com.stockChecker.live_stock_checker.security.JWT.JwtUtils;
+import jakarta.servlet.http.HttpServletRequest;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.stereotype.Service;
@@ -17,6 +18,8 @@ public class AuthServiceImpl implements AuthService {
 
     private final JwtUtils jwtUtils;
 
+    private final HttpServletRequest request;
+
     @Override
     public UserInfoResponseDTO getUserInfo(String email) {
         User user = userRepository.findByUserMailId(email)
@@ -26,7 +29,7 @@ public class AuthServiceImpl implements AuthService {
                 .userEmailId(user.getUserMailId())
                 .userName(user.getName())
                 .providerType(user.getAuthProvider().toString())
-                .jwtToken(jwtUtils.generateJwtTokenFromEmail(email))
+                .jwtToken(jwtUtils.getJwtFromCookie(request))
                 .build();
     }
 }
