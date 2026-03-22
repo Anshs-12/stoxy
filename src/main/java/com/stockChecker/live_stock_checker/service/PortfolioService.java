@@ -1,10 +1,11 @@
 package com.stockChecker.live_stock_checker.service;
 
-import com.stockChecker.live_stock_checker.payload.PortfolioPayload.BuyStockRequestDTO;
-import com.stockChecker.live_stock_checker.payload.PortfolioPayload.PortfolioResponseDTO;
+import com.stockChecker.live_stock_checker.payload.PortfolioPayload.*;
 
 public interface PortfolioService {
     PortfolioResponseDTO getPortfolio(String userEmail);
 
-    String buyStock(String userEmail, BuyStockRequestDTO buyStockRequestDTO);
+    BuyStockResponseDTO buyStock(String userEmail, BuyStockRequestDTO buyStockRequestDTO);
+
+    SellStockResponseDTO sellStock(String userEmail, SellStockRequestDTO sellStockRequestDTO);
 }

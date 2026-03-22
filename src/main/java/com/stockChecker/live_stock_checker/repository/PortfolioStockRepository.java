@@ -12,4 +12,6 @@ public interface PortfolioStockRepository extends JpaRepository<PortfolioStock, 
     Optional<PortfolioStock> findByPortfolioAndStock_stockSymbol(Portfolio portfolio, String stockSymbol);
 
     boolean existsByPortfolioAndStock_stockSymbol(Portfolio portfolio, String requestedStockSymbol);
+
+    List<PortfolioStock> findByPortfolio(Portfolio portfolio);
 }

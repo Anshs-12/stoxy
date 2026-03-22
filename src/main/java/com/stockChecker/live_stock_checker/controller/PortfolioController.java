@@ -1,9 +1,9 @@
 package com.stockChecker.live_stock_checker.controller;
 
 import com.stockChecker.live_stock_checker.config.AuthUtils;
-import com.stockChecker.live_stock_checker.payload.PortfolioPayload.BuyStockRequestDTO;
-import com.stockChecker.live_stock_checker.payload.PortfolioPayload.PortfolioResponseDTO;
+import com.stockChecker.live_stock_checker.payload.PortfolioPayload.*;
 import com.stockChecker.live_stock_checker.service.PortfolioService;
+import jakarta.validation.Valid;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.http.HttpStatus;
@@ -28,11 +28,18 @@ public class PortfolioController {
     }
 
     @PostMapping("/buyStock")
-    public ResponseEntity<String> buyStock(@RequestBody BuyStockRequestDTO buyStockRequestDTO) {
+    public ResponseEntity<BuyStockResponseDTO> buyStock(@Valid @RequestBody BuyStockRequestDTO buyStockRequestDTO) {
         String userEmail = getUserEmail();
-        String message = portfolioService.buyStock(userEmail, buyStockRequestDTO);
-        return new ResponseEntity<>(message, HttpStatus.OK);
+        BuyStockResponseDTO buyStockResponseDTO = portfolioService.buyStock(userEmail, buyStockRequestDTO);
+        return new ResponseEntity<>(buyStockResponseDTO, HttpStatus.OK);
 
+    }
+
+    @PostMapping("/sellStock")
+    public ResponseEntity<SellStockResponseDTO> sellStock(@Valid @RequestBody SellStockRequestDTO sellStockRequestDTO) {
+        String userEmail = getUserEmail();
+        SellStockResponseDTO sellStockResponseDTO = portfolioService.sellStock(userEmail, sellStockRequestDTO);
+        return new ResponseEntity<>(sellStockResponseDTO, HttpStatus.OK);
     }
 
     private String getUserEmail() {
