@@ -1,21 +1,23 @@
 package com.stockChecker.live_stock_checker.payload.PortfolioPayload;
 
-import jakarta.validation.constraints.Min;
-import jakarta.validation.constraints.NotBlank;
-import jakarta.validation.constraints.NotNull;
 import lombok.AllArgsConstructor;
+import lombok.Builder;
 import lombok.Data;
 import lombok.NoArgsConstructor;
+
+import java.math.BigDecimal;
+import java.time.LocalDateTime;
 
 @Data
 @AllArgsConstructor
 @NoArgsConstructor
-public class SellStockRequestDTO {
+@Builder
 
-    @NotBlank
+public class BuyStockResponseDTO {
+
     private String stockSymbol;
-    @NotNull
-    @Min(1)
+    private BigDecimal price;
     private Integer quantity;
+    private LocalDateTime boughtAt;
 
 }
