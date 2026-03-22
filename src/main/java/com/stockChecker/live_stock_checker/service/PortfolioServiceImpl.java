@@ -18,8 +18,7 @@ import org.springframework.stereotype.Service;
 import java.math.BigDecimal;
 import java.math.RoundingMode;
 import java.time.LocalDateTime;
-import java.util.Objects;
-import java.util.Optional;
+import java.util.*;
 
 @Service
 @RequiredArgsConstructor
@@ -30,14 +29,133 @@ public class PortfolioServiceImpl implements PortfolioService {
     private final PortfolioStockRepository portfolioStockRepository;
     private final PortfolioTransactionRepository portfolioTransactionRepository;
 
-    private final StockCacheService stockCacheService;
+    private final StockService stockService;
 
     private final AuthUtils authUtils;
 
     @Override
+    @Transactional
     public PortfolioResponseDTO getPortfolio(String userEmail) {
-        return null;
+        User user = authUtils.getloggedInUser(userEmail);
+
+        Optional<Portfolio> portfolioExists = portfolioRepository.findByUser(user);
+        if (portfolioExists.isEmpty()) {
+            return demoPortfolio();
+        }
+        Portfolio portfolio = portfolioExists.get();
+
+        BigDecimal totalInvestedValue = BigDecimal.ZERO;
+        BigDecimal totalCurrentValue = BigDecimal.ZERO;
+        BigDecimal totalUnrealizedPnL = BigDecimal.ZERO;
+        BigDecimal totalUnrealizedPnLPercent = BigDecimal.ZERO;
+        BigDecimal totalDayPnL = BigDecimal.ZERO;
+        BigDecimal totalDayPnLPercent = BigDecimal.ZERO;
+
+        List<PortfolioStock> portfolioStocksList = portfolioStockRepository
+                .findByPortfolio(portfolio);
+        List<PortfolioStockResponseDTO> portfolioStockResponseDTOList = new ArrayList<>();
+
+        // map for storing <Sector, totalInvestedInSector>
+        Map<String, BigDecimal> sectorBreakdown = new HashMap<>();
+
+        for (PortfolioStock eachStock : portfolioStocksList) {
+            // getting the entireStock data for each stock
+            StockDetailResponseDTO liveEachStock =
+                    stockService.getStockBySymbol(eachStock.getStock().getStockSymbol());
+
+            PortfolioStockResponseDTO eachPortfolioStockResponseDTO = getPortfolioStockResponse(eachStock, liveEachStock);
+            totalInvestedValue = totalInvestedValue.add(eachPortfolioStockResponseDTO.getInvestedAmount());
+            totalCurrentValue = totalCurrentValue.add(eachPortfolioStockResponseDTO.getCurrentValue());
+            totalUnrealizedPnL = totalUnrealizedPnL.add(eachPortfolioStockResponseDTO.getUnrealizedPnL());
+            totalDayPnL = totalDayPnL.add(eachPortfolioStockResponseDTO.getDayPnL());
+
+            String eachStockSector = liveEachStock.getCompanyResponseDTO() != null
+                    ? liveEachStock.getCompanyResponseDTO().getSector()
+                    : "Unknown";
+            BigDecimal eachStockInvestedAmount = eachPortfolioStockResponseDTO.getInvestedAmount();
+
+
+            sectorBreakdown.put(eachStockSector,
+                    sectorBreakdown.getOrDefault(eachStockSector, BigDecimal.ZERO)
+                            .add(eachStockInvestedAmount));
+
+
+            portfolioStockResponseDTOList.add(eachPortfolioStockResponseDTO);
+        }
+        totalUnrealizedPnLPercent = (totalUnrealizedPnL.divide(totalInvestedValue, 2, RoundingMode.HALF_UP))
+                .multiply(BigDecimal.valueOf(100));
+        totalDayPnLPercent = totalDayPnL.divide(totalInvestedValue, 2, RoundingMode.HALF_UP)
+                .multiply(BigDecimal.valueOf(100));
+
+        // sector wise loop running
+        BigDecimal finalTotalInvestedValue = totalInvestedValue;
+        sectorBreakdown.replaceAll((sector, invested) ->
+                invested.divide(finalTotalInvestedValue, 4, RoundingMode.HALF_UP)
+                        .multiply(BigDecimal.valueOf(100)));
+
+        return PortfolioResponseDTO.builder()
+                .portfolioId(portfolio.getId())
+                .createdAt(portfolio.getCreatedAt())
+                .lastUpdatedAt(LocalDateTime.now())
+                .totalInvestedValue(totalInvestedValue)
+                .totalCurrentValue(totalCurrentValue)
+                .totalUnrealizedPnL(totalUnrealizedPnL)
+                .totalUnrealizedPnLPercent(totalUnrealizedPnLPercent)
+                .totalDayPnL(totalDayPnL)
+                .totalDayPnLPercent(totalDayPnLPercent)
+                .stocks(portfolioStockResponseDTOList)
+                .sectorBreakdown(sectorBreakdown)
+                .build();
     }
+
+    // helper method for getPortfolio() method
+    private PortfolioResponseDTO demoPortfolio() {
+        return PortfolioResponseDTO.builder()
+                .portfolioId(null)
+                .createdAt(LocalDateTime.now())
+                .lastUpdatedAt(LocalDateTime.now())
+                .totalDayPnLPercent(BigDecimal.ZERO)
+                .totalCurrentValue(BigDecimal.ZERO)
+                .totalUnrealizedPnL(BigDecimal.ZERO)
+                .totalUnrealizedPnLPercent(BigDecimal.ZERO)
+                .totalDayPnL(BigDecimal.ZERO)
+                .totalDayPnLPercent(BigDecimal.ZERO)
+                .stocks(new ArrayList<>())
+                .sectorBreakdown(new HashMap<>())
+                .build();
+    }
+
+    // helper method for getPortfolio() method
+    private PortfolioStockResponseDTO getPortfolioStockResponse(PortfolioStock portfolioStock, StockDetailResponseDTO liveStock) {
+
+        BigDecimal avgBuyingPrice = portfolioStock.getAvgBuyPrice();
+        BigDecimal totalQuantity = BigDecimal.valueOf(portfolioStock.getTotalQuantity());
+        BigDecimal investedAmount = avgBuyingPrice.multiply(totalQuantity);
+
+        BigDecimal lastTradedPrice = (liveStock.getStockPriceInfoDTO().getLastPrice());
+        BigDecimal currentValue = lastTradedPrice.multiply(totalQuantity);
+
+        BigDecimal unrealizedPnL = currentValue.subtract(investedAmount);
+        BigDecimal unrealizedPnLPercent = ((currentValue.subtract(investedAmount))
+                .divide(investedAmount, 2, RoundingMode.HALF_UP)).multiply(BigDecimal.valueOf(100));
+        BigDecimal dayPnL = lastTradedPrice.subtract(liveStock.getStockPriceInfoDTO().getPreviousClose())
+                .multiply(totalQuantity);
+
+        return PortfolioStockResponseDTO.builder()
+                .stockName(liveStock.getStockName())
+                .stockSymbol(liveStock.getStockSymbol())
+                .avgBuyingPrice(avgBuyingPrice)
+                .totalQuantity(portfolioStock.getTotalQuantity())
+                .currentValue(currentValue)
+                .investedAmount(investedAmount)
+                .LTP(lastTradedPrice)
+                .unrealizedPnL(unrealizedPnL)
+                .unrealizedPnLPercent(unrealizedPnLPercent)
+                .dayPnL(dayPnL)
+                .dayPnLPercent(liveStock.getStockPriceInfoDTO().getPChange())
+                .build();
+    }
+
 
     @Override
     @Transactional
@@ -60,7 +178,7 @@ public class PortfolioServiceImpl implements PortfolioService {
         Stock stock = stockRepository.findByStockSymbol(requestedStockSymbol)
                 .orElseThrow(() -> new StockNotFoundException("Stock does not exist with stockSymbol: " + requestedStockSymbol));
 
-        StockDetailResponseDTO stockDetailResponseDTO = stockCacheService.getStockLive(requestedStockSymbol);
+        StockDetailResponseDTO stockDetailResponseDTO = stockService.getStockBySymbol(requestedStockSymbol);
 
         // checking if the portfolio already has the stock present so the details get updated!
 
@@ -135,7 +253,7 @@ public class PortfolioServiceImpl implements PortfolioService {
                     "Please reduce the quantity to or below: " + portfolioStock.getTotalQuantity());
         }
 
-        StockDetailResponseDTO liveStock = stockCacheService.getStockLive(requestStockSymbol);
+        StockDetailResponseDTO liveStock = stockService.getStockBySymbol(requestStockSymbol);
 
 
         return executeSellStock(liveStock, sellStockRequestDTO, portfolioStock, portfolio);
