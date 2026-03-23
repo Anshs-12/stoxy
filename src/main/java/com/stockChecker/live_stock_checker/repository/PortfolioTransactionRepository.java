@@ -8,4 +8,6 @@ import java.util.List;
 
 public interface PortfolioTransactionRepository extends JpaRepository<PortfolioTransaction, Long> {
     List<PortfolioTransaction> findByPortfolioAndStockSymbol(Portfolio portfolio, String stockSymbol);
+
+    List<PortfolioTransaction> findByPortfolioOrderByTransactionAtDesc(Portfolio portfolio);
 }

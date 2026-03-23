@@ -268,7 +268,7 @@ public class PortfolioServiceImpl implements PortfolioService {
     // this method gets back the transaction history as per the stock!;
     @Override
     @Transactional
-    public List<TransactionResponseDTO> getTransactionHistory(String userEmail, String stockSymbol) {
+    public List<TransactionResponseDTO> getTransactionsByStock(String userEmail, String stockSymbol) {
 
         User user = authUtils.getloggedInUser(userEmail);
         // checking if the portfolio exists!
@@ -282,6 +282,23 @@ public class PortfolioServiceImpl implements PortfolioService {
             throw new ResourceNotFoundException("Never bought/sold this stock!");
 
         return transactionMapper.toResponseDTOList(transactionsList);
+    }
+
+    @Override
+    @Transactional
+    public List<TransactionResponseDTO> getTransactionHistory(String userEmail) {
+        User user = authUtils.getloggedInUser(userEmail);
+        // checking if the portfolio exists!
+        Portfolio portfolio = portfolioRepository.findByUser(user)
+                .orElseThrow(() -> new ResourceNotFoundException("No portfolio exists for the user!"));
+
+        List<PortfolioTransaction> transactionHistoryList =
+                portfolioTransactionRepository.findByPortfolioOrderByTransactionAtDesc(portfolio);
+        if (transactionHistoryList.isEmpty()) {
+            throw new ResourceNotFoundException("Please buy/sell stocks to generate a transaction history!");
+        }
+
+        return transactionMapper.toResponseDTOList(transactionHistoryList);
     }
 
     private SellStockResponseDTO executeSellStock(StockDetailResponseDTO liveStock,

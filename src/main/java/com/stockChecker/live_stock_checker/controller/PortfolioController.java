@@ -44,11 +44,19 @@ public class PortfolioController {
         return new ResponseEntity<>(sellStockResponseDTO, HttpStatus.OK);
     }
 
+    // returns the user transactional information regarding each stock!
     @GetMapping("/transaction/{stockSymbol}")
     public ResponseEntity<List<TransactionResponseDTO>> getTransactionsByStock(@PathVariable String stockSymbol) {
         String userEmail = getUserEmail();
-        List<TransactionResponseDTO> transactionResponseDTOList = portfolioService.getTransactionHistory(userEmail, stockSymbol);
+        List<TransactionResponseDTO> transactionResponseDTOList = portfolioService.getTransactionsByStock(userEmail, stockSymbol);
         return new ResponseEntity<>(transactionResponseDTOList, HttpStatus.OK);
+    }
+
+    @GetMapping("/transactions")
+    public ResponseEntity<List<TransactionResponseDTO>> getTransactionHistory() {
+        String userEmail = getUserEmail();
+        List<TransactionResponseDTO> transactionHistory = portfolioService.getTransactionHistory(userEmail);
+        return new ResponseEntity<>(transactionHistory, HttpStatus.OK);
     }
 
     private String getUserEmail() {

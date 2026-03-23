@@ -11,5 +11,7 @@ public interface PortfolioService {
 
     SellStockResponseDTO sellStock(String userEmail, SellStockRequestDTO sellStockRequestDTO);
 
-    List<TransactionResponseDTO> getTransactionHistory(String userEmail, String stockSymbol);
+    List<TransactionResponseDTO> getTransactionsByStock(String userEmail, String stockSymbol);
+
+    List<TransactionResponseDTO> getTransactionHistory(String userEmail);
 }
