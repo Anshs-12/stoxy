@@ -39,6 +39,7 @@ public class StockServiceImpl implements StockService {
     @Override
     public StockDetailResponseDTO getStockBySymbol(String stockSymbol) {
         MarketStatusResponse response = marketStatusService.isMarketOpen();
+        stockSymbol = stockSymbol.trim().toUpperCase();
         if (response.getIsOpen()) {
             return stockCacheService.getStockLive(stockSymbol);
         }

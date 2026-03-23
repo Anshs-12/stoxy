@@ -179,7 +179,7 @@ public class PortfolioServiceImpl implements PortfolioService {
                                 .build()));
 
         // getting the stock Object to fill in the details!
-        String requestedStockSymbol = buyStockRequestDTO.getStockSymbol();
+        String requestedStockSymbol = buyStockRequestDTO.getStockSymbol().trim().toUpperCase();
 
         Stock stock = stockRepository.findByStockSymbol(requestedStockSymbol)
                 .orElseThrow(() -> new StockNotFoundException("Stock does not exist with stockSymbol: " + requestedStockSymbol));
@@ -249,7 +249,7 @@ public class PortfolioServiceImpl implements PortfolioService {
                 .orElseThrow(() -> new ResourceNotFoundException("No portfolio exists for the user!"));
 
         // checking if the stock exists!
-        String requestStockSymbol = sellStockRequestDTO.getStockSymbol();
+        String requestStockSymbol = sellStockRequestDTO.getStockSymbol().trim().toUpperCase();
         PortfolioStock portfolioStock = portfolioStockRepository.findByPortfolioAndStock_stockSymbol(portfolio, requestStockSymbol)
                 .orElseThrow(() -> new ResourceNotFoundException("There is no stock to sell with the name: " + requestStockSymbol));
 
@@ -305,6 +305,8 @@ public class PortfolioServiceImpl implements PortfolioService {
                                                   SellStockRequestDTO sellStockRequestDTO,
                                                   PortfolioStock portfolioStock,
                                                   Portfolio portfolio) {
+
+        String requestStockSymbol = sellStockRequestDTO.getStockSymbol();
         BigDecimal liveStockPrice = liveStock.getStockPriceInfoDTO().getLastPrice();
         BigDecimal quantityBeingSold = BigDecimal.valueOf(sellStockRequestDTO.getQuantity());
 
@@ -322,7 +324,7 @@ public class PortfolioServiceImpl implements PortfolioService {
 
         PortfolioTransaction portfolioTransaction = PortfolioTransaction.builder()
                 .portfolio(portfolio)
-                .stockSymbol(sellStockRequestDTO.getStockSymbol())
+                .stockSymbol(requestStockSymbol)
                 .quantity(sellStockRequestDTO.getQuantity())
                 .price(liveStockPrice)
                 .type(TransactionType.SELL)
@@ -332,7 +334,7 @@ public class PortfolioServiceImpl implements PortfolioService {
         portfolioTransactionRepository.save(portfolioTransaction);
 
         return SellStockResponseDTO.builder()
-                .stockSymbol(sellStockRequestDTO.getStockSymbol())
+                .stockSymbol(requestStockSymbol)
                 .price(liveStockPrice)
                 .quantitySold(sellStockRequestDTO.getQuantity())
                 .realizedPnL(realizedPnL)
