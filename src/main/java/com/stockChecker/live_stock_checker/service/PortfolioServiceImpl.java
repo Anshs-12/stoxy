@@ -4,6 +4,7 @@ import com.stockChecker.live_stock_checker.config.AuthUtils;
 import com.stockChecker.live_stock_checker.exceptions.InsufficientQuantityException;
 import com.stockChecker.live_stock_checker.exceptions.ResourceNotFoundException;
 import com.stockChecker.live_stock_checker.exceptions.StockNotFoundException;
+import com.stockChecker.live_stock_checker.mapper.PortfolioTransactionMapper;
 import com.stockChecker.live_stock_checker.model.*;
 import com.stockChecker.live_stock_checker.payload.PortfolioPayload.*;
 import com.stockChecker.live_stock_checker.payload.StockPayload.StockDetailResponseDTO;
@@ -25,11 +26,16 @@ import java.util.*;
 public class PortfolioServiceImpl implements PortfolioService {
 
     private final StockRepository stockRepository;
+
     private final PortfolioRepository portfolioRepository;
+
     private final PortfolioStockRepository portfolioStockRepository;
+
     private final PortfolioTransactionRepository portfolioTransactionRepository;
 
     private final StockService stockService;
+
+    private final PortfolioTransactionMapper transactionMapper;
 
     private final AuthUtils authUtils;
 
@@ -216,7 +222,7 @@ public class PortfolioServiceImpl implements PortfolioService {
         PortfolioTransaction portfolioTransaction = PortfolioTransaction.builder()
                 .portfolio(portfolio)
                 .stockSymbol(requestedStockSymbol)
-                .transactionDate(LocalDateTime.now())
+                .transactionAt(LocalDateTime.now())
                 .type(TransactionType.BUY)
                 .quantity(buyStockRequestDTO.getQuantity())
                 .price(liveStockPrice)
@@ -259,6 +265,25 @@ public class PortfolioServiceImpl implements PortfolioService {
         return executeSellStock(liveStock, sellStockRequestDTO, portfolioStock, portfolio);
     }
 
+    // this method gets back the transaction history as per the stock!;
+    @Override
+    @Transactional
+    public List<TransactionResponseDTO> getTransactionHistory(String userEmail, String stockSymbol) {
+
+        User user = authUtils.getloggedInUser(userEmail);
+        // checking if the portfolio exists!
+        Portfolio portfolio = portfolioRepository.findByUser(user)
+                .orElseThrow(() -> new ResourceNotFoundException("No portfolio exists for the user!"));
+
+
+        List<PortfolioTransaction> transactionsList =
+                portfolioTransactionRepository.findByPortfolioAndStockSymbol(portfolio, stockSymbol);
+        if (transactionsList.isEmpty())
+            throw new ResourceNotFoundException("Never bought/sold this stock!");
+
+        return transactionMapper.toResponseDTOList(transactionsList);
+    }
+
     private SellStockResponseDTO executeSellStock(StockDetailResponseDTO liveStock,
                                                   SellStockRequestDTO sellStockRequestDTO,
                                                   PortfolioStock portfolioStock,
@@ -284,7 +309,7 @@ public class PortfolioServiceImpl implements PortfolioService {
                 .quantity(sellStockRequestDTO.getQuantity())
                 .price(liveStockPrice)
                 .type(TransactionType.SELL)
-                .transactionDate(LocalDateTime.now())
+                .transactionAt(LocalDateTime.now())
                 .build();
 
         portfolioTransactionRepository.save(portfolioTransaction);

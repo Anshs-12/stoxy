@@ -10,6 +10,8 @@ import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;
 import org.springframework.web.bind.annotation.*;
 
+import java.util.List;
+
 @RestController
 @RequestMapping("/portfolio")
 @RequiredArgsConstructor
@@ -40,6 +42,13 @@ public class PortfolioController {
         String userEmail = getUserEmail();
         SellStockResponseDTO sellStockResponseDTO = portfolioService.sellStock(userEmail, sellStockRequestDTO);
         return new ResponseEntity<>(sellStockResponseDTO, HttpStatus.OK);
+    }
+
+    @GetMapping("/transaction/{stockSymbol}")
+    public ResponseEntity<List<TransactionResponseDTO>> getTransactionsByStock(@PathVariable String stockSymbol) {
+        String userEmail = getUserEmail();
+        List<TransactionResponseDTO> transactionResponseDTOList = portfolioService.getTransactionHistory(userEmail, stockSymbol);
+        return new ResponseEntity<>(transactionResponseDTOList, HttpStatus.OK);
     }
 
     private String getUserEmail() {

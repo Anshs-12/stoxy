@@ -31,5 +31,5 @@ public class PortfolioTransaction {
     @Enumerated(EnumType.STRING)
     private TransactionType type;
 
-    private LocalDateTime transactionDate;
+    private LocalDateTime transactionAt;
 }
