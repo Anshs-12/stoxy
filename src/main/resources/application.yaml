@@ -49,6 +49,22 @@ server:
   servlet:
     context-path: /api/v1  # currently version 1 of the api which is based on static part of the app.
 
+logging:
+  level:
+    org.springframework.web.servlet.resource: ERROR
+
+    #1. logging.level: You’re telling Spring:
+    #“For this part of the system, only log messages at this level or higher”
+
+    #2. org.springframework.web.servlet.resource
+    # This is the exact module that serves:
+
+    #CSS files
+    #JS files
+    #Swagger UI assets
+    # This is the same component throwing your .css.map error.
+
+    # 3. = ERROR This means: “Only show serious problems (ERROR), ignore smaller ones”
 
 
 # Notes:

@@ -54,7 +54,7 @@ public class OAuth2SuccessHandler implements AuthenticationSuccessHandler {
         response.setStatus(HttpServletResponse.SC_OK);
         response.addHeader("Set-Cookie", jwtTokenCookie.toString());
         response.addHeader("Authorization", "Bearer " + jwtToken);
-        response.sendRedirect("/swagger-ui/index.html");
+        response.sendRedirect("/api/v1/swagger-ui/index.html");
 
     }
 
@@ -74,3 +74,56 @@ public class OAuth2SuccessHandler implements AuthenticationSuccessHandler {
         throw new RuntimeException("Unsupported provider: " + provider);
     }
 }
+
+
+/*
+    Entire Flow of OAuth2 Login:
+        Users go here first /oauth2/authorization/google for logging in
+        then after selecting their account and logging in via their account on google,
+        google checks and after validating sends them to this callback url
+        callbackURL: /login/oauth2/code/google
+
+        This callback url is catched by SpringSecurity and inturns then runs our backend
+        which is basically what we defined this class for OAuth2SuccessHandler
+
+        Now our handler runs and does all the job from creating the JWT, filling and setting up the
+        cookies to the response and then Redirect is issued from here to the URL we want to send the user
+        to mostly its the home page of the frontend.
+
+        Browser receives all this response
+            Set-Cookie: jwt=abc
+            Location: /api/v1/swagger-ui/index.html
+
+        Now comes the major part of understanding the cookies section as we are still on the callback url and
+        not yet redirected:
+
+
+        Cookies Behavior in OAuth2 Flow:
+
+        After the user is redirected back to the callback URL (`/login/oauth2/code/google`),
+        the backend processes the authentication and sends a single response to the browser.
+        This response contains both the `Set-Cookie` header (which includes the JWT token) and
+        a redirect instruction (`Location: /api/v1/swagger-ui/index.html`).
+
+        At this exact moment, the browser has not yet followed the redirect.
+        Instead, it first processes the response it just received from the backend.
+
+        The browser examines the `Set-Cookie` header and decides whether the cookie
+        should be stored or rejected based on its security rules (such as `SameSite`, `Secure`, etc.)
+        and the context of the request.
+
+        In this OAuth2 flow, the request to `/login/oauth2/code/google` is considered a top-level navigation,
+        meaning the user is being directly redirected to the application after logging in.
+        Because the cookie is configured with `SameSite=Lax`, the browser allows the cookie to be
+        stored in this scenario, since Lax permits cookies during top-level navigations.
+
+        Once the browser accepts and stores the cookie, it then proceeds to follow t
+        he redirect to `/api/v1/swagger-ui/index.html`. By the time the Swagger UI page loads,
+        the cookie is already present in the browser and will be included in subsequent requests to
+        the backend (provided the request path matches the cookie’s path).
+
+        Thus, the cookie is not set after reaching Swagger UI,
+        but rather during the callback response itself, before the redirect is executed.
+
+
+*/

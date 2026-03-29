@@ -6,6 +6,8 @@ import jakarta.servlet.http.HttpServletRequest;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;
+import org.springframework.validation.FieldError;
+import org.springframework.web.bind.MethodArgumentNotValidException;
 import org.springframework.web.bind.annotation.ExceptionHandler;
 import org.springframework.web.bind.annotation.RestControllerAdvice;
 
@@ -79,5 +81,31 @@ public class GlobalExceptionHandler {
                 .path(request.getRequestURI())
                 .build();
         return new ResponseEntity<>(response, HttpStatus.CONFLICT);
+    }
+
+    @ExceptionHandler(InsufficientQuantityException.class)
+    public ResponseEntity<APIResponse> insufficientQuantityExceptionHandler(InsufficientQuantityException ex, HttpServletRequest request) {
+        APIResponse response = APIResponse.builder()
+                .success(false)
+                .error(ErrorCode.INSUFFICIENT_QUANTITY)
+                .message(ex.getMessage())
+                .time(ZonedDateTime.now(ZoneId.of("Asia/Kolkata")).toLocalDateTime())
+                .path(request.getRequestURI())
+                .build();
+        return new ResponseEntity<>(response, HttpStatus.BAD_REQUEST);
+    }
+
+    @ExceptionHandler(MethodArgumentNotValidException.class)
+    public ResponseEntity<APIResponse> methodArgumentNotValidExceptionHandler(MethodArgumentNotValidException ex, HttpServletRequest request) {
+        FieldError fieldError = ex.getBindingResult().getFieldErrors().getFirst();
+
+        APIResponse response = APIResponse.builder()
+                .success(false)
+                .error(ErrorCode.INVALID_REQUEST)
+                .message(fieldError.getField() + " " + fieldError.getDefaultMessage())
+                .time(ZonedDateTime.now(ZoneId.of("Asia/Kolkata")).toLocalDateTime())
+                .path(request.getRequestURI())
+                .build();
+        return new ResponseEntity<>(response, HttpStatus.BAD_REQUEST);
     }
 }
