@@ -14,4 +14,6 @@ public interface PortfolioService {
     List<TransactionResponseDTO> getTransactionsByStock(String userEmail, String stockSymbol);
 
     List<TransactionResponseDTO> getTransactionHistory(String userEmail);
+
+    byte[] getTransactionHistoryPDF(String userEmail);
 }

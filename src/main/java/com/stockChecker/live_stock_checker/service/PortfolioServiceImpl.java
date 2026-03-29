@@ -25,18 +25,18 @@ import java.util.*;
 @RequiredArgsConstructor
 public class PortfolioServiceImpl implements PortfolioService {
 
+    // Repositories
     private final StockRepository stockRepository;
-
     private final PortfolioRepository portfolioRepository;
-
     private final PortfolioStockRepository portfolioStockRepository;
-
     private final PortfolioTransactionRepository portfolioTransactionRepository;
 
+    // Services
     private final StockService stockService;
+    private final PDFService pdfService;
 
+    // Mapper & Utils
     private final PortfolioTransactionMapper transactionMapper;
-
     private final AuthUtils authUtils;
 
     @Override
@@ -299,6 +299,14 @@ public class PortfolioServiceImpl implements PortfolioService {
         }
 
         return transactionMapper.toResponseDTOList(transactionHistoryList);
+    }
+
+    @Override
+    @Transactional
+    public byte[] getTransactionHistoryPDF(String userEmail) {
+        List<TransactionResponseDTO> transactionsList = getTransactionHistory(userEmail);
+        byte[] transactionsPDF = pdfService.generateTransactionsPDF(transactionsList);
+        return transactionsPDF;
     }
 
     private SellStockResponseDTO executeSellStock(StockDetailResponseDTO liveStock,

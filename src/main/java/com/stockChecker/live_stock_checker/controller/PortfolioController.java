@@ -59,6 +59,16 @@ public class PortfolioController {
         return new ResponseEntity<>(transactionHistory, HttpStatus.OK);
     }
 
+    @GetMapping("/transactions/export")
+    public ResponseEntity<byte[]> returnTransactionHistoryPDF() {
+        String userEmail = getUserEmail();
+        byte[] transactionPDF = portfolioService.getTransactionHistoryPDF(userEmail);
+        return ResponseEntity.ok()
+                .header("Content-Type", "application/pdf")
+                .header("Content-Disposition", "attachment; filename=\"transactions.pdf\"")
+                .body(transactionPDF);
+    }
+
     private String getUserEmail() {
         return authUtils.getLoggedInUserEmail();
     }
