@@ -1,0 +1,57 @@
+
+
+services:
+  postgres:
+    container_name: postgres_container
+    image: postgres
+
+#    ports:
+#      - "5433:5432"
+#    # local postgres always running so changing this!
+
+    environment:
+      POSTGRES_USER: postgres
+      POSTGRES_PASSWORD: 2004
+      POSTGRES_DB: stoxy
+
+    networks:
+      - stoxy-network
+
+  stoxy-app:
+    container_name: stoxyFinance_App
+    # here . tells to build the image from the relative path dockerfile,
+    # otherwise we would have to create always when the dockerfile
+    # changes and give the path.
+    # Moreover, postgres works by pulling the image from the DockerHub
+    # which is not true in our case as we are not uploading to DockerHub!
+    build: .
+
+    depends_on:
+      - postgres
+    # this field tells that this service depends on another service, so first
+    # the depends on services are started completed and then this service runs!
+
+    ports:
+      - "8080:8080"
+    # format is "hostPort:containerPort"
+    # whenever something hits your machine on port 8080 (browser, postman)
+    # docker intercepts and forwards it into the container at port 8080
+    # without this, container runs but nothing outside can reach it
+    # container-to-container communication doesn't need this, they talk via service names internally
+
+
+    env_file: .env # get the values from the .env file
+    environment:
+      database_url: jdbc:postgresql://postgres:5432/stoxy # overriding!
+      # this means connect to the url by the postgres service
+
+    networks:
+      - stoxy-network
+    # this explicitly tells this service to be on this method!
+
+networks:
+  stoxy-network:
+    driver: bridge
+
+
+# sudo docker compose up --build = --build forces docker-compose to rebuild the image every time instead of using cache.
