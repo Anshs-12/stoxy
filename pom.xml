@@ -189,6 +189,7 @@
     </dependencies>
 
     <build>
+        <finalName>stoxy-backend</finalName>
         <plugins>
             <plugin>
                 <groupId>org.apache.maven.plugins</groupId>
@@ -200,7 +201,7 @@
                             <artifactId>lombok</artifactId>
                             <version>${lombok.version}</version>
                         </path>
-                    <!--  telling spring to run lombok before mapStruct annotation processor  -->
+                        <!--  telling spring to run lombok before mapStruct annotation processor  -->
                         <path>
                             <groupId>org.mapstruct</groupId>
                             <artifactId>mapstruct-processor</artifactId>
