@@ -1,13 +1,21 @@
-
-
 services:
   postgres:
     container_name: postgres_container
     image: postgres
 
-#    ports:
-#      - "5433:5432"
-#    # local postgres always running so changing this!
+    #    ports:
+    #      - "5433:5432"
+    #    # local postgres always running so changing this!
+
+
+    healthcheck:
+      # healthcheck runs a command repeatedly inside the container to check if it's actually ready
+      # without this, depends_on only waits for the container to start, not for postgres to be ready
+      # pg_isready is a built-in postgres utility that pings postgres and returns success when ready
+      test: [ "CMD", "pg_isready", "-U", "postgres" ]
+      interval: 10s # run the check every 10 seconds
+      timeout: 5s   # wait max 5 seconds for a response before marking as failed
+      retries: 5    # mark as unhealthy after 5 consecutive failures
 
     environment:
       POSTGRES_USER: postgres
@@ -27,7 +35,13 @@ services:
     build: .
 
     depends_on:
-      - postgres
+      postgres:
+        condition: service_healthy
+    # depends_on with service_healthy waits until postgres health_check passes before starting stoxy-app
+    # previously without condition, it only waited for the container to start, not for postgres to be ready
+
+    #  depends_on:
+    #   - postgres:
     # this field tells that this service depends on another service, so first
     # the depends on services are started completed and then this service runs!
 
