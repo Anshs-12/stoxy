@@ -44,10 +44,9 @@ spring:
     # setting it to false means DB connection is only held during database operations.
     open-in-view: false
 
-
 server:
   servlet:
-    context-path: /api/v1  # currently version 1 of the api which is based on static part of the app.
+    context-path: /api/v2 # currently version 2 of the api
 
 logging:
   level:
@@ -65,7 +64,6 @@ logging:
     # This is the same component throwing your .css.map error.
 
     # 3. = ERROR This means: “Only show serious problems (ERROR), ignore smaller ones”
-
 
 # Notes:
 #  1.driver-class-name:
