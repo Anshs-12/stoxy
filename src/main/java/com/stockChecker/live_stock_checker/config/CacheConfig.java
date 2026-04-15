@@ -1,77 +1,73 @@
 package com.stockChecker.live_stock_checker.config;
 
-import com.github.benmanes.caffeine.cache.Caffeine;
+import lombok.RequiredArgsConstructor;
 import org.springframework.cache.CacheManager;
 import org.springframework.cache.annotation.EnableCaching;
-import org.springframework.cache.caffeine.CaffeineCache;
-import org.springframework.cache.support.SimpleCacheManager;
 import org.springframework.context.annotation.Bean;
 import org.springframework.context.annotation.Configuration;
+import org.springframework.data.redis.cache.RedisCacheConfiguration;
+import org.springframework.data.redis.cache.RedisCacheManager;
+import org.springframework.data.redis.connection.RedisConnectionFactory;
+import org.springframework.data.redis.serializer.GenericJackson2JsonRedisSerializer;
+import org.springframework.data.redis.serializer.RedisSerializationContext;
 
-import java.util.ArrayList;
-import java.util.List;
-import java.util.concurrent.TimeUnit;
+import java.time.Duration;
+import java.util.HashMap;
+import java.util.Map;
 
 @Configuration
 @EnableCaching
+@RequiredArgsConstructor
 public class CacheConfig {
+
+    private final RedisConnectionFactory redisConnection;
 
     @Bean
     public CacheManager cacheManager() {
         /*
+            # Caffeine
             CaffeineCacheManager (one config for all cacheNames/values)
             SimpleCacheManager (different configs for different cacheNames/values.)
-        */
-        SimpleCacheManager simpleCacheManager = new SimpleCacheManager();
-        List<CaffeineCache> cacheList = new ArrayList<>();
 
+            SimpleCacheManager simpleCacheManager = new SimpleCacheManager();
+            List<CaffeineCache> cacheList = new ArrayList<>();
+               simpleCacheManager.setCaches(cacheList);
+            return simpleCacheManager;
+
+            Caffeine flow —
+                1. Create a list
+                2. Add CaffeineCache objects to list (each with name + TTL)
+                3. Give list to SimpleCacheManager
+                4. Return SimpleCacheManager
+
+            # Redis
+
+
+            Redis flow —
+                1. Create a Map
+                2. Add cacheName → TTL config pairs to Map
+                3. Give Map to RedisCacheManager (along with ConnectionFactory)
+                4. Return RedisCacheManager
+        */
+        Map<String, RedisCacheConfiguration> redisCacheConfigMap = new HashMap<>();
+        RedisCacheConfiguration defaultCacheConfig = RedisCacheConfiguration.defaultCacheConfig().entryTtl(Duration.ofSeconds(60)).serializeValuesWith(RedisSerializationContext.SerializationPair.fromSerializer(new GenericJackson2JsonRedisSerializer()));
+        // serializing the values to store them a proper JSON format, so that it's easier to read
 
         // ----------------------------- Index Caching -----------------------------
-        // configuring first cacheName.
-        cacheList.add(new CaffeineCache("indicesLive",
-                Caffeine.newBuilder()
-                        .expireAfterWrite(15, TimeUnit.SECONDS)
-                        .maximumSize(100)
-                        .build()));
-
-        // configuring offline caching
-        cacheList.add(new CaffeineCache("indicesWeekDayClosed",
-                Caffeine.newBuilder()
-                        .expireAfterWrite(1065, TimeUnit.MINUTES)
-                        .maximumSize(100)
-                        .build()));
-
-        cacheList.add(new CaffeineCache("indicesWeekendClosed",
-                Caffeine.newBuilder()
-                        .expireAfterWrite(3945, TimeUnit.MINUTES)
-                        .maximumSize(100)
-                        .build()));
+        redisCacheConfigMap.put("indicesLive", defaultCacheConfig.entryTtl(Duration.ofSeconds(15)));
+        redisCacheConfigMap.put("indicesWeekDayClosed", defaultCacheConfig.entryTtl(Duration.ofMinutes(1065)));
+        redisCacheConfigMap.put("indicesWeekendClosed", defaultCacheConfig.entryTtl(Duration.ofMinutes(3945)));
 
         // ----------------------------- Stocks Caching -----------------------------
-        // configuring second cacheName.
-        cacheList.add(new CaffeineCache("stockLive",
-                Caffeine.newBuilder()
-                        .expireAfterWrite(1, TimeUnit.MINUTES)
-                        .maximumSize(5000)
-                        .build()));
+        redisCacheConfigMap.put("stockLive", defaultCacheConfig.entryTtl(Duration.ofSeconds(15)));
+        redisCacheConfigMap.put("stockWeekDayClosed", defaultCacheConfig.entryTtl(Duration.ofMinutes(1065)));
+        redisCacheConfigMap.put("stockWeekendClosed", defaultCacheConfig.entryTtl(Duration.ofMinutes(3945)));
 
-        cacheList.add(new CaffeineCache("stockWeekDayClosed",
-                Caffeine.newBuilder()
-                        .expireAfterWrite(1065, TimeUnit.MINUTES)
-                        .maximumSize(100)
-                        .build()));
-
-        cacheList.add(new CaffeineCache("stockWeekendClosed",
-                Caffeine.newBuilder()
-                        .expireAfterWrite(3945, TimeUnit.MINUTES)
-                        .maximumSize(100)
-                        .build()));
-
-        // assigning the list to SimpleCacheManager
-        simpleCacheManager.setCaches(cacheList);
-        return simpleCacheManager;
+        // assigning the map to RedisCacheManger
+        return RedisCacheManager.builder(redisConnection).cacheDefaults(defaultCacheConfig).withInitialCacheConfigurations(redisCacheConfigMap).build();
     }
 }
+
 
 /*
     Why RemoteBucketState instead of Bucket:
@@ -111,4 +107,66 @@ public class CacheConfig {
         → Request 3 hits Server C → checks the same Redis → 17 tokens
         All servers share one source of truth. Rate limiting works correctly across all servers.
         That's the ONLY reason ProxyManager exists — shared state across multiple servers.
+
+
+        Redis Docs:
+
+            What is `defaultCacheConfig` actually doing?
+
+            It's a fallback. Imagine tomorrow you add a new `@Cacheable("screeningResults")` somewhere in your service but forget to add it to your Map in `CacheConfig`. Without a default, Redis has no TTL for it — it would cache forever. With a default of 60 seconds, it automatically gets 60 seconds TTL as fallback.
+
+            That's the only purpose.
+
+
+            What if you remove it?
+
+            Then `RedisCacheManager` has no fallback config. Any cache name not in your Map gets no TTL — cached forever until Redis server restarts or you manually delete it. That's dangerous.
+
+
+            Why does `defaultCacheConfig.entryTtl(...)` work on each cache?
+
+            This is the important part you're missing —
+
+            `RedisCacheConfiguration` is immutable. Every time you call `.entryTtl()` on it, it doesn't modify the original. It returns a brand new `RedisCacheConfiguration` object with that TTL.
+
+            So this —
+
+            ```java
+                defaultCacheConfig.entryTtl(Duration.ofSeconds(15))
+            ```
+
+            Does NOT change `defaultCacheConfig`. It creates a new object with 15 seconds TTL.
+            `defaultCacheConfig` still stays at 60 seconds.
+
+            That's why you can reuse it for every `put` call safely.
+
+
+            Summary —
+
+            - `defaultCacheConfig` → 60 second fallback, stays unchanged always
+            - Each `put` → creates a brand-new config object with its own TTL
+            - Remove it → dangerous, unconfigured caches live forever
+
+
+        RedisCacheManager
+            Basically, we want to return our cacheManager, so we build using a builder,
+            the values it takes are
+
+
+              return RedisCacheManager.builder(connectionFactory) // calling the builderMethod with the connectionFactory
+                .cacheDefaults(defaultCacheConfig) // assigning a fallback default cacheConfig
+                .withInitialCacheConfigurations(redisCacheConfigMap) // this is essentially a map, which has the list of the caches we defined
+                .build();
+
+        cacheDefaults, we are defining a default cache to save from infinite memory being utilized on the Redis server/cloud
+        as by default we have no option to set the maxMemory being utilized in Redis unlike CaffeineCache
+
+        InitialCacheConfigurations -
+            "Initial" just means — load these cache configurations at startup.
+            You're handing your entire Map to RedisCacheManager here.
+            It reads through it at startup and registers each cache name with its TTL.
+            So when @Cacheable("stockLive") fires, it already knows — 15 seconds TTL for this one.
+
+
+
 */

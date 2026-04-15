@@ -94,13 +94,21 @@
             <artifactId>spring-boot-starter-cache</artifactId>
         </dependency>
 
-        <!--   Caffeine Cache Dependency     -->
+        <!--   Redis Dependency     -->
+        <!-- Source: https://mvnrepository.com/artifact/    org.springframework.boot/spring-boot-starter-data-redis -->
         <dependency>
-            <groupId>com.github.ben-manes.caffeine</groupId>
-            <artifactId>caffeine</artifactId>
-            <version>3.2.3</version>
-            <scope>compile</scope>
+            <groupId>org.springframework.boot</groupId>
+            <artifactId>spring-boot-starter-data-redis</artifactId>
         </dependency>
+
+        <!--   Caffeine Cache Dependency     -->
+        <!--        <dependency>-->
+        <!--            <groupId>com.github.ben-manes.caffeine</groupId>-->
+        <!--            <artifactId>caffeine</artifactId>-->
+        <!--            <version>3.2.3</version>-->
+        <!--            <scope>compile</scope>-->
+        <!--        </dependency>-->
+
 
         <!--   Security Dependencies     -->
 
