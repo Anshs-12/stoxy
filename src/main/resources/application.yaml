@@ -12,6 +12,15 @@ spring:
     #   refer to notes below 1.
     driver-class-name: org.postgresql.Driver
 
+  # redis credentials
+  data:
+    redis:
+      host: ${redis_host}
+      port: ${redis_port}
+      username: ${redis_username}
+      password: ${redis_password}
+
+
   app:
     jwtExpirationsMS: 86400000
     jwtSecretKey: ${jwtSecretKey}

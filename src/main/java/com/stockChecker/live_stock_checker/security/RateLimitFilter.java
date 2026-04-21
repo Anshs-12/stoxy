@@ -1,83 +1,45 @@
 package com.stockChecker.live_stock_checker.security;
 
 import com.fasterxml.jackson.databind.ObjectMapper;
-import com.github.benmanes.caffeine.cache.Caffeine;
 import com.stockChecker.live_stock_checker.payload.APIResponse;
 import com.stockChecker.live_stock_checker.payload.ErrorCode;
-import io.github.bucket4j.Bandwidth;
-import io.github.bucket4j.Bucket;
-import io.github.bucket4j.BucketConfiguration;
-import io.github.bucket4j.caffeine.Bucket4jCaffeine;
-import io.github.bucket4j.caffeine.CaffeineProxyManager;
-import io.github.bucket4j.distributed.remote.RemoteBucketState;
+import com.stockChecker.live_stock_checker.service.RateLimitService;
 import jakarta.servlet.FilterChain;
 import jakarta.servlet.ServletException;
 import jakarta.servlet.http.HttpServletRequest;
 import jakarta.servlet.http.HttpServletResponse;
+import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
+import org.jspecify.annotations.NonNull;
 import org.springframework.http.MediaType;
 import org.springframework.web.filter.OncePerRequestFilter;
 
 import java.io.IOException;
-import java.time.Duration;
 
 @Slf4j
+@RequiredArgsConstructor
 public class RateLimitFilter extends OncePerRequestFilter {
 
-
-    private final CaffeineProxyManager<String> authProxyManager = Bucket4jCaffeine.<String>builderFor(
-            Caffeine.<String, RemoteBucketState>newBuilder()
-                    .maximumSize(1500)
-    ).build();
-
-    private final CaffeineProxyManager<String> generalProxyManager = Bucket4jCaffeine.<String>builderFor(
-            Caffeine.<String, RemoteBucketState>newBuilder()
-                    .maximumSize(1500)
-    ).build();
+    private final RateLimitService rateLimitService;
 
     private final ObjectMapper objectMapper = new ObjectMapper();
 
     @Override
     protected void doFilterInternal(HttpServletRequest request,
-                                    HttpServletResponse response,
-                                    FilterChain filterChain) throws ServletException, IOException {
+                                    @NonNull HttpServletResponse response,
+                                    @NonNull FilterChain filterChain) throws ServletException, IOException {
 
         String ipAddress = request.getRemoteAddr();
         String requestURI = request.getRequestURI(); // by this we can know which cache to use.
-        if (requestURI.contains("/auth")) {
-            // use authProxyManager, which is authRateLimiter cache
-            Bucket authBucket = authProxyManager.getProxy(ipAddress, () ->
-                    BucketConfiguration.builder()
-                            .addLimit(Bandwidth.builder()
-                                    .capacity(5)
-                                    .refillGreedy(5, Duration.ofMinutes(1))
-                                    .build())
-                            .build());
 
-            if (authBucket.tryConsume(1)) {
-                filterChain.doFilter(request, response);
-            } else {
-                sendRateLimitResponse(request, response);
-            }
-
+        if (rateLimitService.isRequestAllowed(ipAddress, requestURI)) {
+            filterChain.doFilter(request, response);
         } else {
-            // use generalProxyManager, which is a generalRateLimiter cache
-            Bucket generalBucket = generalProxyManager.getProxy(ipAddress, () ->
-                    BucketConfiguration.builder()
-                            .addLimit(Bandwidth.builder()
-                                    .capacity(20)
-                                    .refillGreedy(20, Duration.ofMinutes(1))
-                                    .build())
-                            .build());
-
-            if (generalBucket.tryConsume(1)) {
-                filterChain.doFilter(request, response);
-            } else {
-                log.warn("Rate limit exceeded - IP: {}, path: {}", ipAddress, requestURI);
-                sendRateLimitResponse(request, response);
-            }
+            log.warn("Rate limit exceeded - IP: {}, path: {}", ipAddress, requestURI);
+            sendRateLimitResponse(request, response);
         }
     }
+
 
     private void sendRateLimitResponse(HttpServletRequest request, HttpServletResponse response)
             throws IOException {
@@ -92,6 +54,7 @@ public class RateLimitFilter extends OncePerRequestFilter {
                 .path(request.getServletPath())
                 .build();
 
+        // objectMapper (from Jackson library) converts the Java object(POJO) → JSON
         objectMapper.writeValue(response.getOutputStream(), apiResponse);
     }
 }
@@ -130,10 +93,6 @@ public class RateLimitFilter extends OncePerRequestFilter {
 
         Testing also becomes hard when classes are managed by Spring!
 
-        Caffeine = storage
-        Bucket4j core = rate limiting logic
-        bucket4j-caffeine = bridge between both.
-
 
         BucketConfiguration -
             Basically one has to create a bucket each time when a user hits out endpoint if it didn't exist
@@ -141,12 +100,6 @@ public class RateLimitFilter extends OncePerRequestFilter {
 
             This is a tedious and heavy task, rather Bucket4j has BucketConfiguration, which is basically a
             blueprint describing how buckets should be created if they don't exist.
-
-        Expiry confusion:
-            Bucket4jCaffeine.builderFor() internally calls expireAfter() on Caffeine to manage its own TTL logic.
-            When you also set expireAfterWrite() — Caffeine throws because you can't use both simultaneously. They conflict.
-            Bucket4j handles eviction itself — we don't need to set it.
-            maximumSize is still fine — that just limits how many IPs are tracked.
 
 
         When a request arrives:
@@ -179,21 +132,4 @@ public class RateLimitFilter extends OncePerRequestFilter {
         IP is inactive for 2 minutes → cache removes entry
 
         Done.
-*/
-
-/*
-    ================== OLD Deprecated Version Code===================
-    private final Cache<String, RemoteBucketState> authRateLimitCache;
-        private final Cache<String, RemoteBucketState> generalRateLimitCache;
-        private final CaffeineProxyManager<String> authProxyManager;
-        private final CaffeineProxyManager<String> generalProxyManager;
-
-        RateLimitFilter(Cache<String, RemoteBucketState> authRateLimitCache,
-                        Cache<String, RemoteBucketState> generalRateLimitCache) {
-            this.authRateLimitCache = authRateLimitCache;
-            this.generalRateLimitCache = generalRateLimitCache;
-
-            this.authProxyManager = new CaffeineProxyManager <>(authRateLimitCache, Duration.ofMinutes(2));
-            this.generalProxyManager = new CaffeineProxyManager <>(generalRateLimitCache, Duration.ofMinutes(2));
-        }
 */

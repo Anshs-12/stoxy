@@ -4,6 +4,7 @@ import com.stockChecker.live_stock_checker.security.JWT.AuthEntryPoint;
 import com.stockChecker.live_stock_checker.security.JWT.AuthTokenFilter;
 import com.stockChecker.live_stock_checker.security.JWT.JwtUtils;
 import com.stockChecker.live_stock_checker.security.oAuth2.OAuth2SuccessHandler;
+import com.stockChecker.live_stock_checker.service.RateLimitService;
 import lombok.RequiredArgsConstructor;
 import org.springframework.context.annotation.Bean;
 import org.springframework.context.annotation.Configuration;
@@ -30,12 +31,12 @@ public class WebSecurityConfig {
     }
 
     @Bean
-    public RateLimitFilter rateLimitFilter() {
-        return new RateLimitFilter();
+    public RateLimitFilter rateLimitFilter(RateLimitService rateLimitService) {
+        return new RateLimitFilter(rateLimitService);
     }
 
     @Bean
-    public SecurityFilterChain securityFilterChain(HttpSecurity http) throws Exception {
+    public SecurityFilterChain securityFilterChain(HttpSecurity http,RateLimitFilter rateLimitFilter) throws Exception {
 
         // csrf disabling
         http.csrf((eachCheck) -> eachCheck.disable());
@@ -65,7 +66,7 @@ public class WebSecurityConfig {
                 .loginPage("/oauth2/authorization/google")
         );
 
-        http.addFilterBefore(rateLimitFilter(), UsernamePasswordAuthenticationFilter.class);
+        http.addFilterBefore(rateLimitFilter, UsernamePasswordAuthenticationFilter.class);
         http.addFilterBefore(authTokenFilter(), UsernamePasswordAuthenticationFilter.class);
         return http.build();
     }
