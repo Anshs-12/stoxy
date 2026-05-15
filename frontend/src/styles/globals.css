@@ -1,0 +1,68 @@
+@tailwind base;
+@tailwind components;
+@tailwind utilities;
+
+@layer base {
+  :root {
+    /* LIGHT THEME (Current Stoxy Aesthetics) */
+    --color-bg-base: #FCFAF8;
+    --color-bg-surface: #FFFFFF;
+    --color-bg-neutral: rgba(18, 18, 18, 0.04);
+    
+    --color-text-primary: #000000;
+    --color-text-muted: rgba(0, 0, 0, 0.6);
+    --color-text-muted-heavy: rgba(0, 0, 0, 0.8);
+    --color-border: rgba(0, 0, 0, 0.1);
+    --color-border-light: rgba(0, 0, 0, 0.05);
+    
+    --color-positive: #2E7D32;
+    --color-negative: #DC2626;
+
+    /* Grid Texture */
+    --grid-color: rgba(18, 18, 18, 0.03);
+    
+    /* Academic Shadow */
+    --shadow-academic: 0 4px 24px -1px rgba(18, 18, 18, 0.04), 0 2px 8px -1px rgba(18, 18, 18, 0.02);
+  }
+
+  .dark {
+    /* DARK THEME (Brutalist Dark) */
+    --color-bg-base: #0A0A0A;
+    --color-bg-surface: #141414;
+    --color-bg-neutral: rgba(255, 255, 255, 0.05);
+    
+    --color-text-primary: #EDEDED;
+    --color-text-muted: rgba(255, 255, 255, 0.55);
+    --color-text-muted-heavy: rgba(255, 255, 255, 0.8);
+    --color-border: rgba(255, 255, 255, 0.12);
+    --color-border-light: rgba(255, 255, 255, 0.06);
+    
+    --color-positive: #4ADE80;
+    --color-negative: #F87171;
+
+    /* Grid Texture */
+    --grid-color: rgba(255, 255, 255, 0.02);
+    
+    /* Academic Shadow */
+    --shadow-academic: 0 0 0 1px rgba(255, 255, 255, 0.08); 
+  }
+
+  body {
+    @apply bg-base text-primary font-inter antialiased;
+  }
+  h1, h2, h3, h4, h5, h6 {
+    @apply font-manrope font-medium tracking-tight;
+  }
+}
+
+@layer utilities {
+  .academic-shadow {
+    box-shadow: var(--shadow-academic);
+    background-color: var(--color-bg-surface);
+  }
+  .check-light-grid {
+    background-image: linear-gradient(var(--grid-color) 1px, transparent 1px),
+                      linear-gradient(90deg, var(--grid-color) 1px, transparent 1px);
+    background-size: 24px 24px;
+  }
+}
