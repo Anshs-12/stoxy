@@ -19,6 +19,8 @@ export const useDashboard = () => {
       const status = err.response?.status;
       if (!status) {
         setError('Could not connect to backend. Make sure the Spring Boot server is running on port 8080.');
+      } else if (status === 500) {
+        setError('Market data temporarily unavailable. The NSE data feed may be down. Please try again later.');
       } else {
         setError(`Backend error (${status}): ${err.response?.data?.message || 'Failed to load market data.'}`);
       }

@@ -12,19 +12,19 @@ export const usePortfolio = () => {
   const [buyResults, setBuyResults] = useState<{ stockName: string; stockSymbol: string }[]>([]);
   const { addToast } = useToast();
 
-  const loadPortfolio = useCallback(() => {
+  const loadPortfolio = useCallback(async () => {
     setLoading(true);
-    portfolioApi.getPortfolio()
-      .then(r => {
-        setPortfolio(r.data);
-        setLoading(false);
-      })
-      .catch(err => {
-        setError(err.response?.status === 404
-          ? 'No portfolio found. Buy your first stock to create one!'
-          : 'Failed to load portfolio. Are you logged in?');
-        setLoading(false);
-      });
+    try {
+      const r = await portfolioApi.getPortfolio();
+      setPortfolio(r.data);
+    } catch (err: unknown) {
+      const status = (err as { response?: { status?: number } }).response?.status;
+      setError(status === 404
+        ? 'No portfolio found. Buy your first stock to create one!'
+        : 'Failed to load portfolio. Are you logged in?');
+    } finally {
+      setLoading(false);
+    }
   }, []);
 
   useEffect(() => {

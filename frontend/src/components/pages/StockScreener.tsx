@@ -25,14 +25,14 @@ export const StockScreener = () => {
   return (
     <div className="space-y-8 pb-12">
       <div>
-        <h1 className="text-4xl font-manrope font-light tracking-tight">Stock Screener</h1>
+        <h1 className="text-4xl font-heading font-light tracking-tight">Stock Screener</h1>
         <p className="text-[11px] text-muted tracking-[0.15em] uppercase mt-2 font-medium">
           Filter NSE equities by fundamental criteria
         </p>
       </div>
 
       {/* Filter Form */}
-      <form onSubmit={handleSearch} className="bg-surface p-5 academic-shadow space-y-5">
+      <form onSubmit={handleSearch} className="bg-surface p-5 card-border space-y-5">
         <h3 className="text-[10px] text-muted tracking-[0.12em] uppercase font-medium">Filter Parameters</h3>
         <div className="grid grid-cols-4 gap-5">
           {[
@@ -48,7 +48,7 @@ export const StockScreener = () => {
                 placeholder={placeholder}
                 value={filters[key as keyof ScreenerFilters] as string}
                 onChange={(e) => setFilters(p => ({ ...p, [key]: e.target.value }))}
-                className="w-full bg-neutral text-[13px] px-3 py-2 border-none outline-none focus:bg-neutral font-inter placeholder:text-muted transition-colors"
+                className="w-full bg-neutral text-[13px] px-3 py-2 border-none outline-none focus:bg-neutral font-sans placeholder:text-muted transition-colors"
               />
             </div>
           ))}
@@ -107,12 +107,12 @@ export const StockScreener = () => {
       </form>
 
       {error && (
-        <p className="text-sm text-red-600/70 text-center py-4">{error}</p>
+        <p className="text-sm text-negative text-center py-4">{error}</p>
       )}
 
       {/* Results */}
       {data && (
-        <div className="bg-surface p-5 academic-shadow">
+        <div className="bg-surface p-5 card-border">
           <div className="flex justify-between items-center mb-5 pb-3 border-b border-border-light">
             <span className="text-[10px] text-muted tracking-widest uppercase font-medium">
               {data.totalElements} result{data.totalElements !== 1 ? 's' : ''}
@@ -139,7 +139,7 @@ export const StockScreener = () => {
               No stocks match your filter criteria. Try widening the P/E range or changing sector.
             </p>
           ) : (
-            <table className="w-full text-[13px] font-inter">
+            <table className="w-full text-[13px] font-sans">
               <thead>
                 <tr className="text-[9px] text-muted tracking-widest uppercase text-left">
                   <th className="pb-3 font-medium">SYMBOL</th>

@@ -2,7 +2,6 @@ export interface IndexPriceInfo {
   lastPrice: number;
   change: number;
   pChange: number;
-  pchange?: number;
   open: number;
   dayHigh: number;
   dayLow: number;

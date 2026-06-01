@@ -19,5 +19,5 @@ export const fmtCr = (n: number | undefined | null) => {
 
 export const getChangeColor = (change: number | undefined | null) => {
   if (change == null) return 'text-muted';
-  return change >= 0 ? 'text-[#2E7D32]' : 'text-red-600/70';
+  return change >= 0 ? 'text-positive' : 'text-negative';
 };

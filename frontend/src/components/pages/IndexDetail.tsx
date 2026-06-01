@@ -21,13 +21,13 @@ export const NSEIndexDetail = () => {
   if (loading) return (
     <div className="flex items-center justify-center h-64 text-muted">
       <Loader2 className="h-5 w-5 animate-spin mr-2" />
-      <span className="text-sm font-inter">Loading index...</span>
+      <span className="text-sm font-sans">Loading index...</span>
     </div>
   );
 
   if (error || !index) return (
     <div className="text-center py-20">
-      <p className="text-sm text-red-600/80 font-inter mb-2">⚠ Error</p>
+      <p className="text-sm text-negative font-sans mb-2">⚠ Error</p>
       <p className="text-[13px] text-muted max-w-md mx-auto mb-4">{error}</p>
       <Link to="/" className="text-[12px] text-primary border-b border-primary pb-px">← Back to Dashboard</Link>
     </div>
@@ -50,15 +50,15 @@ export const NSEIndexDetail = () => {
       <div className="flex justify-between items-start gap-8">
         <div className="flex-1">
           <p className="text-[9px] text-muted tracking-[0.12em] uppercase mb-3 font-medium">NSE India · Benchmark Index</p>
-          <h1 className="text-3xl font-manrope font-light tracking-tight leading-tight">{index.name}</h1>
-          <p className="text-sm text-muted font-inter mt-2">
+          <h1 className="text-3xl font-heading font-light tracking-tight leading-tight">{index.name}</h1>
+          <p className="text-sm text-muted font-sans mt-2">
             {m?.numberOfConstituents} constituents · Base: {m?.baseDate}
           </p>
         </div>
         <div className="text-right flex-shrink-0">
-          <div className="text-3xl font-inter font-medium tracking-tight">₹{fmt(p?.lastPrice)}</div>
+          <div className="text-3xl font-sans font-medium tracking-tight">₹{fmt(p?.lastPrice)}</div>
           <div className={`text-[13px] font-medium mt-1 ${getChangeColor(p?.change)}`}>
-            {isUp ? '↗' : '↘'} {isUp ? '+' : ''}{fmt(p?.change)} ({isUp ? '+' : ''}{fmt(p?.pChange ?? p?.pchange)}%)
+            {isUp ? '↗' : '↘'} {isUp ? '+' : ''}{fmt(p?.change)} ({isUp ? '+' : ''}{fmt(p?.pChange)}%)
           </div>
           <div className="text-[11px] text-muted mt-1">as of {index.time}</div>
         </div>
@@ -67,7 +67,7 @@ export const NSEIndexDetail = () => {
       <div className="grid grid-cols-12 gap-6">
         <div className="col-span-8 space-y-6">
           {/* Chart */}
-          <div className="bg-surface p-5 academic-shadow">
+          <div className="bg-surface p-5 card-border">
             <div className="flex justify-between items-center mb-4">
               <h3 className="text-[10px] text-muted tracking-[0.12em] uppercase font-medium">Day Range</h3>
               <span className="text-[10px] text-muted">Intraday low → high</span>
@@ -78,11 +78,11 @@ export const NSEIndexDetail = () => {
                   <AreaChart data={chart} margin={{ top: 5, right: 0, left: 0, bottom: 0 }}>
                     <defs>
                       <linearGradient id="ig" x1="0" y1="0" x2="0" y2="1">
-                        <stop offset="5%" stopColor={isUp ? (isDark ? '#4ADE80' : '#A5D6A7') : (isDark ? '#F87171' : '#EF9A9A')} stopOpacity={0.25} />
-                        <stop offset="95%" stopColor={isUp ? (isDark ? '#4ADE80' : '#A5D6A7') : (isDark ? '#F87171' : '#EF9A9A')} stopOpacity={0} />
+                        <stop offset="5%" stopColor={isUp ? (isDark ? '#6bd6b4' : '#2E7D32') : (isDark ? '#ff6b6b' : '#DC2626')} stopOpacity={0.25} />
+                        <stop offset="95%" stopColor={isUp ? (isDark ? '#6bd6b4' : '#2E7D32') : (isDark ? '#ff6b6b' : '#DC2626')} stopOpacity={0} />
                       </linearGradient>
                     </defs>
-                    <Area type="monotone" dataKey="v" stroke={isUp ? (isDark ? '#4ADE80' : '#A5D6A7') : (isDark ? '#F87171' : '#EF9A9A')}
+                    <Area type="monotone" dataKey="v" stroke={isUp ? (isDark ? '#6bd6b4' : '#2E7D32') : (isDark ? '#ff6b6b' : '#DC2626')}
                       strokeWidth={1.5} fillOpacity={1} fill="url(#ig)" isAnimationActive={false} />
                   </AreaChart>
                 </ResponsiveContainer>
@@ -95,7 +95,7 @@ export const NSEIndexDetail = () => {
           </div>
 
           {/* Price Data */}
-          <div className="bg-surface p-5 academic-shadow">
+          <div className="bg-surface p-5 card-border">
             <h3 className="text-[10px] text-muted tracking-[0.12em] uppercase font-medium mb-5">Price Data</h3>
             <div className="grid grid-cols-3 gap-x-6 gap-y-5">
               {[
@@ -108,20 +108,20 @@ export const NSEIndexDetail = () => {
               ].map(item => (
                 <div key={item.l}>
                   <p className="text-[9px] text-muted uppercase tracking-widest mb-1">{item.l}</p>
-                  <p className="text-base font-inter font-light">{item.v}</p>
+                  <p className="text-base font-sans font-light">{item.v}</p>
                 </div>
               ))}
             </div>
             {p?.yearHigh && p?.yearLow && (
               <div className="mt-6">
                 <p className="text-[9px] text-muted uppercase tracking-widest mb-2">52-Week Range</p>
-                <div className="relative h-1.5 w-full bg-black/10 dark:bg-white/10 rounded-full">
-                  <div className="absolute h-full bg-black/20 dark:bg-white/20 rounded-full"
+                <div className="relative h-1.5 w-full bg-neutral rounded-full">
+                  <div className="absolute h-full bg-primary/20 rounded-full"
                     style={{
                       left: `${((p.dayLow - p.yearLow) / (p.yearHigh - p.yearLow)) * 100}%`,
                       width: `${Math.max(0.5, ((p.dayHigh - p.dayLow) / (p.yearHigh - p.yearLow)) * 100)}%`,
                     }} />
-                  <div className="absolute h-3 w-3 bg-black dark:bg-white rounded-full top-1/2 -translate-y-1/2 -translate-x-1/2"
+                  <div className="absolute h-3 w-3 bg-primary rounded-full top-1/2 -translate-y-1/2 -translate-x-1/2"
                     style={{ left: `${((p.lastPrice - p.yearLow) / (p.yearHigh - p.yearLow)) * 100}%` }} />
                 </div>
                 <div className="flex justify-between text-[10px] text-muted mt-1.5">
@@ -133,9 +133,9 @@ export const NSEIndexDetail = () => {
 
           {/* About */}
           {m?.description && (
-            <div className="bg-surface p-5 academic-shadow">
+            <div className="bg-surface p-5 card-border">
               <h3 className="text-[10px] text-muted tracking-[0.12em] uppercase font-medium mb-4">About this Index</h3>
-              <p className="text-[13px] text-muted font-inter leading-relaxed mb-4">{m.description}</p>
+              <p className="text-[13px] text-muted font-sans leading-relaxed mb-4">{m.description}</p>
               <div className="text-[12px] text-muted space-y-1.5">
                 <p>Launch Date: <span className="text-primary">{m.launchDate}</span></p>
                 {m.methodology && <p>Methodology: <span className="text-primary">{m.methodology}</span></p>}
@@ -152,12 +152,12 @@ export const NSEIndexDetail = () => {
               <div className="space-y-4">
                 {[
                   { label: 'Advances', val: adv.advances, color: 'text-positive' },
-                  { label: 'Declines', val: adv.declines, color: 'text-red-600/70' },
+                  { label: 'Declines', val: adv.declines, color: 'text-negative' },
                   { label: 'Unchanged', val: adv.unChanged, color: 'text-muted' },
                 ].map(({ label, val, color }) => (
                   <div key={label} className="flex justify-between items-center">
                     <span className="text-[11px] text-muted">{label}</span>
-                    <span className={`text-[20px] font-inter font-light ${color}`}>{val}</span>
+                    <span className={`text-[20px] font-sans font-light ${color}`}>{val}</span>
                   </div>
                 ))}
               </div>
@@ -172,7 +172,7 @@ export const NSEIndexDetail = () => {
 
           {/* Index Info */}
           {m && (
-            <div className="bg-surface p-5 academic-shadow">
+            <div className="bg-surface p-5 card-border">
               <h3 className="text-[10px] text-muted tracking-[0.12em] uppercase font-medium mb-4">Index Info</h3>
               <div className="space-y-3 text-[13px]">
                 {[

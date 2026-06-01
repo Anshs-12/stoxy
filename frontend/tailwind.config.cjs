@@ -15,16 +15,20 @@ module.exports = {
         'border-light': "var(--color-border-light)",
         positive: "var(--color-positive)",
         negative: "var(--color-negative)",
-        black: "#121212",
-        outline: "rgba(18, 18, 18, 0.15)",
+        accent: "var(--color-accent)",
       },
       fontFamily: {
-        manrope: ["Manrope", "sans-serif"],
-        inter: ["Inter", "sans-serif"],
+        sans: ["DM Sans", "system-ui", "sans-serif"],
+        heading: ["DM Sans", "system-ui", "sans-serif"],
+        mono: ["Geist Mono", "SF Mono", "Fira Code", "monospace"],
       },
-      boxShadow: {
-        ambient:
-          "0 4px 24px -1px rgba(18, 18, 18, 0.04), 0 2px 8px -1px rgba(18, 18, 18, 0.02)",
+      borderRadius: {
+        sm: '4px',
+        DEFAULT: '8px',
+        md: '12px',
+        lg: '16px',
+        xl: '24px',
+        full: '9999px',
       },
       animation: {
         'in': 'slideIn 0.3s ease-out',

@@ -39,13 +39,13 @@ export const StockDetails = () => {
   if (loading) return (
     <div className="flex items-center justify-center h-64 text-muted">
       <Loader2 className="h-5 w-5 animate-spin mr-2" />
-      <span className="text-sm font-inter">Loading {symbol}...</span>
+      <span className="text-sm font-sans">Loading {symbol}...</span>
     </div>
   );
 
   if (error || !stock) return (
     <div className="text-center py-20">
-      <p className="text-sm text-red-600/80 font-inter mb-2">⚠ Error</p>
+      <p className="text-sm text-negative font-sans mb-2">⚠ Error</p>
       <p className="text-[13px] text-muted max-w-md mx-auto mb-4">{error}</p>
       <Link to="/" className="text-[12px] text-primary border-b border-primary pb-px">← Back to Dashboard</Link>
     </div>
@@ -60,14 +60,18 @@ export const StockDetails = () => {
 
   const handleBuy = async () => {
     setBuyLoading(true);
-    const success = await buyStock(Math.max(1, parseInt(buyQtyStr, 10) || 1));
+    const qty = parseInt(buyQtyStr, 10);
+    if (!qty || qty <= 0) { setBuyLoading(false); return; }
+    const success = await buyStock(qty);
     if (success) setBuyOpen(false);
     setBuyLoading(false);
   };
 
   const handleSell = async () => {
     setSellLoading(true);
-    const success = await sellStock(Math.max(1, parseInt(sellQtyStr, 10) || 1));
+    const qty = parseInt(sellQtyStr, 10);
+    if (!qty || qty <= 0) { setSellLoading(false); return; }
+    const success = await sellStock(qty);
     if (success) setSellOpen(false);
     setSellLoading(false);
   };
@@ -85,15 +89,15 @@ export const StockDetails = () => {
           <p className="text-[9px] text-muted tracking-[0.12em] uppercase mb-3">
             {stock.listedExchangeName}: {stock.stockSymbol} &bull; {c.sector} &bull; {c.industry}
           </p>
-          <h1 className="text-3xl font-manrope font-light tracking-tight leading-tight mb-3">
+          <h1 className="text-3xl font-heading font-light tracking-tight leading-tight mb-3">
             {stock.stockName}
           </h1>
-          <p className="text-sm text-muted font-inter font-light leading-relaxed">
+          <p className="text-sm text-muted font-sans font-light leading-relaxed">
             {c.subIndustry} &bull; Listed since {c.listingDate} &bull; ISIN: {c.isIN}
           </p>
         </div>
         <div className="text-right flex-shrink-0">
-          <div className="text-3xl font-inter font-medium tracking-tight">₹{fmt(p.lastPrice)}</div>
+          <div className="text-3xl font-sans font-medium tracking-tight">₹{fmt(p.lastPrice)}</div>
           <div className={`text-[13px] font-medium mt-1 mb-4 ${getChangeColor(p.change)}`}>
             {isUp ? '↗' : '↘'} {isUp ? '+' : ''}{fmt(p.change)} ({isUp ? '+' : ''}{fmt(p.pChange)}%)
           </div>
@@ -105,7 +109,7 @@ export const StockDetails = () => {
                 Add to Watchlist
               </button>
               {wlOpen && (
-                <div className="absolute top-full right-0 mt-1 w-48 bg-surface academic-shadow border border-border-light z-20 text-left">
+                <div className="absolute top-full right-0 mt-1 w-48 bg-surface card-border border border-border-light z-20 text-left">
                   {watchlists.length === 0 ? (
                     <div className="px-4 py-3 text-[11px] text-muted">No watchlists found. Create one in Watchlist tab.</div>
                   ) : (
@@ -130,7 +134,7 @@ export const StockDetails = () => {
           </div>
 
           {(buyOpen || sellOpen) && (
-            <div className="mt-3 bg-surface border border-primary/8 p-4 academic-shadow text-left">
+            <div className="mt-3 bg-surface border border-primary/8 p-4 card-border text-left">
               <div className="flex justify-between items-center mb-3">
                 <span className="text-[11px] text-muted uppercase tracking-widest">{buyOpen ? 'Buy' : 'Sell'} {symbol}</span>
                 <button onClick={() => { setBuyOpen(false); setSellOpen(false); }} className="text-muted hover:text-primary">
@@ -152,7 +156,7 @@ export const StockDetails = () => {
                         ? setBuyQtyStr(String(Math.max(1, parseInt(buyQtyStr, 10) || 1)))
                         : setSellQtyStr(String(Math.max(1, parseInt(sellQtyStr, 10) || 1)));
                     }}
-                    className="w-full bg-neutral text-[18px] font-manrope font-light px-3 py-2.5 outline-none focus:bg-neutral transition-colors" />
+                    className="w-full bg-neutral text-[18px] font-heading font-light px-3 py-2.5 outline-none focus:bg-neutral transition-colors" />
                 </div>
                 <div className="bg-neutral p-3 space-y-2 text-[12px]">
                   <div className="flex justify-between">
@@ -165,7 +169,7 @@ export const StockDetails = () => {
                   </div>
                 </div>
                 <button onClick={buyOpen ? handleBuy : handleSell} disabled={buyOpen ? buyLoading : sellLoading}
-                  className={`w-full py-2.5 text-base text-[12px] font-medium transition-colors disabled:opacity-50 flex items-center justify-center gap-2 ${buyOpen ? 'bg-primary hover:bg-primary/90' : 'bg-red-600 hover:bg-red-700'}`}>
+                  className={`w-full py-2.5 text-base text-[12px] font-medium transition-colors disabled:opacity-50 flex items-center justify-center gap-2 ${buyOpen ? 'bg-primary hover:bg-primary/90' : 'bg-negative hover:bg-negative/90'}`}>
                   {(buyLoading || sellLoading) && <Loader2 className="h-3.5 w-3.5 animate-spin" />}
                   Confirm {buyOpen ? 'Buy' : 'Sell'}
                 </button>
@@ -177,12 +181,12 @@ export const StockDetails = () => {
 
       <div className="grid grid-cols-12 gap-6">
         <div className="col-span-8 space-y-8">
-          <div className="bg-surface p-5 academic-shadow">
+          <div className="bg-surface p-5 card-border">
             <div className="flex justify-between items-center mb-4">
               <h3 className="text-[10px] text-muted tracking-[0.12em] uppercase font-medium">Price Velocity</h3>
               <div className="flex gap-3 text-[10px] text-muted uppercase tracking-wider">
                 {['1D','1W','1M','1Y','ALL'].map(t => (
-                  <button key={t} className={t === '1M' ? 'text-primary border-b border-primary pb-0.5' : 'hover:text-primary transition-colors'}>
+                  <button key={t} className={t === '1M' ? 'text-primary border-b border-primary pb-0.5' : 'hover:text-primary transition-colors'}>{t}
                     {t}
                   </button>
                 ))}
@@ -193,11 +197,11 @@ export const StockDetails = () => {
                 <AreaChart data={chartData} margin={{ top: 10, right: 0, left: 0, bottom: 0 }}>
                   <defs>
                     <linearGradient id="g-price" x1="0" y1="0" x2="0" y2="1">
-                      <stop offset="5%" stopColor={isUp ? (isDark ? '#4ADE80' : '#22C55E') : (isDark ? '#F87171' : '#EF4444')} stopOpacity={0.25} />
-                      <stop offset="95%" stopColor={isUp ? (isDark ? '#4ADE80' : '#22C55E') : (isDark ? '#F87171' : '#EF4444')} stopOpacity={0} />
+                      <stop offset="5%" stopColor={isUp ? (isDark ? '#6bd6b4' : '#2E7D32') : (isDark ? '#ff6b6b' : '#DC2626')} stopOpacity={0.25} />
+                      <stop offset="95%" stopColor={isUp ? (isDark ? '#6bd6b4' : '#2E7D32') : (isDark ? '#ff6b6b' : '#DC2626')} stopOpacity={0} />
                     </linearGradient>
                   </defs>
-                  <Area type="monotone" dataKey="v" stroke={isUp ? (isDark ? '#4ADE80' : '#22C55E') : (isDark ? '#F87171' : '#EF4444')} strokeWidth={1.5}
+                  <Area type="monotone" dataKey="v" stroke={isUp ? (isDark ? '#6bd6b4' : '#2E7D32') : (isDark ? '#ff6b6b' : '#DC2626')} strokeWidth={1.5}
                         fillOpacity={1} fill="url(#g-price)" isAnimationActive={false} />
                 </AreaChart>
               </ResponsiveContainer>
@@ -205,7 +209,7 @@ export const StockDetails = () => {
           </div>
 
           <div>
-            <h2 className="text-xl font-manrope font-light mb-5">Price & Trading Data</h2>
+            <h2 className="text-xl font-heading font-light mb-5">Price & Trading Data</h2>
             <div className="grid grid-cols-4 gap-x-5 gap-y-6">
               {[
                 { l: 'OPEN', v: `₹${fmt(p.open)}` },
@@ -216,10 +220,10 @@ export const StockDetails = () => {
                 { l: 'LOWER CIRCUIT', v: `₹${fmt(p.lowerCP)}` },
                 { l: '52W HIGH', v: `₹${fmt(p.weekHigh)}`, sub: p.weekHighDate },
                 { l: '52W LOW', v: `₹${fmt(p.weekLow)}`, sub: p.weekLowDate },
-              ].map((item, i) => (
-                <div key={i} className="text-primary border-t border-border-light pt-3">
+              ].map((item) => (
+                <div key={item.l} className="text-primary border-t border-border-light pt-3">
                   <div className="text-[8px] text-muted uppercase tracking-widest mb-1.5 ">{item.l}</div>
-                  <div className="text-base font-inter font-semibold text-primary">{item.v}</div>
+                  <div className="text-base font-sans font-semibold text-primary">{item.v}</div>
                   {item.sub && <div className="text-[9px] text-muted mt-0.5 ">{item.sub}</div>}
                 </div>
               ))}
@@ -230,7 +234,7 @@ export const StockDetails = () => {
             <div className="pt-6 border-t border-border-light">
               <h3 className="text-[9px] text-muted uppercase tracking-widest font-medium mb-4">About {c.companyName || stock.stockName}</h3>
               <div className="text-[13px] text-muted leading-relaxed font-light"
-                   dangerouslySetInnerHTML={{ __html: c.aboutCompany }} />
+                   dangerouslySetInnerHTML={{ __html: c.aboutCompany.replace(/<[^>]*>/g, '') }} />
               {stock.stockWebsite && (
                 <a href={stock.stockWebsite} target="_blank" rel="noopener noreferrer"
                    className="text-[12px] font-medium text-primary border-b border-primary pb-px inline-block mt-4">
@@ -261,8 +265,8 @@ export const StockDetails = () => {
 
             <h3 className="text-[9px] text-muted uppercase tracking-widest font-medium mb-3">Trading Range (52W)</h3>
             <div className="mb-1.5 h-1 w-full bg-neutral rounded-full relative">
-              <div className="absolute top-0 left-0 h-full bg-primary/70 dark:bg-white/70 rounded-full" style={{ width: `${currentPos}%` }} />
-              <div className="absolute top-1/2 -translate-y-1/2 w-2 h-2 bg-primary dark:bg-white rounded-full ring-2 ring-surface"
+              <div className="absolute top-0 left-0 h-full bg-primary/70 rounded-full" style={{ width: `${currentPos}%` }} />
+              <div className="absolute top-1/2 -translate-y-1/2 w-2 h-2 bg-primary rounded-full ring-2 ring-surface"
                    style={{ left: `${currentPos}%` }} />
             </div>
             <div className="flex justify-between text-[9px] text-muted">

@@ -62,7 +62,7 @@ export const useWatchlist = () => {
             priceMap[sym] = {
               symbol: sym,
               lastPrice: p?.lastPrice ?? 0,
-              pChange: (p as any)?.pChange ?? (p as any)?.pchange ?? 0,
+              pChange: p?.pChange ?? 0,
             };
           } catch (_) { /* skip unavailable symbols */ }
         })

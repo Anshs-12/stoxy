@@ -11,9 +11,10 @@ export const Badge = React.forwardRef<HTMLSpanElement, BadgeProps>(
     const variantClasses = {
       default: "bg-primary text-base",
       secondary: "bg-neutral text-primary",
-      destructive: "bg-red-500/20 text-red-500",
-      outline: "border border-outline/50 bg-transparent text-primary hover:bg-outline/10",
-      positive: "bg-green-500/20 dark:bg-green-400/20 text-positive hover:bg-green-500/30 dark:hover:bg-green-400/30",
+      destructive: "bg-negative/15 text-negative",
+      outline: "border border-border bg-transparent text-primary hover:bg-neutral",
+      positive: "bg-positive/15 text-positive hover:bg-positive/25",
+      accent: "bg-accent/15 text-accent hover:bg-accent/25",
     };
     
     return (

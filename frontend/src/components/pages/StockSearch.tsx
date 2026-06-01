@@ -14,14 +14,16 @@ export const StockSearch = () => {
   const [query, setQuery] = useState('');
   const [data, setData] = useState<SearchResponse | null>(null);
   const [loading, setLoading] = useState(false);
+  const [error, setError] = useState('');
   const [page, setPage] = useState(0);
 
   const doSearch = (q: string, p: number) => {
-    if (q.length < 1) { setData(null); return; }
+    if (q.length < 1) { setData(null); setError(''); return; }
     setLoading(true);
+    setError('');
     stocksApi.search(q, p, 15)
       .then(r => { setData(r.data); setLoading(false); })
-      .catch(() => { setData(null); setLoading(false); });
+      .catch(() => { setData(null); setError('Search failed. Is the backend running?'); setLoading(false); });
   };
 
   useEffect(() => {
@@ -32,7 +34,7 @@ export const StockSearch = () => {
   return (
     <div className="space-y-8 pb-12">
       <div>
-        <h1 className="text-4xl font-manrope font-light tracking-tight">Stock Search</h1>
+        <h1 className="text-4xl font-heading font-light tracking-tight">Stock Search</h1>
         <p className="text-[11px] text-muted tracking-[0.15em] uppercase mt-2 font-medium">
           Search across all NSE-listed equities
         </p>
@@ -42,7 +44,7 @@ export const StockSearch = () => {
         <Search className="absolute left-4 top-1/2 -translate-y-1/2 h-4 w-4 text-muted" />
         <input value={query} onChange={e => { setQuery(e.target.value); setPage(0); }}
           placeholder="Search by name or symbol..."
-          className="w-full bg-surface text-[14px] pl-11 pr-4 py-3 border border-border outline-none focus:border-primary/30 font-inter academic-shadow"
+          className="w-full bg-surface text-[14px] pl-11 pr-4 py-3 border border-border outline-none focus:border-primary/30 font-sans card-border"
           autoFocus />
       </div>
 
@@ -53,8 +55,12 @@ export const StockSearch = () => {
         </div>
       )}
 
+      {error && (
+        <p className="text-[13px] text-negative text-center py-4">{error}</p>
+      )}
+
       {data && !loading && (
-        <div className="bg-surface p-5 academic-shadow">
+        <div className="bg-surface p-5 card-border">
           <div className="flex justify-between items-center mb-4 pb-3 border-b border-border-light">
             <span className="text-[10px] text-muted tracking-widest uppercase font-medium">
               {data.totalElements} result{data.totalElements !== 1 ? 's' : ''} found
@@ -69,7 +75,7 @@ export const StockSearch = () => {
               </div>
             )}
           </div>
-          <table className="w-full text-[13px] font-inter">
+          <table className="w-full text-[13px] font-sans">
             <thead>
               <tr className="text-[9px] text-muted tracking-widest uppercase text-left">
                 <th className="pb-3 font-medium">SYMBOL</th>
@@ -77,8 +83,8 @@ export const StockSearch = () => {
               </tr>
             </thead>
             <tbody>
-              {data.content.map((s, i) => (
-                <tr key={i} className="hover:bg-neutral transition-colors cursor-pointer"
+              {data.content.map((s) => (
+                <tr key={s.stockSymbol} className="hover:bg-neutral transition-colors cursor-pointer"
                     onClick={() => navigate(`/stocks/${s.stockSymbol}`)}>
                   <td className="py-3 font-medium">{s.stockSymbol}</td>
                   <td className="py-3 text-muted">{s.stockName}</td>

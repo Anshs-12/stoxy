@@ -31,11 +31,11 @@ const TradeModal = ({ type, stock, onClose, onConfirm, loadingLTP }: TradeModalP
   };
 
   return (
-    <div className="fixed inset-0 bg-black/20 dark:bg-white/20 backdrop-blur-sm flex items-center justify-center z-50">
-      <div className="bg-surface p-6 w-[400px] academic-shadow">
+    <div className="fixed inset-0 bg-black/40 backdrop-blur-sm flex items-center justify-center z-50">
+      <div className="bg-surface p-6 w-[400px] card-border">
         <div className="flex justify-between items-center mb-5">
           <div>
-            <h3 className="text-base font-manrope font-medium">
+            <h3 className="text-base font-heading font-medium">
               {type === 'buy' ? 'Buy' : 'Sell'} {stock.stockSymbol}
             </h3>
             {stock.stockName && (
@@ -58,7 +58,7 @@ const TradeModal = ({ type, stock, onClose, onConfirm, loadingLTP }: TradeModalP
               onChange={e => handleQtyChange(e.target.value)}
               onBlur={handleQtyBlur}
               placeholder="Enter quantity"
-              className="w-full bg-neutral text-[22px] font-manrope font-light px-4 py-3 outline-none focus:bg-neutral transition-colors tracking-tight"
+              className="w-full bg-neutral text-[22px] font-heading font-light px-4 py-3 outline-none focus:bg-neutral transition-colors tracking-tight"
             />
             {type === 'sell' && (
               <p className="text-[10px] text-muted mt-1.5">
@@ -66,7 +66,7 @@ const TradeModal = ({ type, stock, onClose, onConfirm, loadingLTP }: TradeModalP
               </p>
             )}
             {overSell && (
-              <p className="text-[11px] text-red-500 mt-1">Quantity exceeds holdings</p>
+              <p className="text-[11px] text-negative mt-1">Quantity exceeds holdings</p>
             )}
           </div>
 
@@ -102,7 +102,7 @@ const TradeModal = ({ type, stock, onClose, onConfirm, loadingLTP }: TradeModalP
               className={`flex-1 py-2.5 text-[12px] font-medium transition-colors disabled:opacity-40 ${
                 type === 'buy'
                   ? 'bg-primary text-base hover:bg-primary/90'
-                  : 'bg-red-600 text-white hover:bg-red-700'
+                  : 'bg-negative text-white hover:bg-negative/90'
               }`}>
               Confirm {type === 'buy' ? 'Buy' : 'Sell'}
             </button>
@@ -163,6 +163,9 @@ export const Portfolio = () => {
           const ltp = r.data.stockPriceInfoDTO?.lastPrice ?? 0;
           setTradeModal(prev => prev ? { ...prev, stock: { ...skeleton, LTP: ltp } } : null);
         })
+        .catch(() => {
+          setTradeModal(prev => prev ? { ...prev, stock: { ...skeleton, LTP: 0 } } : null);
+        })
         .finally(() => setLoadingLTP(false));
     }
   };
@@ -205,7 +208,7 @@ export const Portfolio = () => {
   if (loading && !portfolio) return (
     <div className="flex items-center justify-center h-64 text-muted">
       <Loader2 className="h-5 w-5 animate-spin mr-2" />
-      <span className="text-sm font-inter">Loading portfolio...</span>
+      <span className="text-sm font-sans">Loading portfolio...</span>
     </div>
   );
 
@@ -213,7 +216,7 @@ export const Portfolio = () => {
     <div className="space-y-8 pb-12">
       <div className="flex justify-between items-end">
         <div>
-          <h1 className="text-4xl font-manrope font-light tracking-tight">Portfolio</h1>
+          <h1 className="text-4xl font-heading font-light tracking-tight">Portfolio</h1>
           <p className="text-[11px] text-muted tracking-[0.15em] uppercase mt-2 font-medium">Holdings &amp; P&amp;L Analysis</p>
         </div>
         <button onClick={loadPortfolio} disabled={loading}
@@ -222,16 +225,16 @@ export const Portfolio = () => {
           Refresh
         </button>
       </div>
-      <div className="text-center py-12 bg-surface academic-shadow">
-        <p className="text-sm text-muted font-inter mb-6">{error}</p>
+      <div className="text-center py-12 bg-surface card-border">
+        <p className="text-sm text-muted font-sans mb-6">{error}</p>
         <div className="relative inline-block">
           <input value={buySearch} onChange={e => setBuySearch(e.target.value)}
             placeholder="Search a stock to buy..."
-            className="bg-neutral text-[13px] px-4 py-2.5 w-72 outline-none font-inter focus:bg-neutral transition-colors" />
+            className="bg-neutral text-[13px] px-4 py-2.5 w-72 outline-none font-sans focus:bg-neutral transition-colors" />
           {buyResults.length > 0 && (
-            <div className="absolute top-full left-0 right-0 bg-surface academic-shadow border border-border-light z-10 text-left">
-              {buyResults.map((s, i) => (
-                <button key={i} onClick={() => {
+            <div className="absolute top-full left-0 right-0 bg-surface card-border border border-border-light z-10 text-left">
+              {buyResults.map((s) => (
+                <button key={s.stockSymbol} onClick={() => {
                   setBuySearch('');
                   openBuyModal(s.stockSymbol, s.stockName);
                 }} className="w-full text-left px-4 py-2.5 hover:bg-neutral flex justify-between text-[13px]">
@@ -262,7 +265,7 @@ export const Portfolio = () => {
       {/* Header */}
       <div className="flex justify-between items-end">
         <div>
-          <h1 className="text-4xl font-manrope font-light tracking-tight">Portfolio</h1>
+          <h1 className="text-4xl font-heading font-light tracking-tight">Portfolio</h1>
           <p className="text-[11px] text-muted tracking-[0.15em] uppercase mt-2 font-medium">
             Holdings &amp; P&amp;L Analysis
           </p>
@@ -271,17 +274,17 @@ export const Portfolio = () => {
           <div className="relative">
             <input value={buySearch} onChange={e => setBuySearch(e.target.value)}
               placeholder="+ Buy a new stock..."
-              className="bg-surface academic-shadow text-[12px] px-4 py-2 w-52 outline-none border border-border-light font-inter" />
+              className="bg-surface card-border text-[12px] px-4 py-2 w-52 outline-none border border-border-light font-sans" />
             {buyResults.length > 0 && (
-              <div className="absolute top-full right-0 w-64 bg-surface academic-shadow border border-border-light z-10">
-                {buyResults.map((s, i) => (
-                  <button key={i} onClick={() => {
-                    setBuySearch('');
-                    openBuyModal(s.stockSymbol, s.stockName);
-                  }} className="w-full text-left px-4 py-2.5 hover:bg-neutral flex justify-between text-[12px]">
-                    <span>{s.stockName}</span>
-                    <span className="text-muted">{s.stockSymbol}</span>
-                  </button>
+              <div className="absolute top-full right-0 w-64 bg-surface card-border border border-border-light z-10">
+              {buyResults.map((s) => (
+                <button key={s.stockSymbol} onClick={() => {
+                  setBuySearch('');
+                  openBuyModal(s.stockSymbol, s.stockName);
+                }} className="w-full text-left px-4 py-2.5 hover:bg-neutral flex justify-between text-[12px]">
+                  <span>{s.stockName}</span>
+                  <span className="text-muted">{s.stockSymbol}</span>
+                </button>
                 ))}
               </div>
             )}
@@ -311,17 +314,17 @@ export const Portfolio = () => {
             sub: `${dayPnLPositive ? '+' : ''}${fmt(portfolio.totalDayPnLPercent)}%`,
             color: getChangeColor(portfolio.totalDayPnL),
           },
-        ].map((k, i) => (
-          <div key={i} className="bg-surface p-4 academic-shadow">
+        ].map((k) => (
+          <div key={k.l} className="bg-surface p-4 card-border">
             <p className="text-[9px] text-muted uppercase tracking-widest mb-2">{k.l}</p>
-            <p className={`text-xl font-inter font-light ${k.color}`}>{k.v}</p>
+            <p className={`text-xl font-sans font-light ${k.color}`}>{k.v}</p>
             {k.sub && <p className={`text-[11px] mt-0.5 ${k.color}`}>{k.sub}</p>}
           </div>
         ))}
       </div>
 
       {/* Holdings Table */}
-      <div className="bg-surface p-5 academic-shadow">
+      <div className="bg-surface p-5 card-border">
         <div className="flex justify-between items-center mb-5 pb-4 border-b border-border-light">
           <h3 className="text-[10px] text-muted tracking-[0.12em] uppercase font-medium">
             Holdings ({portfolio.stocks?.length ?? 0})
@@ -335,7 +338,7 @@ export const Portfolio = () => {
         {!portfolio.stocks?.length ? (
           <p className="text-[13px] text-muted py-8 text-center">No holdings yet.</p>
         ) : (
-          <table className="w-full text-[13px] font-inter">
+          <table className="w-full text-[13px] font-sans">
             <thead>
               <tr className="text-[9px] text-muted tracking-widest uppercase text-left">
                 {['Symbol', 'Qty', 'Avg Buy', 'LTP', 'Invested', 'Current', 'P&L', 'P&L %', 'Day P&L', ''].map(h => (
@@ -381,7 +384,7 @@ export const Portfolio = () => {
                           <Plus className="h-3 w-3" />
                         </button>
                         <button onClick={() => setTradeModal({ type: 'sell', stock: s })}
-                          title="Sell" className="p-1 bg-neutral hover:bg-red-100 transition-colors rounded">
+                          title="Sell" className="p-1 bg-neutral hover:bg-negative/10 transition-colors rounded">
                           <Minus className="h-3 w-3" />
                         </button>
                       </div>
@@ -396,7 +399,7 @@ export const Portfolio = () => {
 
       {/* Sector Breakdown */}
       {portfolio.sectorBreakdown && Object.keys(portfolio.sectorBreakdown).length > 0 && (
-        <div className="bg-surface p-5 academic-shadow">
+        <div className="bg-surface p-5 card-border">
           <h3 className="text-[10px] text-muted tracking-[0.12em] uppercase font-medium mb-5">Sector Allocation</h3>
           <div className="space-y-3">
             {Object.entries(portfolio.sectorBreakdown)
@@ -412,7 +415,7 @@ export const Portfolio = () => {
                       <span className="text-muted">{pct}% · {fmtCr(Number(value))}</span>
                     </div>
                     <div className="h-1 w-full bg-neutral rounded-full overflow-hidden">
-                      <div className="h-full bg-primary/60 dark:bg-white/60 rounded-full transition-all" style={{ width: `${pct}%` }} />
+                      <div className="h-full bg-primary/60 rounded-full transition-all" style={{ width: `${pct}%` }} />
                     </div>
                   </div>
                 );
@@ -423,7 +426,7 @@ export const Portfolio = () => {
 
       {/* Transaction History */}
       {showTx && (
-        <div className="bg-surface p-5 academic-shadow mt-4">
+        <div className="bg-surface p-5 card-border mt-4">
           <div className="flex justify-between items-center mb-5 pb-4 border-b border-border-light">
             <h3 className="text-[10px] text-muted tracking-[0.12em] uppercase font-medium">
               {selectedStockForTx ? `${selectedStockForTx} Transactions` : 'All Transactions'}
@@ -438,7 +441,7 @@ export const Portfolio = () => {
               <span className="text-[13px]">Loading...</span>
             </div>
           ) : txHistory && txHistory.length > 0 ? (
-            <table className="w-full text-[13px] font-inter">
+            <table className="w-full text-[13px] font-sans">
               <thead>
                 <tr className="text-[9px] text-muted tracking-widest uppercase text-left">
                   <th className="pb-3 font-medium">SYMBOL</th>
@@ -450,7 +453,7 @@ export const Portfolio = () => {
               </thead>
               <tbody>
                 {txHistory.map((tx, i) => (
-                  <tr key={i} className="hover:bg-neutral transition-colors">
+                  <tr key={`${tx.stockSymbol}-${tx.transactionDate}-${i}`} className="hover:bg-neutral transition-colors">
                     <td className="py-2.5 font-medium">{tx.stockSymbol}</td>
                     <td className={`py-2.5 font-medium ${tx.transactionType === 'BUY' ? 'text-positive' : 'text-negative'}`}>
                       {tx.transactionType}

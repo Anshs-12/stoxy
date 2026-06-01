@@ -25,10 +25,9 @@ api.interceptors.response.use(
   (err: any) => {
     if (err.response?.status === 401) {
       const apiUrl: string = err.config?.url ?? '';
+      const isPublic = apiUrl.includes('/stocks/') || apiUrl.includes('/index/');
       const isAuthCheck = apiUrl.includes('/auth/');
-      if (!isAuthCheck) {
-        // We still use window.location.href here because axios is outside React context.
-        // A more advanced approach would involve a custom event or a navigation singleton.
+      if (!isAuthCheck && !isPublic) {
         window.location.href = '/login';
       }
     }

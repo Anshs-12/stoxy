@@ -1,5 +1,5 @@
 import * as React from "react";
-import { LineChart, Line, XAxis, YAxis, Tooltip, ResponsiveContainer } from "recharts";
+import { AreaChart, Area, XAxis, YAxis, Tooltip, ResponsiveContainer } from "recharts";
 
 interface SparklineProps {
   data: { name: string; value: number }[];
@@ -11,7 +11,7 @@ export const Sparkline = React.forwardRef<HTMLDivElement, SparklineProps>(
   ({ data, className, color = "#2E7D32" }, ref) => (
     <div ref={ref as React.RefObject<HTMLDivElement>} className={className}>
       <ResponsiveContainer width="100%" height={60}>
-        <LineChart data={data} margin={{ top: 5, right: 0, left: 0, bottom: 5 }}>
+        <AreaChart data={data} margin={{ top: 5, right: 0, left: 0, bottom: 5 }}>
           <XAxis dataKey="name" tick={false} />
           <YAxis tick={false} width={0} />
           <Tooltip
@@ -25,21 +25,16 @@ export const Sparkline = React.forwardRef<HTMLDivElement, SparklineProps>(
               <stop offset="1" stopColor={color} stopOpacity={0} />
             </linearGradient>
           </defs>
-          <Line
+          <Area
             type="monotone"
             dataKey="value"
             stroke={color}
             strokeWidth={1.5}
+            fill={`url(#sparkline-gradient-${color.replace('#', '')})`}
+            fillOpacity={1}
             dot={false}
           />
-          <Line
-            type="monotone"
-            dataKey="value"
-            stroke="none"
-            strokeWidth={0}
-            fill={`url(#sparkline-gradient-${color.replace('#', '')})`}
-          />
-        </LineChart>
+        </AreaChart>
       </ResponsiveContainer>
     </div>
   )

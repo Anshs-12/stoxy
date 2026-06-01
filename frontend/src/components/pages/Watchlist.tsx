@@ -54,13 +54,13 @@ export const Watchlist = () => {
   if (loading) return (
     <div className="flex items-center justify-center h-64 text-muted">
       <Loader2 className="h-5 w-5 animate-spin mr-2" />
-      <span className="text-sm font-inter">Loading watchlists...</span>
+      <span className="text-sm font-sans">Loading watchlists...</span>
     </div>
   );
 
   if (error) return (
     <div className="text-center py-20">
-      <p className="text-sm text-red-600/80 font-inter mb-2">⚠ Authentication Required</p>
+      <p className="text-sm text-negative font-sans mb-2">⚠ Authentication Required</p>
       <p className="text-[13px] text-muted max-w-md mx-auto mb-4">{error}</p>
       <a href="/api/v2/oauth2/authorization/google"
          className="inline-block px-5 py-2 bg-primary text-base text-[12px] font-medium hover:bg-primary/90 transition-colors">
@@ -73,7 +73,7 @@ export const Watchlist = () => {
     <div className="space-y-8 pb-12">
       <div className="flex justify-between items-end">
         <div>
-          <h1 className="text-4xl font-manrope font-light tracking-tight">Precision Assets</h1>
+          <h1 className="text-4xl font-heading font-light tracking-tight">Precision Assets</h1>
           <p className="text-[11px] text-muted tracking-[0.15em] uppercase mt-2 font-medium">
             Curated Watchlists & Tracking
           </p>
@@ -90,7 +90,7 @@ export const Watchlist = () => {
           <div className="flex-1">
             <label className="text-[9px] text-muted uppercase tracking-widest block mb-1.5">Watchlist Name</label>
             <input value={newName} onChange={e => setNewName(e.target.value)}
-              className="w-full bg-surface text-[13px] px-3 py-2 border border-border outline-none focus:border-primary/30 font-inter"
+              className="w-full bg-surface text-[13px] px-3 py-2 border border-border outline-none focus:border-primary/30 font-sans"
               placeholder="e.g. Tech Growth" autoFocus />
           </div>
           <button onClick={handleCreate} className="px-4 py-2 bg-primary text-base text-[12px] font-medium hover:bg-primary/90">Create</button>
@@ -108,12 +108,12 @@ export const Watchlist = () => {
             <div key={w.watchlistId}>
               <button onClick={() => loadDetail(w.watchlistId)}
                 className={`w-full text-left p-4 transition-all ${
-                  activeId === w.watchlistId ? 'bg-surface academic-shadow' : 'bg-neutral hover:bg-neutral'
+                  activeId === w.watchlistId ? 'bg-surface card-border' : 'bg-neutral hover:bg-neutral'
                 }`}>
                 <div className="flex justify-between items-center">
                   <span className="text-[13px] font-medium">{w.watchlistName}</span>
                   <button onClick={e => { e.stopPropagation(); setDeleteConfirmId(w.watchlistId); }}
-                    className="text-muted hover:text-red-500 transition-colors">
+                    className="text-muted hover:text-negative transition-colors">
                     <Trash2 className="h-3.5 w-3.5" />
                   </button>
                 </div>
@@ -122,13 +122,13 @@ export const Watchlist = () => {
                 </p>
               </button>
               {deleteConfirmId === w.watchlistId && (
-                <div className="bg-red-50 dark:bg-red-950/30 p-3 flex justify-between items-center border border-red-200 dark:border-red-800/50">
-                  <span className="text-[11px] text-red-600 flex items-center gap-1.5 font-medium">
+                <div className="bg-negative/10 p-3 flex justify-between items-center border border-negative/30">
+                  <span className="text-[11px] text-negative flex items-center gap-1.5 font-medium">
                     <AlertTriangle className="h-3 w-3" /> Delete {w.watchlistName}?
                   </span>
                   <div className="flex gap-2">
-                    <button onClick={() => setDeleteConfirmId(null)} className="text-[11px] px-2 py-1 bg-surface border border-red-200 text-red-600 hover:bg-red-100 transition-colors">Cancel</button>
-                    <button onClick={() => handleDelete(w.watchlistId)} className="text-[11px] px-2 py-1 bg-red-600 text-white hover:bg-red-700 transition-colors">Delete</button>
+                    <button onClick={() => setDeleteConfirmId(null)} className="text-[11px] px-2 py-1 bg-surface border border-negative/30 text-negative hover:bg-negative/20 transition-colors">Cancel</button>
+                    <button onClick={() => handleDelete(w.watchlistId)} className="text-[11px] px-2 py-1 bg-negative text-white hover:bg-negative/90 transition-colors">Delete</button>
                   </div>
                 </div>
               )}
@@ -152,21 +152,21 @@ export const Watchlist = () => {
           )}
 
           {activeId && !detailLoading && activeList && (
-            <div className="bg-surface p-5 academic-shadow">
+            <div className="bg-surface p-5 card-border">
               <div className="flex justify-between items-center mb-5 pb-4 border-b border-border-light">
                 <div className="flex items-center gap-3">
-                  <h3 className="text-sm font-manrope font-medium">{activeList.watchlistName}</h3>
+                  <h3 className="text-sm font-heading font-medium">{activeList.watchlistName}</h3>
                   {livePricesLoading && <Loader2 className="h-3 w-3 animate-spin text-muted" />}
                 </div>
                 {/* Add stock */}
                 <div className="relative">
                   <input value={addSymbol} onChange={e => setAddSymbol(e.target.value)}
                     placeholder="+ Add stock..."
-                    className="bg-neutral text-[12px] px-3 py-1.5 rounded w-44 border-none outline-none focus:bg-neutral placeholder:text-muted font-inter" />
+                    className="bg-neutral text-[12px] px-3 py-1.5 rounded w-44 border-none outline-none focus:bg-neutral placeholder:text-muted font-sans" />
                   {searchResults.length > 0 && (
-                    <div className="absolute top-full right-0 mt-1 bg-surface academic-shadow border border-border-light rounded z-50 w-64 max-h-48 overflow-y-auto">
-                      {searchResults.map((s, i) => (
-                        <button key={i} onClick={() => handleAddStock(s.stockSymbol)}
+                    <div className="absolute top-full right-0 mt-1 bg-surface card-border border border-border-light rounded z-50 w-64 max-h-48 overflow-y-auto">
+                      {searchResults.map((s) => (
+                        <button key={s.stockSymbol} onClick={() => handleAddStock(s.stockSymbol)}
                           className="w-full text-left px-3 py-2 hover:bg-neutral transition-colors flex justify-between">
                           <span className="text-[12px]">{s.stockName}</span>
                           <span className="text-[10px] text-muted">{s.stockSymbol}</span>
@@ -180,7 +180,7 @@ export const Watchlist = () => {
               {activeList.watchlistStocks.length === 0 ? (
                 <p className="text-[13px] text-muted py-8 text-center">No stocks in this watchlist. Use the search above to add.</p>
               ) : (
-                <table className="w-full text-[13px] font-inter">
+                <table className="w-full text-[13px] font-sans">
                   <thead>
                     <tr className="text-[9px] text-muted tracking-widest uppercase text-left">
                       <th className="pb-3 font-medium">SYMBOL</th>
@@ -192,12 +192,12 @@ export const Watchlist = () => {
                     </tr>
                   </thead>
                   <tbody>
-                    {activeList.watchlistStocks.map((s, i) => {
+                    {activeList.watchlistStocks.map((s) => {
                       const live = livePrices[s.stockSymbol];
                       const pChg = live?.pChange ?? null;
                       const isUp = (pChg ?? 0) >= 0;
                       return (
-                        <tr key={i} className="hover:bg-neutral transition-colors group border-t border-border-light">
+                        <tr key={s.stockSymbol} className="hover:bg-neutral transition-colors group border-t border-border-light">
                           <td className="py-3">
                             <button onClick={() => navigate(`/stocks/${s.stockSymbol}`)}
                               className="font-medium text-primary hover:underline">{s.stockSymbol}</button>
@@ -215,8 +215,8 @@ export const Watchlist = () => {
                             {pChg != null ? (
                               <span className={`text-[12px] font-medium px-1.5 py-0.5 rounded-sm ${
                                 isUp
-                                  ? 'text-positive bg-green-500/10 dark:bg-green-400/10'
-                                  : 'text-negative bg-red-500/10 dark:bg-red-400/10'
+                                  ? 'text-positive bg-positive/10'
+                                  : 'text-negative bg-negative/10 dark:bg-negative/10'
                               }`}>
                                 {isUp ? '+' : ''}{fmt(pChg)}%
                               </span>
@@ -226,7 +226,7 @@ export const Watchlist = () => {
                           </td>
                           <td className="py-3 text-right">
                             <button onClick={() => removeStock(s.stockSymbol)}
-                              className="text-muted hover:text-red-500 transition-colors opacity-0 group-hover:opacity-100">
+                              className="text-muted hover:text-negative transition-colors opacity-0 group-hover:opacity-100">
                               <Trash2 className="h-3.5 w-3.5" />
                             </button>
                           </td>
