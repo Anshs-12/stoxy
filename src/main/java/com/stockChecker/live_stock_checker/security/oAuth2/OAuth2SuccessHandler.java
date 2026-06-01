@@ -55,7 +55,7 @@ public class OAuth2SuccessHandler implements AuthenticationSuccessHandler {
         response.addHeader("Set-Cookie", jwtTokenCookie.toString());
         response.addHeader("Authorization", "Bearer " + jwtToken);
         response.sendRedirect("/api/v1/swagger-ui/index.html");
-
+        response.sendRedirect("http://localhost:5173/");
     }
 
     private User saveUserInDB(OAuth2User oAuth2User, String provider) {

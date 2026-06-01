@@ -43,7 +43,7 @@ public class WebSecurityConfig {
 
         http.authorizeHttpRequests((eachRequest) -> eachRequest
                 .requestMatchers("/stocks/**").permitAll()
-                .requestMatchers("/indices/**").permitAll()
+                .requestMatchers("/index/**").permitAll()
                 .requestMatchers("/auth/userInfo").authenticated()
                 .requestMatchers("/auth/**").permitAll()
                 .requestMatchers("/login/**").permitAll()
