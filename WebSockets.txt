@@ -1,0 +1,366 @@
+    Long before websockets, sockets were the first thing which existed in the picture, but it became obsolete as it was not
+    secure and was very low level.
+
+    The shift towards socket journey took a turn when polling was introduced in HTTP.
+
+    Polling - In the client keeps on asking the server in regular intervals if any new data is to be sent, and another
+    option was long polling where in the http connection was kept open until it has something then closes.
+
+    Both of the methods are ugly, not secure and hacky.
+
+    This all problems was eventually solved by WebSockets and this idea about websockets became standard in 2011
+    It involved one connection connecting both the client and server, so that anyone can send data to each other at any
+    given time.
+
+        - one connection stays alive -> both sides can talk freely
+        - good for live data like StockMarket, trading, games etc.
+
+    The best part about websockets is that it starts as HTTP and then upgrades.
+    That's why it works on the same ports (80, 443) without any firewall issues.
+
+    There are two things when talking and setting up websockets, one is client side and another is server side
+
+    a. WebSocket Client - It is the one who initiates the connection and receives data.
+        Stoxy Backend (YOU = client) ———connects to———> Upstox Server
+
+        as a client, there are only 4 things/jobs:
+            1. Connect        → open the connection to Upstox
+            2. Subscribe      → tell Upstox which stocks you want
+            3. Listen         → receive price ticks as they come
+            4. Disconnect     → close connection when done
+
+        In java, there are no dependencies required for setting up client side websockets as it's pre-built in Java 11+
+        from the  java.net.http.WebSocket package.
+
+    b. Server Side - Involves setting up and maintaining the websocket server.
+    In java these dependencies are used for the same purpose spring-boot-starter-websocket and SockJS and STOMP
+
+
+### Entire StoxyFinance project structure -
+    config/
+    ├── AppConfig.java              (Creates and configures beans. No business logic or network calls)
+    ├── WebSocketConfig.java        (Configures your own STOMP/SockJS server for frontend connection)
+
+    service/
+    ├── StockServiceImpl.java       (Contains core business logic)
+    ├── StockDBService.java         (Handles database operations)
+    └── ...                         (Other existing services)
+
+    websocket/
+    ├── UpstoxWebSocketClient.java  (Fetches WSS URL from authorize endpoint + maintains Upstox connection)
+    └── MarketDataHandler.java      (Processes incoming Upstox ticks, parses data, and updates Redis)
+
+    In Java, opening a connection to a wss:// URL is done using a built-in class called java.net.http.HttpClient.
+        We already used RestClient for REST calls.
+
+    Think of HttpClient as the lower level thing that actually handles connections — RestClient uses it internally too.
+
+    Therefore, to open a WebSocket connection using HttpClient it looks roughly like:
+        - HttpClient → connect to wss:// URL → gives back a WebSocket object
+        (this WebSocket object represents your open connection.)
+
+    Importantly, we need to keep it this connection alive as Upstox pushes ticks through it.
+    but HttpClient needs one more thing when connecting — a Listener. because when Upstox pushes a tick,
+        Java needs to know which method to call.
+    that listener is  MarketDataHandler class, which is just a class you write with those 4 methods:
+        - onOpen    → connection established
+        - onText    → tick arrived (this is where your data comes)
+        - onClose   → connection closed
+        - onError   → something went wrong
+    These methods are called when we mean the listener, so that the methods like onText() handles all the data, or when
+    the connection is closed we call the onClose() which marks the connection closed from our side even, or handling
+    when error generates using onError() function.
+    In the end, UpstoxWebSocketClient has two responsibilities:
+        1. get the wss URL from authorize endpoint
+        2. open connection using HttpClient with a listener attached so that it handles all the data being received.
+
+    MarketDataHandler, this is a class which basically implements the WebSocket.listener interface which is the actual
+    Java listener and therefore, forces MarketDataHandler class to implement and have the above 4 methods.
+
+
+### Understanding UpstoxWebSocketClient File and how websockets connections are made
+and how java threads work -
+
+    1. What does sending new MarketDataHandler() actually do?
+        You are passing the MarketDataHandler to Java's internal WebSocket engine, not to the Upstox server.
+        The Upstox server has no idea what Java or a MarketDataHandler is; it only sees a standard network connection.
+        By passing new MarketDataHandler() into .buildAsync(), you are telling the local Java runtime:
+            "Hey, whenever the background network thread receives data from this specific Upstox connection,
+            route those packets directly to this specific listener instance."
+
+    2. The Timeline: How .buildAsync(), .join(), and onOpen() execute
+        To see why .join() is necessary and when onOpen() fires, you have to look at the exact,
+        millisecond-by-millisecond order of events.
+
+            Step 1: The Main Thread fires .buildAsync()
+                The main thread tells a background thread:
+                    "Go start the network handshake with Upstox using this WSS URL." The main thread does not wait.
+                It instantly receives an empty CompletableFuture box and moves directly to the next line of code.
+
+            Step 2: The Main Thread hits .join() immediately
+                Because code runs sequentially, the main thread hits the .join() line a fraction of a millisecond later.
+                At this exact moment, the background thread has barely even sent the first network packet to Upstox.
+                The CompletableFuture box is still completely empty.
+
+            What .join() does right here: It violently stops the main thread.
+            The main thread cannot move to any further lines of code. It is locked, frozen on the .join() line,
+            waiting for that box to be filled.
+
+            Step 3: The Background Thread completes the handshake
+                While the main thread is frozen waiting at .join(), the background network thread is doing the heavy
+                    lifting over the network. It exchanges packets with the Upstox server.
+                Upstox validates the connection and sends back a success packet confirmation.
+
+            Step 4: The "Filling" and the onOpen() Execution
+                The background thread receives Upstox's success packet.
+                The connection is now officially established. Now, two things happen practically simultaneously:
+
+                    a. The background thread fires the onOpen() method inside your MarketDataHandler to let your
+                        listener know it can now start requesting data via .request(1).
+                    b. The background thread fills the CompletableFuture box with the live, active WebSocket connection object.
+
+            Step 5: The Main Thread unblocks
+                The moment the background thread drops the WebSocket object into the box, .join() detects that the
+                    box is no longer empty.
+                    The main thread instantly wakes up, unblocks, pulls the live WebSocket object out of the box,
+                    and returns it from your connectWebsocketToUpstox() method.
+
+    Entire Flowchart-
+        buildAsync called
+        → Java starts handshake with Upstox in background
+        → empty CompletableFuture box returned immediately
+        → .join() blocks your thread
+        → handshake completes, Upstox confirms connection
+        → CompletableFuture box fills with WebSocket object
+        → .join() unblocks, returns WebSocket object
+        → Java automatically calls onOpen on MarketDataHandler
+
+### Continuation on how the onOpen is invoked and the major role played by MarketDataHandler class-
+
+    1. The Problem:
+        The Limitations of Standard HTTPThink about a standard REST API call—for example,
+        when you fetch a user's profile from a database. Standard HTTP operates on a strict
+            Request-> Response -> Close lifecycle.
+        Your Spring Boot app opens a TCP network connection, asks for the profile, the server sends the JSON, and
+        then the connection is immediately terminated.For a live stock market feed,
+        upstox needs to send you thousands of stock ticks every single second.
+
+        If your application had to open a brand-new TCP network connection, authenticate, request the tick,
+        receive the tick, and close the connection thousands of times a second, your server's CPU and network ports
+        would completely exhaust themselves and crash within seconds.
+
+        The system needs a way to open a single TCP connection and keep it open permanently so data can flow
+        continuously in both directions.
+
+
+    2. The Solution:
+        The 101 Protocol UpgradeTo create this permanent pipe, your Java HttpClient uses a clever trick.
+
+        When you call .buildAsync(), the Java background networking thread sends what looks like a
+        standard HTTP GET request to the Upstox server.
+
+        However, it secretly attaches two critical headers to this
+            request:Connection
+            UpgradeUpgrade: websocket
+
+        This is your Java application saying to Upstox:
+            "I want to connect to you using standard HTTP, but the moment you verify my token,
+            I want us to upgrade this connection into a permanent WebSocket stream."
+
+        The Upstox server receives this request. It checks your API token.
+
+        If the token is perfectly valid, Upstox does not send back a standard 200 OK response
+            (because 200 OK means "Here is your data, I am closing the connection").
+
+        Instead, the Upstox server sends back a 101 Switching Protocols HTTP status packet.
+
+        This specific 101 packet means: "I agree to the upgrade. I am keeping this exact TCP network port
+        open permanently. We are no longer speaking standard HTTP; we are now streaming raw WebSocket binary."
+
+    3. The Bridge: How 101 Triggers onOpen()
+        The exact microsecond that 101 packet travels back across the internet and hits your
+            Spring Boot server's network card.
+
+            1. The Reception: The JVM's background networking thread reads the 101 packet from the
+                operating system's network buffer.
+
+            2. The State Change: The JVM instantly recognizes that the handshake was a success.
+                The connection has successfully transformed from a temporary HTTP request into a
+                permanent WebSocket stream.
+
+            3. The Application blindspot: Here is the core problem:
+                The JVM internal engine knows the pipe is open, and Upstox knows the pipe is open.
+                But your specific application code (the MarketDataHandler) does not know yet.
+
+            4. The Trigger: If Upstox immediately blasts a raw binary tick for Reliance stock down the
+                pipe before your application is ready, your application will drop the data.
+                To prevent this, the JVM uses the onOpen method as an interrupt.
+
+            5. The Execution: The very millisecond the JVM processes that 101 packet,
+                it completely halts any incoming data from Upstox, reaches into your MarketDataHandler,
+                and forcefully executes onOpen().
+
+    4. Why onOpen Solves the Problem
+        The JVM is basically tapping your application on the shoulder and saying:
+            "The 101 packet just arrived. The pipe is officially live.
+            Before I let Upstox send you any actual market data, set up your internal state."
+
+        This is exactly why you must write webSocket.request(1); inside the onOpen method.
+
+
+    websocket.request(1)-
+        This is one of the most crucial implementations or lines ever to be written in the onOpen() method of your
+        websocket listener class.
+
+        As described, upstox might be sending in about 10,000 ticks each second and if you leave the pipe open then
+        this would eventually fill up your RAM and therefore throwing OutofMemoryException leading to crashing of the
+        entire SpringBoot application.
+
+        To solve this issue and have full control over the amount of data to be received or picked up, Java websockets
+        have a method websocket.request(x)
+
+        here x- number of ticks to be picked up from the network buffer to put into the application's memory.
+
+        Meaning, if your x value is 1, then 1 tick is picked form the network buffer, the counter then decreases to 0
+        and this tick is then sent to the onBinary()/onText() methods which are completely responsible for handling
+        on how to process the data.
+
+        Now, the major point is onBinary()/onText() processes only one data that is one tick at a time, so the real
+        difference doesn't seem to appear by increasing the x value.
+
+        The differences arise when you look at the milliseconds on how things are processed, as soon as you pick a tick
+        and pass is to onBinary to process it, at the end of onBinary after processing we increment the counter to
+        websocket.request(1) again, so this tell the onOpen() that there exists a counter value > 0 so accept those
+        many ticks.
+
+        The real difference as spoken above comes when you start accepting one tick process then again call the network
+        buffer for another tick, these milliseconds of calling each other than going to the network buffer to bring in
+        the data then sending to process waste much time over all.
+
+        Now, if your x value was something like 50 or 100, the JVM gets about 50/100 ticks from the network buffer
+        and stores them in your application memory, this does increase the overall working memory of your application
+        but at the same time the above difference of going to the network buffer getting another tick then processing
+        and going again finishes and the after onBinary() processes one tick it again starts taking in from the memory
+        itself until the counter reaches to 0 which then calls the network buffer to bring in more ticks or data.
+
+
+        This is entirely how the flow of websockets work.
+
+    Understanding onError-
+        This appears as simple as the name suggests, this method is provoked or run  when upstox throws any error or
+        anything in our websockets goes wrong, then this method is called.
+        suppose when connecting or initializing a websocket connection, if access-token fails or if the url is hit wrong
+        or the upstox server are down.
+
+        On such scenario it cannot just tell onOpen falsely that data is coming, rather calling onError to show that an
+        error arisen in the application which needs to be fixed.
+
+### Why request(1) is gold-standard and how excess ticks are dropped/skipped and always latest data is shown -
+
+    The exact boundary between application code (what Java does) and operating system networking (how the internet works).
+
+    To answer the biggest question first:
+        No, we do not tell Upstox how much data to send. Upstox has absolutely no idea that your
+            Java code is calling `request(1)`.
+        Upstox operates like a firehose that is permanently turned on.
+
+    You are completely correct that the pipe behaves like a queue (First-In, First-Out).
+    To understand how data gets dropped instead of queuing forever, we need to examine the three physical
+    layers through which the data travels.
+
+    The Three Layers of the Pipeline
+
+     1. The Firehose (Upstox Server)
+        Upstox continuously pushes live market data over the internet to your server’s IP address.
+        It does not ask for permission before sending data; it simply streams it continuously.
+
+     2. The Bucket (Operating System Network Buffer)
+        - Before data ever reaches Java, it first arrives at your server’s operating system (Linux, Windows, etc.).
+        - The operating system maintains a designated portion of RAM called the network buffer.
+        - This network buffer is the queue you are thinking of.
+        - Whenever Upstox sends a tick, it is placed into this OS-level queue.
+        A crucial point is that this buffer has a fixed size limit (for example, 64 KB). It is not infinite.
+
+     3. The Cup (Java Application)
+        Java operates separately from the OS network buffer.
+
+        When your code calls `webSocket.request(1)`, Java reaches into the OS buffer, removes exactly one
+            tick—the oldest item at the front of the queue—and passes it to your `MarketDataHandler` for processing.
+
+        What Happens When the Application Slows Down?
+            Consider a scenario where Redis becomes slow and your Java application takes one full second to process a single tick.
+
+            Step 1: The Queue Starts Filling
+                Suppose Upstox is sending 100 ticks per second.
+                Since Java is only consuming 1 tick per second, the OS network buffer begins filling rapidly.
+
+            Step 2: The Buffer Reaches Capacity
+                Within a short period, the OS buffer becomes completely full.
+                At this point, it cannot accept any additional data.
+                When this happens, the operating system automatically sends a low-level TCP signal back to the Upstox
+                    server known as a Zero Window.
+
+            Step 3: The TCP "Zero Window" Signal
+                The meaning of this signal is simple:
+                "My network buffer is completely full. Stop sending data on this TCP connection immediately."
+
+            Step 4: Upstox Must Decide What to Do
+                When Upstox receives the Zero Window signal, it has two options:
+                1. Store incoming ticks in its own memory until the client is ready.
+                2. Discard the ticks.
+
+        For live financial market data, storing old ticks is usually undesirable because stale market information quickly
+            loses value and can even become misleading.
+        As a result, Upstox typically chooses to discard data that cannot be delivered in real time.
+
+
+### Why This Approach Is Considered the Gold Standard
+
+    - Eventually, your Java application completes its work and calls `request(1)` again.
+    - This removes one tick from the OS buffer.
+    - The buffer is now slightly below full capacity.
+    - As soon as space becomes available, the operating system informs Upstox that data can be received again.
+    - Upstox immediately sends the latest available market data into the newly available buffer space.
+    - As a result, your application remains as close as possible to the current market state.
+    - Now compare this with a different approach.
+
+    Suppose you call `request(10000)` and pull thousands of ticks into Java memory.
+        - Java heap memory can grow much larger than the OS network buffer.
+
+        In this case:
+            * The OS buffer rarely becomes full.
+            * The Zero Window signal is never triggered.
+            * Upstox continues delivering data without interruption.
+            * Your application accumulates a large backlog of ticks.
+
+    You would then be forced to process thousands of stale ticks one by one while the actual market continues moving ahead.
+
+    By using `request(1)`, you effectively leverage the physical limits of the operating system’s network buffer
+    to your advantage.
+    The limited buffer capacity creates natural backpressure, which prevents unbounded accumulation of stale
+    data and forces the upstream system to prioritize the most current information.
+
+    This is why `request(1)` is often considered the preferred strategy for processing real-time market data
+    when freshness is more important than processing every individual update.
+
+
+## continuation of the onOpen() method understanding and implementation -
+    Normally, upstox has millions of connection, and it cannot just keep on sending data to any connection any data it
+    wants to, if that case exists then each of the connection would eventually get 10,000's of ticks each second
+    thereby destroying their cost, cpu, ram and eventually bringing down their project.
+
+    This is solved by the application i.e. client telling the server what data it actually wants and this is known as
+    subscribing or subscription.
+
+    # Elaboration of subscription -
+        While our last talk ended with a detailed walkaround the .request(1) method, today we expand it further to discuss
+        that the onOpen() methods task is not to just open the connection or set the limit the using .request(1) or some
+        other value.
+
+        Rather, it also has the major role in data communication is telling the websocket server what data is required.
+        In shorter words, its task is to even establish the subscription which is basically a way of telling the websocket
+        server what data our application wants continuously.
+
+        Taking our example, we would need to subscribe to different stocks, indices etc so this is done here in the onOpen()
+        method where we are also telling the websocket server the data we require.
+

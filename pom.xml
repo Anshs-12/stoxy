@@ -171,6 +171,18 @@
             <version>8.16.1</version>
         </dependency>
 
+        <!-- WebSocket server Dependency -->
+        <dependency>
+            <groupId>org.springframework.boot</groupId>
+            <artifactId>spring-boot-starter-websocket</artifactId>
+        </dependency>
+
+        <!-- Protobuf (decode Upstox binary data) -->
+        <dependency>
+            <groupId>com.google.protobuf</groupId>
+            <artifactId>protobuf-java</artifactId>
+            <version>3.25.3</version>
+        </dependency>
 
         <dependency>
             <groupId>io.lettuce</groupId>

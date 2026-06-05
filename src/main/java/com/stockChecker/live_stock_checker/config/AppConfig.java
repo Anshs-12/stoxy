@@ -19,7 +19,7 @@ public class AppConfig {
     @Bean
     public RestClient restClient(@Value("${upstox_analytics_token}") String token) {
         return RestClient.builder()
-                .baseUrl("https://api.upstox.com/")
+                .baseUrl("https://api.upstox.com/v3/")
                 .defaultHeader(HttpHeaders.CONTENT_TYPE,
                         MediaType.APPLICATION_JSON_VALUE)
                 .defaultHeader(HttpHeaders.ACCEPT,
