@@ -5,13 +5,15 @@ import lombok.Builder;
 import lombok.Data;
 import lombok.NoArgsConstructor;
 
-import java.util.List;
-
 @Data
 @AllArgsConstructor
 @NoArgsConstructor
 @Builder
-
-public class StockSearchResponse {
-    private List<StockSearchResponseDTO> content;
+public class StockSearchDTO {
+    String stockName;
+    String stockSymbol;
+    String companyName;
+    String exchange;
+    String instrumentKey;
+    String isin;
 }

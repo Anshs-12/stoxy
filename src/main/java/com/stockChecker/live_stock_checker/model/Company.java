@@ -17,6 +17,7 @@ public class Company {
     @GeneratedValue(strategy = GenerationType.IDENTITY)
     private Integer serialNumber;
     private String companyName;
+    @Column(columnDefinition = "TEXT")
     private String description;
     private String sector;
     private String sectorMarketCap; // Sector market cap in INR (crore)

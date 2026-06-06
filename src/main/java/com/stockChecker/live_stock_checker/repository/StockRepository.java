@@ -17,4 +17,6 @@ public interface StockRepository extends JpaRepository<Stock, Integer>, JpaSpeci
     List<Stock> searchStocks(@Param("query") String query);
 
     Optional<Stock> findByStockSymbol(String symbol);
+
+    Optional<Stock> findByIsin(String isin);
 }

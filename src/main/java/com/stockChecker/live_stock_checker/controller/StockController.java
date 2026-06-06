@@ -2,7 +2,8 @@ package com.stockChecker.live_stock_checker.controller;
 
 import com.stockChecker.live_stock_checker.payload.StockPayload.StockDetailResponseDTO;
 import com.stockChecker.live_stock_checker.payload.StockPayload.StockScreenerDTO;
-import com.stockChecker.live_stock_checker.payload.StockPayload.StockSearchResponse;
+import com.stockChecker.live_stock_checker.payload.StockPayload.StockSearchResponseDTO;
+import com.stockChecker.live_stock_checker.payload.StockPayload.StockSearchDTO;
 import com.stockChecker.live_stock_checker.service.StockService;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
@@ -21,17 +22,17 @@ public class StockController {
     // search stock
     @GetMapping("/search")
     // this is when a user tries to search something, eg: "Ta" so it gives a paginated result of all the stocks having "Ta".
-    public ResponseEntity<StockSearchResponse> searchStockByName(@RequestParam String query) {
+    public ResponseEntity<StockSearchResponseDTO> searchStockByName(@RequestParam String query) {
         log.info("Stock search request - query: {}", query);
-        StockSearchResponse stockListDTO = stockService.searchStockByName(query);
+        StockSearchResponseDTO stockListDTO = stockService.searchStockByName(query);
         return new ResponseEntity<>(stockListDTO, HttpStatus.OK);
     }
 
     // get the entire stock object
-    @GetMapping("/search/details/{stockSymbol}")
-    public ResponseEntity<StockDetailResponseDTO> searchStockBySymbol(@PathVariable String stockSymbol) {
-        log.info("Stock detail request - symbol: {}", stockSymbol);
-        StockDetailResponseDTO stockDetailDTO = stockService.getStockBySymbol(stockSymbol);
+    @PostMapping("/search/details")
+    public ResponseEntity<StockDetailResponseDTO> searchStockBySymbol(@RequestBody StockSearchDTO stockRequest) {
+        log.info("Stock detail request - symbol: {}", stockRequest.getStockSymbol());
+        StockDetailResponseDTO stockDetailDTO = stockService.getStockDetails(stockRequest);
         return new ResponseEntity<>(stockDetailDTO, HttpStatus.OK);
     }
 

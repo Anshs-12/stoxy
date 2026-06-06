@@ -12,8 +12,8 @@ import lombok.NoArgsConstructor;
 public class StockDetailResponseDTO {
     private String stockName;
     private String stockSymbol;
-    private String listedExchangeName;
-    private String stockWebsite;
+    private String exchange;
+    private String isin;
     private StockPriceInfoDTO stockPriceInfoDTO;
     private StockFinancialsDTO stockFinancialsDTO;
     private CompanyResponseDTO companyResponseDTO;

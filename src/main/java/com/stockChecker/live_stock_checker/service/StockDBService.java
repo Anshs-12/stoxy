@@ -1,15 +1,20 @@
 package com.stockChecker.live_stock_checker.service;
 
+import com.fasterxml.jackson.core.JsonProcessingException;
 import com.fasterxml.jackson.databind.JsonNode;
+import com.fasterxml.jackson.databind.ObjectMapper;
+import com.stockChecker.live_stock_checker.exceptions.UpstoxFeedException;
 import com.stockChecker.live_stock_checker.model.Company;
 import com.stockChecker.live_stock_checker.model.Stock;
 import com.stockChecker.live_stock_checker.model.StockFinancials;
+import com.stockChecker.live_stock_checker.payload.StockPayload.StockSearchDTO;
 import com.stockChecker.live_stock_checker.repository.CompanyRepository;
 import com.stockChecker.live_stock_checker.repository.StockFinancialsRepository;
 import com.stockChecker.live_stock_checker.repository.StockRepository;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.stereotype.Service;
+import org.springframework.web.client.RestClient;
 
 @Service
 @Slf4j
@@ -24,43 +29,86 @@ public class StockDBService {
     private final StockRepository stockRepository;
     private final CompanyRepository companyRepository;
     private final StockFinancialsRepository stockFinancialsRepository;
+    private final RestClient restClient;
+    private final ObjectMapper objectMapper;
 
+    public Stock saveStockInDB(StockSearchDTO stockRequest) {
 
-    public Stock saveStockInDB(String symbol, JsonNode rootNode, JsonNode infoNode) {
-        Stock newStock = Stock.builder()
-                .stockName(infoNode.get("companyName").asText().toUpperCase())
-                .stockWebsite(null)
-                .listedExchangeName("NSE")
-                .stockSymbol(infoNode.get("symbol").asText())
+        Company company = fetchCompanyProfile(stockRequest);
+        StockFinancials stockFinancials = fetchFinancialMetrics(stockRequest);
+
+        Stock stock = Stock.builder()
+                .stockName(stockRequest.getStockName())
+                .stockSymbol(stockRequest.getStockSymbol())
+                .exchange(stockRequest.getExchange())
+                .segment("EQ")
+                .isin(stockRequest.getIsin())
+                .upstoxInstrumentKey(stockRequest.getInstrumentKey())
+                .company(company)
                 .build();
-
-        Company newCompany = Company.builder()
-                .companyName(infoNode.get("companyName").asText())
-                .aboutCompany("this company works is " + infoNode.get("companyName").asText())
-                .sector(rootNode.get("industryInfo").get("sector").asText())
-                .subIndustry(infoNode.get("industry").asText())
-                .industry(rootNode.get("industryInfo").get("industry").asText())
-                .listingDate(rootNode.get("metadata").get("listingDate").asText())
-                .isIN(rootNode.get("metadata").get("isin").asText())
-                .stock(newStock)
-                .build();
-
-        companyRepository.save(newCompany);
-        newStock.setCompany(newCompany);
-        newStock.setStockFinancials(saveStockFinancials(rootNode,newStock));
-        return stockRepository.save(newStock);
+        stockRepository.save(stock);
+        stockFinancials.setStock(stock);
+        stockFinancialsRepository.save(stockFinancials);
+        stock.setStockFinancials(stockFinancials);
+        return stock;
     }
 
-    public StockFinancials saveStockFinancials(JsonNode rootNode, Stock savedStock) {
-        StockFinancials newStockFinancials = StockFinancials.builder()
-                .pe(rootNode.get("metadata").get("pdSymbolPe").asDouble())
-                .sectorPe(rootNode.get("metadata").get("pdSectorPe").asDouble())
-                .faceValue(rootNode.get("securityInfo").get("faceValue").asInt())
-                .issuedSize(rootNode.get("securityInfo").get("issuedSize").asLong())
-                .stock(savedStock)
-                .build();
+    private Company fetchCompanyProfile(StockSearchDTO stockRequest) {
+        String jsonResponse = restClient.get()
+                .uri("/v2/fundamentals/{ISIN}/profile", stockRequest.getIsin())
+                .retrieve()
+                .body(String.class);
+        try {
+            JsonNode root = objectMapper.readTree(jsonResponse);
+            if (!root.path("status").asText().equals("success"))
+                throw new UpstoxFeedException("Excpetion occured.");
+            JsonNode dataNode = root.path("data");
+            Company company = Company.builder()
+                    .companyName(stockRequest.getCompanyName())
+                    .description(dataNode.path("company_profile").asText())
+                    .sector(dataNode.path("sector").asText())
+                    .sectorMarketCap(dataNode.path("sector_market_cap_inr").path("formatted").asText())
+                    .build();
+            return companyRepository.save(company);
+        } catch (JsonProcessingException e) {
+            throw new UpstoxFeedException("Failed to parse company data for: " + stockRequest.getIsin());
+        }
+    }
 
-        stockFinancialsRepository.save(newStockFinancials);
-        return newStockFinancials;
+    private StockFinancials fetchFinancialMetrics(StockSearchDTO stockRequest) {
+        String jsonResponse = restClient.get()
+                .uri("/v2/fundamentals/{isin}/key-ratios", stockRequest.getIsin())
+                .retrieve()
+                .body(String.class);
+        try {
+            JsonNode root = objectMapper.readTree(jsonResponse);
+            StockFinancials stockFinancials = StockFinancials.builder().build();
+            for (var node : root.path("data")) {
+                String name = node.path("name").asText();
+                double companyValue = Double.parseDouble(node.path("company_value").asText().replace("%", ""));
+                double sectorValue = Double.parseDouble(node.path("sector_value").asText().replace("%", ""));
+                switch (name) {
+                    case "P/E" -> {
+                        stockFinancials.setPe(companyValue);
+                        stockFinancials.setSectorPe(sectorValue);
+                    }
+                    case "P/B" -> {
+                        stockFinancials.setPb(companyValue);
+                        stockFinancials.setSectorPb(sectorValue);
+                    }
+                    case "ROA" -> {
+                        stockFinancials.setRoa(companyValue);
+                        stockFinancials.setSectorRoa(sectorValue);
+                    }
+                    case "ROE" -> {
+                        stockFinancials.setRoe(companyValue);
+                        stockFinancials.setSectorRoe(sectorValue);
+                    }
+                }
+            }
+            return stockFinancials;
+        } catch (JsonProcessingException e) {
+            throw new UpstoxFeedException("Failed to parse key ratios for: " + stockRequest.getIsin());
+        }
     }
 }

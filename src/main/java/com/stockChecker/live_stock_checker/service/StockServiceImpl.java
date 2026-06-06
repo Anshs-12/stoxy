@@ -47,41 +47,40 @@ public class StockServiceImpl implements StockService {
     */
 
     @Override
-    public StockDetailResponseDTO getStockBySymbol(String stockSymbol) {
+    public StockDetailResponseDTO getStockDetails(StockSearchDTO stockRequest) {
         MarketStatusResponse response = marketStatusService.isMarketOpen();
-        stockSymbol = stockSymbol.trim().toUpperCase();
         if (response.getIsOpen()) {
-            return stockCacheService.getStockLive(stockSymbol);
+            return stockCacheService.getStockLive(stockRequest);
         }
         if (response.getNextOpeningDay().equals("MONDAY")) {
-            return stockCacheService.getStockWeekendClosed(stockSymbol);
+            return stockCacheService.getStockWeekendClosed(stockRequest);
         }
-        return stockCacheService.getStockWeekdayClosed(stockSymbol);
+        return stockCacheService.getStockWeekdayClosed(stockRequest);
     }
 
     @Override
     // this method needs no caching as it's used for search bar when a user tries to search a stock name.
-    public StockSearchResponse searchStockByName(String query) {
+    public StockSearchResponseDTO searchStockByName(String query) {
         // spring data jpa translates Containing to LIKE %VALUE%
 
         List<Stock> stockList = stockRepository.searchStocks(query);
 
-        List<StockSearchResponseDTO> stockSearchList = stockList
+        List<StockSearchDTO> stockSearchList = stockList
                 .stream()
                 .map((eachStock) ->
-                        modelMapper.map(eachStock, StockSearchResponseDTO.class))
+                        modelMapper.map(eachStock, StockSearchDTO.class))
                 .toList();
         if (stockSearchList.isEmpty()) {
             // this indicates that database doesn't have any stock regarding the search, so expand to upstox search.
             stockSearchList = searchUpstoxEquity(query);
         }
 
-        return StockSearchResponse.builder()
+        return StockSearchResponseDTO.builder()
                 .content(stockSearchList)
                 .build();
     }
 
-    private List<StockSearchResponseDTO> searchUpstoxEquity(String stockSymbol) {
+    private List<StockSearchDTO> searchUpstoxEquity(String stockSymbol) {
         String upstoxJsonResponse = restClient.get()
                 .uri("/v2/instruments/search?query={stockSymbol}", stockSymbol)
                 .retrieve()
@@ -89,18 +88,19 @@ public class StockServiceImpl implements StockService {
         return parseUpstoxSearchResults(upstoxJsonResponse);
     }
 
-    private List<StockSearchResponseDTO> parseUpstoxSearchResults(String jsonResponse) {
+    private List<StockSearchDTO> parseUpstoxSearchResults(String jsonResponse) {
         try {
             JsonNode root = objectMapper.readTree(jsonResponse);
             if (!root.path("status").asText().equals("success")) {
                 throw new UpstoxFeedException("Error in searching via endpoint");
             }
-            List<StockSearchResponseDTO> upstoxResponseList = new ArrayList<>();
+            List<StockSearchDTO> upstoxResponseList = new ArrayList<>();
             for (var eachStockNode : root.path("data")) {
                 if (!eachStockNode.path("isin").asText().startsWith("INE")) continue;
-                StockSearchResponseDTO stockResponse = StockSearchResponseDTO.builder()
+                StockSearchDTO stockResponse = StockSearchDTO.builder()
                         .stockSymbol(eachStockNode.path("trading_symbol").asText())
-                        .stockName(eachStockNode.path("name").asText())
+                        .stockName(eachStockNode.path("short_name").asText())
+                        .companyName(eachStockNode.path("name").asText())
                         .exchange(eachStockNode.path("exchange").asText())
                         .instrumentKey(eachStockNode.path("instrument_key").asText())
                         .isin(eachStockNode.path("isin").asText())
