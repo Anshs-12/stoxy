@@ -17,13 +17,9 @@ public class Company {
     @GeneratedValue(strategy = GenerationType.IDENTITY)
     private Integer serialNumber;
     private String companyName;
-    private String aboutCompany;
+    private String description;
     private String sector;
-    private String subIndustry;
-    private String industry;
-    private String listingDate;
-    private String isIN;
-
+    private String sectorMarketCap; // Sector market cap in INR (crore)
 
     @OneToOne(mappedBy = "company", cascade = CascadeType.ALL)
     private Stock stock;

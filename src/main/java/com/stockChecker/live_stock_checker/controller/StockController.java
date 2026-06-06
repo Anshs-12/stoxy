@@ -1,8 +1,8 @@
 package com.stockChecker.live_stock_checker.controller;
 
 import com.stockChecker.live_stock_checker.payload.StockPayload.StockDetailResponseDTO;
-import com.stockChecker.live_stock_checker.payload.StockPayload.StockResponse;
 import com.stockChecker.live_stock_checker.payload.StockPayload.StockScreenerDTO;
+import com.stockChecker.live_stock_checker.payload.StockPayload.StockSearchResponse;
 import com.stockChecker.live_stock_checker.service.StockService;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
@@ -21,15 +21,9 @@ public class StockController {
     // search stock
     @GetMapping("/search")
     // this is when a user tries to search something, eg: "Ta" so it gives a paginated result of all the stocks having "Ta".
-    public ResponseEntity<StockResponse> searchStockByName(
-            @RequestParam String query,
-            @RequestParam(name = "pageNumber", defaultValue = "0", required = false) Integer pageNumber,
-            @RequestParam(name = "pageSize", defaultValue = "15", required = false) Integer pageSize,
-            @RequestParam(name = "sortBy", defaultValue = "stockName", required = false) String sortBy,
-            @RequestParam(name = "sortOrder", defaultValue = "asc", required = false) String sortOrder
-    ) {
+    public ResponseEntity<StockSearchResponse> searchStockByName(@RequestParam String query) {
         log.info("Stock search request - query: {}", query);
-        StockResponse stockListDTO = stockService.searchStockByName(query, pageNumber, pageSize, sortBy, sortOrder);
+        StockSearchResponse stockListDTO = stockService.searchStockByName(query);
         return new ResponseEntity<>(stockListDTO, HttpStatus.OK);
     }
 
