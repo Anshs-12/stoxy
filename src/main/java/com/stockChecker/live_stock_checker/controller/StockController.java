@@ -29,7 +29,7 @@ public class StockController {
     }
 
     // get the entire stock object
-    @PostMapping("/search/details")
+    @PostMapping("/details")
     public ResponseEntity<StockDetailResponseDTO> searchStockBySymbol(@RequestBody StockSearchDTO stockRequest) {
         log.info("Stock detail request - symbol: {}", stockRequest.getStockSymbol());
         StockDetailResponseDTO stockDetailDTO = stockService.getStockDetails(stockRequest);

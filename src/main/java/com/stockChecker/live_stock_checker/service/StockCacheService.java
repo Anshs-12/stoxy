@@ -1,6 +1,5 @@
 package com.stockChecker.live_stock_checker.service;
 
-import com.fasterxml.jackson.databind.ObjectMapper;
 import com.stockChecker.live_stock_checker.model.Stock;
 import com.stockChecker.live_stock_checker.model.StockFinancials;
 import com.stockChecker.live_stock_checker.payload.StockPayload.CompanyResponseDTO;
@@ -14,7 +13,6 @@ import lombok.extern.slf4j.Slf4j;
 import org.modelmapper.ModelMapper;
 import org.springframework.cache.annotation.Cacheable;
 import org.springframework.stereotype.Service;
-import org.springframework.web.client.RestClient;
 
 @Service
 @Slf4j
@@ -28,8 +26,8 @@ public class StockCacheService {
     // ----------------------------- Stock Live Caching -----------------------------
     @Cacheable(
             cacheNames = "stockLive",
-            key = "#stockRequest.isin",
-            condition = "#stockRequest.isin != null",
+            key = "#stockRequest.instrumentKey",
+            condition = "#stockRequest.instrumentKey != null",
             unless = "#result == null"
     )
     public StockDetailResponseDTO getStockLive(StockSearchDTO stockRequest) {
@@ -40,8 +38,8 @@ public class StockCacheService {
     // ----------------------------- Stock Weekday Caching -----------------------------
     @Cacheable(
             cacheNames = "stockWeekDayClosed",
-            key = "#stockRequest.isin",
-            condition = "#stockRequest.isin != null",
+            key = "#stockRequest.instrumentKey",
+            condition = "#stockRequest.instrumentKey != null",
             unless = "#result == null"
     )
     public StockDetailResponseDTO getStockWeekdayClosed(StockSearchDTO stockRequest) {
@@ -52,8 +50,8 @@ public class StockCacheService {
     // ----------------------------- Stock Weekend Caching -----------------------------
     @Cacheable(
             cacheNames = "stockWeekendClosed",
-            key = "#stockRequest.isin",
-            condition = "#stockRequest.isin != null",
+            key = "#stockRequest.instrumentKey",
+            condition = "#stockRequest.instrumentKey != null",
             unless = "#result == null"
     )
     public StockDetailResponseDTO getStockWeekendClosed(StockSearchDTO stockRequest) {
