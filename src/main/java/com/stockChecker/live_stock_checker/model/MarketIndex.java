@@ -15,7 +15,7 @@ import lombok.NoArgsConstructor;
         name = "index_table",
         indexes = {
                 @Index(name = "idx_indexSymbol", columnList = "index_symbol"),
-                @Index(name = "idx_indexIdentifier", columnList = "index_identifier")
+                @Index(name = "idx_upstoxInstrumentKey", columnList = "upstox_instrument_key")
         }
 )
 
@@ -27,11 +27,12 @@ public class MarketIndex {
     private Long serialId;
 
     private String indexName;
-    private String indexIdentifier;
     @Column(unique = true)
     private String indexSymbol;
     private Integer indexPriority;
-
+    private String segment;
+    private String exchange;
+    private String upstoxInstrumentKey;
     // metadata of an Index. (added manually for now till, we find any API)
     private Integer numberOfConstituents;
     private String launchDate;

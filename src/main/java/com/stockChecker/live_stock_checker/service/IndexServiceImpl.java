@@ -1,47 +1,39 @@
 package com.stockChecker.live_stock_checker.service;
 
 import com.fasterxml.jackson.core.JsonProcessingException;
-import com.fasterxml.jackson.databind.JsonNode;
 import com.fasterxml.jackson.databind.ObjectMapper;
-import com.stockChecker.live_stock_checker.exceptions.IndexNotFoundException;
+import com.stockChecker.live_stock_checker.mapper.IndexSearchMapper;
 import com.stockChecker.live_stock_checker.model.MarketIndex;
-import com.stockChecker.live_stock_checker.payload.IndexPayload.IndexAdvanceDTO;
 import com.stockChecker.live_stock_checker.payload.IndexPayload.IndexDetailResponseDTO;
-import com.stockChecker.live_stock_checker.payload.IndexPayload.IndexMetadataDTO;
-import com.stockChecker.live_stock_checker.payload.IndexPayload.IndexPriceInfoDTO;
+import com.stockChecker.live_stock_checker.payload.IndexPayload.IndexSearchDTO;
+import com.stockChecker.live_stock_checker.payload.IndexPayload.IndexSearchResponseDTO;
 import com.stockChecker.live_stock_checker.payload.MarketStatusResponse;
 import com.stockChecker.live_stock_checker.repository.IndexRepository;
+import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
 import org.modelmapper.ModelMapper;
-import org.springframework.beans.factory.annotation.Autowired;
-import org.springframework.cache.annotation.Cacheable;
 import org.springframework.stereotype.Service;
 import org.springframework.web.client.RestClient;
-import org.springframework.web.reactive.function.client.WebClient;
 
-import java.math.BigDecimal;
+import java.util.List;
 
 @Service
 @Slf4j
+@RequiredArgsConstructor
 public class IndexServiceImpl implements IndexService {
 
-    @Autowired
-    private IndexRepository indexRepository;
+    private final IndexRepository indexRepository;
 
-    @Autowired
-    private ModelMapper modelMapper;
+    private final ModelMapper modelMapper;
 
-    @Autowired
-    private RestClient restClient;
+    private final RestClient restClient;
 
-    @Autowired
-    private ObjectMapper objectMapper;
+    private final ObjectMapper objectMapper;
 
-    @Autowired
-    private MarketStatusService marketStatusService;
+    private final MarketStatusService marketStatusService;
+    private final IndexCacheService indexCacheService;
 
-    @Autowired
-    private  IndexCacheService indexCacheService;
+    private final IndexSearchMapper indexSearchMapper;
     /*
 
         SELF-INJECTION PATTERN FOR AOP PROXY ACCESS
@@ -98,6 +90,21 @@ public class IndexServiceImpl implements IndexService {
             return indexCacheService.getIndicesWeekendClosed(indexSymbol);
         }
         return indexCacheService.getIndicesWeekdayClosed(indexSymbol);
+    }
+
+    @Override
+    public IndexSearchResponseDTO searchIndices(String query) {
+        List<MarketIndex> marketIndices = indexRepository.searchIndices(query);
+
+        if (marketIndices.isEmpty()) {
+            return IndexSearchResponseDTO.builder()
+                    .indexSearchDTOList(List.of())
+                    .build();
+        }
+        List<IndexSearchDTO> indexSearchDTOList = indexSearchMapper.toIndexSearchDTO(marketIndices);
+        return IndexSearchResponseDTO.builder()
+                .indexSearchDTOList(indexSearchDTOList)
+                .build();
     }
 
     // right now manually feeding indices until we find w working api

@@ -10,15 +10,10 @@ import lombok.NoArgsConstructor;
 @NoArgsConstructor
 @Builder
 
-public class IndexDetailResponseDTO {
-
-    // Live data from NSE API
+public class IndexSearchDTO {
     private String indexName;
     private String indexSymbol;
-    private IndexMetadataDTO indexMetadataDTO;
-    private IndexAdvanceDTO indexAdvanceDTO;
-    private IndexPriceInfoDTO indexPriceInfoDTO;
-
-    // Metadata from your database
-
+    private String exchange;
+    private String segment;
+    private String instrumentKey;
 }
