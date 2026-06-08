@@ -13,4 +13,6 @@ public interface IndexSearchMapper {
     @Mapping(source = "upstoxInstrumentKey", target = "instrumentKey")
     List<IndexSearchDTO> toIndexSearchDTO(List<MarketIndex> marketIndexList);
 
+    @Mapping(source = "upstoxInstrumentKey", target = "instrumentKey")
+    IndexSearchDTO toIndexSearchDTO(MarketIndex marketIndex);
 }

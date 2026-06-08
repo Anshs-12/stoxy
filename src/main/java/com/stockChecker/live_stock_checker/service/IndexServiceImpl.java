@@ -1,7 +1,5 @@
 package com.stockChecker.live_stock_checker.service;
 
-import com.fasterxml.jackson.core.JsonProcessingException;
-import com.fasterxml.jackson.databind.ObjectMapper;
 import com.stockChecker.live_stock_checker.mapper.IndexSearchMapper;
 import com.stockChecker.live_stock_checker.model.MarketIndex;
 import com.stockChecker.live_stock_checker.payload.IndexPayload.IndexDetailResponseDTO;
@@ -11,9 +9,7 @@ import com.stockChecker.live_stock_checker.payload.MarketStatusResponse;
 import com.stockChecker.live_stock_checker.repository.IndexRepository;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
-import org.modelmapper.ModelMapper;
 import org.springframework.stereotype.Service;
-import org.springframework.web.client.RestClient;
 
 import java.util.List;
 
@@ -24,13 +20,8 @@ public class IndexServiceImpl implements IndexService {
 
     private final IndexRepository indexRepository;
 
-    private final ModelMapper modelMapper;
-
-    private final RestClient restClient;
-
-    private final ObjectMapper objectMapper;
-
     private final MarketStatusService marketStatusService;
+
     private final IndexCacheService indexCacheService;
 
     private final IndexSearchMapper indexSearchMapper;
@@ -80,7 +71,7 @@ public class IndexServiceImpl implements IndexService {
 //    }
 
     @Override
-    public IndexDetailResponseDTO getIndexBySymbol(String indexSymbol) throws JsonProcessingException {
+    public IndexDetailResponseDTO getIndexBySymbol(String indexSymbol){
         MarketStatusResponse response = marketStatusService.isMarketOpen();
         log.info("Fetching index - symbol: {}, marketOpen: {}", indexSymbol, response.getIsOpen());
         if (response.getIsOpen()) {

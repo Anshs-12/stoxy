@@ -11,12 +11,12 @@ import java.util.Optional;
 
 @Repository
 public interface IndexRepository extends JpaRepository<MarketIndex, Long> {
-    Optional<MarketIndex> findByIndexIdentifier(String upperCase);
-
     @Query("SELECT m FROM MarketIndex m WHERE " +
             "LOWER(m.indexName) LIKE LOWER(CONCAT('%', :query, '%')) OR " +
             "LOWER(m.indexSymbol) LIKE LOWER(CONCAT('%', :query, '%')) OR " +
             "LOWER(m.segment) LIKE LOWER(CONCAT('%', :query, '%')) OR " +
             "LOWER(m.exchange) LIKE LOWER(CONCAT('%', :query, '%'))")
     List<MarketIndex> searchIndices(@Param("query") String query);
+
+    Optional<MarketIndex> findByIndexSymbol(String indexSymbol);
 }
