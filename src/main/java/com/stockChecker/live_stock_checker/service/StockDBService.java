@@ -55,7 +55,7 @@ public class StockDBService {
 
     private Company fetchCompanyProfile(StockSearchDTO stockRequest) {
         String jsonResponse = restClient.get()
-                .uri("/v2/fundamentals/{ISIN}/profile", stockRequest.getIsin())
+                .uri("v2/fundamentals/{ISIN}/profile", stockRequest.getIsin())
                 .retrieve()
                 .body(String.class);
         try {
@@ -77,7 +77,7 @@ public class StockDBService {
 
     private StockFinancials fetchFinancialMetrics(StockSearchDTO stockRequest) {
         String jsonResponse = restClient.get()
-                .uri("/v2/fundamentals/{isin}/key-ratios", stockRequest.getIsin())
+                .uri("v2/fundamentals/{isin}/key-ratios", stockRequest.getIsin())
                 .retrieve()
                 .body(String.class);
         try {
