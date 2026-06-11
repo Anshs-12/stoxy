@@ -364,3 +364,134 @@ and how java threads work -
         Taking our example, we would need to subscribe to different stocks, indices etc so this is done here in the onOpen()
         method where we are also telling the websocket server the data we require.
 
+## Writing the subscription methods:
+    The client side, now after connecting successfully to the server side, has to communicate and ask what kind and
+    which data it wants, as server cannot just directly send in random or entire market data.
+
+    This job or method onSubcribe() isn't given to use by any interface, and I've just named it onSubscribe for following
+    above similar websocket method naming convention, rather we must actually write and implement such methods and
+    send the required data in the same structured format using the format as described by the server side whether it
+    is interns of binary data or in simple JSON.
+
+    This subscription method we must design so that we can request what data we required, by which server sends the
+    requested data to us.
+
+    Refer UpstoxWebsocketClient for subscribe method and onOpen() which we have added another subscribe method which
+    should be run immediately when the market opens asking marquee indices.
+
+
+## Now bring back the flow to the onBinary() which is where the data/ticks everything is received from the server
+that is upstox server sender here
+
+    onBinary() -  This method is most important as all the ticks, data which is sent by the upstox server is received
+    by this method.
+
+    It has different parameters one such which holds all the data is the "ByteBuffer data".
+    Now this byteBuffer is more complex than your usual datatype, it is self-destructive, and has a position pointer
+    which tracks the position till where the data was read in it.
+
+    ByteBuffer only holds binary values 0,1 with -127 to 128 bytes size in range. ByteBuffer is hard to work around
+    with as described its self-destructive which basically means that once the data is read or the position pointer
+    is moved ahead then it cannot be restored until its move to the start which is avoided and not be used.
+
+    This position pointer works like a pointer which we normally use to iterate and read an array, same way the
+    position pointer we read some part of data like 50 bytes or 25 bytes, dependence our usage and then do the
+    operations until the next set of data is to be read.
+
+    In production, this kind of size reading is also to be avoided as once the data is received in the byteBuffer data
+    block, its full read as the new data which is incoming always overrides this old-stale data.
+    So usually the entire byteBuffer is read out completely.
+
+    Moreover, this ByteBuffer data offers two major methods :
+        - getRemaining which gives the amount of data left to read
+        - get(yourArray) = In this method, we send in our byte[] array which empties the byteBuffer completely and
+        returns us in a proper usable byte[] array.
+        - rewind = to be avoided, moves the position pointer back to the starting position
+
+## Protobuf: a comprehensive guide to understanding it
+    During the early 2001, Google was facing massive outrage from the data that was being transferred between their
+    microservices which was in XML format much heavier than JSON.
+    To end this and actually bring down a solution they invented "Protobuf" whose main aim was to send binary level
+    data which used very minimal memory, load and were the fastest in transferring on this entire planet.
+
+    This made the evolution and release of protobuf which stands for Protocol Buffer which is a free tool used to
+    transfer data at an insanely high speed and a very small size.
+
+## Understanding the .proto file: a concise walkthrough
+    Now, that Protobuf was implemented and was brought to use, it was difficult on how to actually have methods
+    functions written which could understand this lowest level abomination being transferred over the internet i.e.
+    the data which is moving in raw binary 0's and 1's.
+
+    This was solved by having a .proto file which basically had complete syntax walkthrough of how the data which was
+    sent by the server was and what format did it, how many spaces after which it must be broken, what a single digit
+    meant, what double-digit meant so on and on which is lower level understanding not really required as of now.
+
+    # How to bring life that is understood the data using this .proto file:
+        We must get the .proto file from the server whihc they 99% times have to provide inorder to understand the
+        data they are transferring.
+
+        These files can be taken from the GitHub or websites so on with a simple .proto file, here in this project
+        we are using the upstox .proto file which basically describes the syntax, the way, the type of how the data
+        is being sent by them and how it must be parsed inorder to take out the relevant information proeprly.
+
+        Now, coming to the implementation of the code to parse the data by utilizing the .proto file.
+        This is usually handle by the Google protobuf dependency which automatically reads the .proto file present and
+        dynamically generates a class based on the content, variables defined in the proto file.
+
+        Apart from the methods/variables of the proto file, it also generates some common methods like
+            .parseFrom(byte[]) which takes a byte[] array to parse into a java class.
+
+        This java class name also can be configured by checking the "message <expected-class-name>" filed in each of
+        the proto files that are added to the project.
+
+        The methods generated are a direct, 1-to-1 mapping of the variables defined in that .proto file.
+
+        Note: We never usually write the low-level proto parseFile by ourselves, it is to be managed and handled by
+            dependencies so on which directly can understand and generate the required and optimmized code for us.
+
+        So now that we have a brief understanding on why this proto file is required, how its used so on,
+
+        To make this work automatically, you pull in two things from Maven Central:
+
+            1. The Core Library (protobuf-java): This contains the actual underlying engine code that
+                allows .parseFrom() to work in Java.
+
+            2. The Maven Plugin (protobuf-maven-plugin): This is the automated builder.
+                You configure it in your pom.xml to say,
+                "Hey, look inside src/main/proto."
+
+            Once those two are in your pom.xml, you never have to manually trigger anything.
+
+            Every time you click "Build" or "Run" in your IDE, Maven runs the plugin, reads the file,
+            generates the classes, and puts them in your project before the server even starts.
+
+        Each server which sends data, has its own written structure .proto file therefore chatapps have their own way
+        of talking variables, methods, cryto bitcoin has their own, stock trading apps etc so on and on.
+
+        Let's understand a bit of flow to get a clear picture on how things are connected and implemented:
+            -> the data is sent by the upstox sever
+            -> it comes in the onBinary() method inside the listener , the ByteBuffer data , this parameter gets the
+            raw byte binary data from upstox.
+            -> now project is running so the proto file is read and a class is created inside the target/generated-sources
+            folder
+            -> this class is then used in our onBinary() method to parse the byte[] array which we get from the
+            ByteBuffer
+            -> This parse array now can be used to read the data and worked upon how we want.
+
+## Understanding onClose() method -
+
+    This method runs when there is an error, or when we want to close the connection. This method requires two major
+    parameters
+        1. status code  - To indicate if the closing method was intentionally closed from our client/our side, or
+            if it was due to some error.
+            - 1000 = This indicates that the connection being closed is properly from our side
+            - 1001/1006 = This indicates that the connection was closed due to an error, and therefore we run another
+            method which need to define i.e. triggerReconnectLogic() which as name says we try to initiate a
+            reconnection logic.
+
+
+# Understanding onError() method -
+     1. Log the exact network failure
+     2. We do NOT call triggerReconnectLogic() here to prevent the infinite loop trap.
+        The Java WebSocket engine will automatically fire onClose(1006) immediately after this,
+        and our onClose method will handle the safe 5-second redial.
