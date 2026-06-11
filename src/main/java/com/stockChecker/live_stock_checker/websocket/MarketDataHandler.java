@@ -46,6 +46,7 @@ public class MarketDataHandler implements WebSocket.Listener {
         if (statusCode == 1000) {
             log.info("WebSocket closed gracefully. Reason: {}", reason);
         } else {
+            webSocketManager.handleDisconnect(statusCode);
             log.warn("Websocket connection killed violently! Code: {}", statusCode);
         }
         return null;
