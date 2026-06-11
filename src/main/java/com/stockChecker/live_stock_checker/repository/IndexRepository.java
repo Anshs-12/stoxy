@@ -19,4 +19,6 @@ public interface IndexRepository extends JpaRepository<MarketIndex, Long> {
     List<MarketIndex> searchIndices(@Param("query") String query);
 
     Optional<MarketIndex> findByIndexSymbol(String indexSymbol);
+
+    List<MarketIndex> findTop15ByOrderByIndexPriorityAsc();
 }

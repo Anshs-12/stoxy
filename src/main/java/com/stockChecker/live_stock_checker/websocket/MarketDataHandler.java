@@ -1,7 +1,11 @@
 package com.stockChecker.live_stock_checker.websocket;
 
+import com.fasterxml.jackson.core.JsonProcessingException;
 import com.fasterxml.jackson.databind.ObjectMapper;
 import com.google.protobuf.InvalidProtocolBufferException;
+import com.stockChecker.live_stock_checker.exceptions.UpstoxFeedException;
+import com.stockChecker.live_stock_checker.payload.UpstoxPayload.UpstoxSubscribeData;
+import com.stockChecker.live_stock_checker.payload.UpstoxPayload.UpstoxSubscribeRequest;
 import com.stockChecker.live_stock_checker.payload.WebsocketPayload.FullFeedDataDTO;
 import com.stockChecker.live_stock_checker.payload.WebsocketPayload.LtpcDataDTO;
 import com.stockChecker.live_stock_checker.payload.WebsocketPayload.QuoteDTO;
@@ -19,6 +23,7 @@ import java.time.Duration;
 import java.util.ArrayList;
 import java.util.List;
 import java.util.Map;
+import java.util.UUID;
 import java.util.concurrent.CompletionStage;
 import java.util.concurrent.Executors;
 import java.util.concurrent.ScheduledExecutorService;
@@ -39,6 +44,22 @@ public class MarketDataHandler implements WebSocket.Listener {
     @Override
     public void onOpen(WebSocket webSocket) {
         webSocket.request(1);
+// upstox subscribe logic
+        List<String> indicesInstrumentKeys = indexService.getMarqueeIndices();
+        UpstoxSubscribeRequest subscribeRequest = UpstoxSubscribeRequest.builder()
+                .guid(UUID.randomUUID().toString())
+                .method("sub")
+                .data(UpstoxSubscribeData.builder()
+                        .mode("ltpc")
+                        .instrumentKeys(indicesInstrumentKeys)
+                        .build())
+                .build();
+        try {
+            byte[] jsonResponse = objectMapper.writeValueAsBytes(subscribeRequest);
+            webSocket.sendBinary(ByteBuffer.wrap(jsonResponse), true);
+        } catch (JsonProcessingException e) {
+            throw new UpstoxFeedException("Failed to serialize subscribe request: " + e.getMessage());
+        }
     }
 
     @Override

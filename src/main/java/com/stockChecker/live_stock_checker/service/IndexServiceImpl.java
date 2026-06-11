@@ -71,7 +71,7 @@ public class IndexServiceImpl implements IndexService {
 //    }
 
     @Override
-    public IndexDetailResponseDTO getIndexBySymbol(String indexSymbol){
+    public IndexDetailResponseDTO getIndexBySymbol(String indexSymbol) {
         MarketStatusResponse response = marketStatusService.isMarketOpen();
         log.info("Fetching index - symbol: {}, marketOpen: {}", indexSymbol, response.getIsOpen());
         if (response.getIsOpen()) {
@@ -98,7 +98,19 @@ public class IndexServiceImpl implements IndexService {
                 .build();
     }
 
-    // right now manually feeding indices until we find w working api
+    @Override
+    public List<String> getMarqueeIndices() {
+        // fetch the top 15 indices based on priority to display in the marquee bar
+        List<String> instrumentKeys = indexRepository.findTop15ByOrderByIndexPriorityAsc()
+                .stream()
+                .map((eachItem) -> eachItem.getUpstoxInstrumentKey())
+                .toList();
+        return instrumentKeys;
+    }
+}
+
+
+// right now manually feeding indices until we find w working api
 //    public MarketIndex saveIndexInDB(String indexSymbol, JsonNode rootNode) {
 //        JsonNode dataNode = rootNode.get("data");
 //        MarketIndex marketIndex = MarketIndex.builder()
@@ -110,4 +122,3 @@ public class IndexServiceImpl implements IndexService {
 //        indexRepository.save(marketIndex);
 //        return marketIndex;
 //    }
-}
