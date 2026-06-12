@@ -46,6 +46,7 @@ public class MarketDataHandler implements WebSocket.Listener {
         webSocket.request(1);
 // upstox subscribe logic
         List<String> indicesInstrumentKeys = indexService.getMarqueeIndices();
+        log.info("WebSocket connection opened. Subscribing {} marquee indices...", indicesInstrumentKeys.size());
         UpstoxSubscribeRequest subscribeRequest = UpstoxSubscribeRequest.builder()
                 .guid(UUID.randomUUID().toString())
                 .method("sub")
@@ -57,7 +58,9 @@ public class MarketDataHandler implements WebSocket.Listener {
         try {
             byte[] jsonResponse = objectMapper.writeValueAsBytes(subscribeRequest);
             webSocket.sendBinary(ByteBuffer.wrap(jsonResponse), true);
+            log.info("Marquee indices subscription request sent successfully.");
         } catch (JsonProcessingException e) {
+            log.warn("Failed to convert subscription request to JSON. Subscription not sent.");
             throw new UpstoxFeedException("Failed to serialize subscribe request: " + e.getMessage());
         }
     }

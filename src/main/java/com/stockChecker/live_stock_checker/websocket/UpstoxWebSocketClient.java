@@ -35,14 +35,22 @@ public class UpstoxWebSocketClient {
     // runs initially when the application starts
     @PostConstruct
     public void init() {
+        log.info("Initializing Upstox WebSocket connection on startup...");
         connectWebsocketToUpstox();
     }
 
     public void connectWebsocketToUpstox() {
+        log.info("Attempting to connect to Upstox WebSocket...");
         HttpClient httpClient = HttpClient.newBuilder().build();
         CompletableFuture<WebSocket> webSocketConnectionObject = httpClient.newWebSocketBuilder()
                 .buildAsync(getWssURL(), marketDataHandler);
-        activeWebSocketObject = webSocketConnectionObject.join();
+        try {
+            activeWebSocketObject = webSocketConnectionObject.join();
+            log.info("Upstox WebSocket connection established successfully.");
+        } catch (Exception e) {
+            log.warn("Failed to establish Websocket connection: {}", e.getMessage());
+            throw new UpstoxFeedException("Failed to establish WebSocket connection: " + e.getMessage());
+        }
     }
 
     public void onSubscribe(List<String> instrumentKeyList, String method, String mode) {
@@ -57,8 +65,8 @@ public class UpstoxWebSocketClient {
                 .build();
         try {
             byte[] jsonString = objectMapper.writeValueAsBytes(upstoxSubscribeRequest);
+            log.info("Subscribing {} instruments in {} mode. Method: {}", instrumentKeyList.size(), mode, method);
             activeWebSocketObject.sendBinary(ByteBuffer.wrap(jsonString), true);
-
         } catch (JsonProcessingException e) {
             throw new UpstoxFeedException("Failed to serialize subscribe request: " + e.getMessage());
         }
@@ -66,6 +74,7 @@ public class UpstoxWebSocketClient {
 
     private URI getWssURL() {
         try {
+            log.debug("Fetching Upstox WebSocket authorization URL...");
             String response = restClient.get()
                     .uri("v3/feed/market-data-feed/authorize")
                     .retrieve()
@@ -74,7 +83,9 @@ public class UpstoxWebSocketClient {
             if (!responseNode.get("status").asText().equals("success")) {
                 throw new UpstoxFeedException("Upstox WebSocket authorization failed");
             }
-            return URI.create(responseNode.get("data").get("authorizedRedirectUri").asText());
+            URI wssURL = URI.create(responseNode.get("data").get("authorizedRedirectUri").asText());
+            log.debug("Authorization URL fetched successfully.");
+            return wssURL;
         } catch (JsonProcessingException e) {
             throw new UpstoxFeedException("Invalid response format from Upstox authorization" + e.getMessage());
         } catch (Exception e) {

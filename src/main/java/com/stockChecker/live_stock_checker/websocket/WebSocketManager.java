@@ -31,6 +31,7 @@ public class WebSocketManager {
 
     private void reconnect() {
         try {
+            log.info("Executing reconnect attempt...");
             upstoxWebSocketClient.connectWebsocketToUpstox();
             log.info("Reconnect successful.");
         } catch (Exception e) {

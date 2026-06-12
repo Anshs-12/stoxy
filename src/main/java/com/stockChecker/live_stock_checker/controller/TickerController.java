@@ -4,6 +4,7 @@ import com.stockChecker.live_stock_checker.payload.WebsocketPayload.FullFeedData
 import com.stockChecker.live_stock_checker.payload.WebsocketPayload.LtpcDataDTO;
 import com.stockChecker.live_stock_checker.service.TickerService;
 import lombok.RequiredArgsConstructor;
+import lombok.extern.slf4j.Slf4j;
 import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;
 import org.springframework.web.bind.annotation.GetMapping;
@@ -17,19 +18,21 @@ import java.util.Map;
 @RestController
 @RequestMapping("/ticker/live")
 @RequiredArgsConstructor
-
+@Slf4j
 public class TickerController {
 
     private final TickerService tickerService;
 
     @GetMapping("/ltpc")
     public ResponseEntity<Map<String, LtpcDataDTO>> getLtpcData(@RequestParam List<String> instrumentKeyList) {
+        log.info("LTPC request - keys: {}", instrumentKeyList.size());
         Map<String, LtpcDataDTO> ltpcDataDTO = tickerService.getLiveLtpcData(instrumentKeyList);
         return new ResponseEntity<>(ltpcDataDTO, HttpStatus.OK);
     }
 
     @GetMapping("/fullFeed")
     public ResponseEntity<Map<String, FullFeedDataDTO>> getFullFeedData(@RequestParam List<String> instrumentKeyList) {
+        log.info("FullFeed request - keys: {}", instrumentKeyList.size());
         Map<String, FullFeedDataDTO> fullFeedDataDTOS = tickerService.getLiveFullFeedData(instrumentKeyList);
         return new ResponseEntity<>(fullFeedDataDTOS, HttpStatus.OK);
     }

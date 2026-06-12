@@ -46,14 +46,17 @@ public class StockDBService {
                 .upstoxInstrumentKey(stockRequest.getInstrumentKey())
                 .company(company)
                 .build();
+        log.info("Saving new stock to DB - symbol: {}, isin: {}", stockRequest.getStockSymbol(), stockRequest.getIsin());
         stockRepository.save(stock);
         stockFinancials.setStock(stock);
         stockFinancialsRepository.save(stockFinancials);
+        log.info("Stock saved successfully - symbol: {}", stockRequest.getStockSymbol());
         stock.setStockFinancials(stockFinancials);
         return stock;
     }
 
     private Company fetchCompanyProfile(StockSearchDTO stockRequest) {
+        log.debug("Fetching company profile from Upstox - isin: {}", stockRequest.getIsin());
         String jsonResponse = restClient.get()
                 .uri("v2/fundamentals/{ISIN}/profile", stockRequest.getIsin())
                 .retrieve()
@@ -76,6 +79,7 @@ public class StockDBService {
     }
 
     private StockFinancials fetchFinancialMetrics(StockSearchDTO stockRequest) {
+        log.debug("Fetching financial metrics from Upstox - isin: {}", stockRequest.getIsin());
         String jsonResponse = restClient.get()
                 .uri("v2/fundamentals/{isin}/key-ratios", stockRequest.getIsin())
                 .retrieve()

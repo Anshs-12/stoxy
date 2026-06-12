@@ -85,6 +85,7 @@ public class IndexServiceImpl implements IndexService {
 
     @Override
     public IndexSearchResponseDTO searchIndices(String query) {
+        log.info("Searching indices - query: {}", query);
         List<MarketIndex> marketIndices = indexRepository.searchIndices(query);
 
         if (marketIndices.isEmpty()) {
@@ -101,6 +102,7 @@ public class IndexServiceImpl implements IndexService {
     @Override
     public List<String> getMarqueeIndices() {
         // fetch the top 15 indices based on priority to display in the marquee bar
+        log.debug("Fetching top 15 marquee indices instrument keys.");
         List<String> instrumentKeys = indexRepository.findTop15ByOrderByIndexPriorityAsc()
                 .stream()
                 .map((eachItem) -> eachItem.getUpstoxInstrumentKey())

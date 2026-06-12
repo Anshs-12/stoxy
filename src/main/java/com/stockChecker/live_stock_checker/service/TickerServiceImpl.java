@@ -5,6 +5,7 @@ import com.stockChecker.live_stock_checker.payload.WebsocketPayload.FullFeedData
 import com.stockChecker.live_stock_checker.payload.WebsocketPayload.LtpcDataDTO;
 import com.stockChecker.live_stock_checker.websocket.UpstoxWebSocketClient;
 import lombok.RequiredArgsConstructor;
+import lombok.extern.slf4j.Slf4j;
 import org.springframework.data.redis.core.RedisTemplate;
 import org.springframework.stereotype.Service;
 
@@ -15,6 +16,7 @@ import java.util.Map;
 
 @Service
 @RequiredArgsConstructor
+@Slf4j
 public class TickerServiceImpl implements TickerService {
 
     private final RedisTemplate<String, Object> redisTemplate;
@@ -34,6 +36,7 @@ public class TickerServiceImpl implements TickerService {
             }
             responseMap.put(instrumentKeyList.get(i), (LtpcDataDTO) responseValues.get(i));
         }
+        log.info("LTPC fetch - requested: {}, missing: {}", instrumentKeyList.size(), missingKeys.size());
         if (!missingKeys.isEmpty())
             upstoxWebSocketClient.onSubscribe(missingKeys, "sub", "ltpc");
         return responseMap;
@@ -53,6 +56,7 @@ public class TickerServiceImpl implements TickerService {
             }
             responseMap.put(instrumentKeyList.get(i), (FullFeedDataDTO) responseValues.get(i));
         }
+        log.info("FullFeed fetch - requested: {}, missing: {}", instrumentKeyList.size(), missingKeys.size());
         if (!missingKeys.isEmpty())
             upstoxWebSocketClient.onSubscribe(missingKeys, "sub", "full");
         return responseMap;
