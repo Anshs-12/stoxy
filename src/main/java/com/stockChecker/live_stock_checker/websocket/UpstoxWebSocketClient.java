@@ -4,7 +4,6 @@ import com.fasterxml.jackson.core.JsonProcessingException;
 import com.fasterxml.jackson.databind.JsonNode;
 import com.fasterxml.jackson.databind.ObjectMapper;
 import com.stockChecker.live_stock_checker.exceptions.UpstoxFeedException;
-import com.stockChecker.live_stock_checker.payload.StockPayload.StockSearchDTO;
 import com.stockChecker.live_stock_checker.payload.UpstoxPayload.UpstoxSubscribeData;
 import com.stockChecker.live_stock_checker.payload.UpstoxPayload.UpstoxSubscribeRequest;
 import jakarta.annotation.PostConstruct;
@@ -46,13 +45,13 @@ public class UpstoxWebSocketClient {
         activeWebSocketObject = webSocketConnectionObject.join();
     }
 
-    public void onSubscribe(List<StockSearchDTO> stockRequestList, String method, String mode) {
+    public void onSubscribe(List<String> instrumentKeyList, String method, String mode) {
         UpstoxSubscribeRequest upstoxSubscribeRequest = UpstoxSubscribeRequest.builder()
                 .guid(UUID.randomUUID().toString())
                 .method(method)
                 .data(UpstoxSubscribeData.builder()
                         .mode(mode)
-                        .instrumentKeys(getInstrumentKeyList(stockRequestList))
+                        .instrumentKeys(instrumentKeyList)
                         .build()
                 )
                 .build();
@@ -64,13 +63,6 @@ public class UpstoxWebSocketClient {
             throw new UpstoxFeedException("Failed to serialize subscribe request: " + e.getMessage());
         }
     }
-
-    private List<String> getInstrumentKeyList(List<StockSearchDTO> stockRequestList) {
-        return stockRequestList.stream()
-                .map((eachItem) -> eachItem.getInstrumentKey())
-                .toList();
-    }
-
 
     private URI getWssURL() {
         try {

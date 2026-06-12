@@ -9,6 +9,7 @@ import com.stockChecker.live_stock_checker.model.Stock;
 import com.stockChecker.live_stock_checker.payload.MarketStatusResponse;
 import com.stockChecker.live_stock_checker.payload.StockPayload.*;
 import com.stockChecker.live_stock_checker.repository.StockRepository;
+import com.stockChecker.live_stock_checker.websocket.UpstoxWebSocketClient;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
 import org.modelmapper.ModelMapper;
@@ -30,16 +31,12 @@ import java.util.List;
 public class StockServiceImpl implements StockService {
 
     private final StockRepository stockRepository;
-
     private final ModelMapper modelMapper;
-
     private final ObjectMapper objectMapper;
-
     private final MarketStatusService marketStatusService;
-
     private final StockCacheService stockCacheService;
-
     private final RestClient restClient;
+    private final UpstoxWebSocketClient upstoxWebSocketClient;
 
     /*
         entire flow, first checking if the stock exits in a database,
@@ -50,6 +47,7 @@ public class StockServiceImpl implements StockService {
     public StockDetailResponseDTO getStockDetails(StockSearchDTO stockRequest) {
         MarketStatusResponse response = marketStatusService.isMarketOpen();
         if (response.getIsOpen()) {
+            upstoxWebSocketClient.onSubscribe(List.of(stockRequest.getInstrumentKey()),"sub","full");
             return stockCacheService.getStockLive(stockRequest);
         }
         if (response.getNextOpeningDay().equals("MONDAY")) {
