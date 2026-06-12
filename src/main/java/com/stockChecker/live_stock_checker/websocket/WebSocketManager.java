@@ -2,6 +2,8 @@ package com.stockChecker.live_stock_checker.websocket;
 
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
+import org.springframework.beans.factory.annotation.Autowired;
+import org.springframework.context.annotation.Lazy;
 import org.springframework.scheduling.TaskScheduler;
 import org.springframework.stereotype.Component;
 
@@ -11,8 +13,10 @@ import java.time.Instant;
 @RequiredArgsConstructor
 @Slf4j
 public class WebSocketManager {
-
-    private final UpstoxWebSocketClient upstoxWebSocketClient;
+    //  TODO: refactor architecture to remove Lazy injection
+    @Lazy
+    @Autowired
+    private UpstoxWebSocketClient upstoxWebSocketClient;
     private final TaskScheduler taskScheduler;
 
     public void handleDisconnect(int statusCode) {
