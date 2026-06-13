@@ -68,7 +68,13 @@ public class StockCacheService {
                 .orElseGet(() -> stockDBService.saveStockInDB(stockRequest));
 
         // creating a DTO of the stock.
-        StockDetailResponseDTO stockDTO = modelMapper.map(stock, StockDetailResponseDTO.class);
+        StockDetailResponseDTO stockDTO = StockDetailResponseDTO.builder()
+                .stockName(stock.getStockName())
+                .stockSymbol(stock.getStockSymbol())
+                .exchange(stock.getExchange())
+                .isin(stock.getIsin())
+                .instrumentKey(stock.getUpstoxInstrumentKey())
+                .build();
 
         // attaching the companyInfo to the stock.
         stockDTO.setCompanyResponseDTO(mapCompanyDTO(stock));
