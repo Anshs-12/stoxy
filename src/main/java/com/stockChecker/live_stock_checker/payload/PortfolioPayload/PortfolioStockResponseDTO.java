@@ -18,11 +18,6 @@ public class PortfolioStockResponseDTO {
     private String stockSymbol;
     private BigDecimal avgBuyingPrice;
     private Integer totalQuantity;
-    private BigDecimal currentValue;
     private BigDecimal investedAmount;
-    private BigDecimal LTP; // lastTradedPrice
-    private BigDecimal unrealizedPnL;
-    private BigDecimal unrealizedPnLPercent;
-    private BigDecimal dayPnL;
-    private BigDecimal dayPnLPercent;
+    private String instrumentKey;
 }
