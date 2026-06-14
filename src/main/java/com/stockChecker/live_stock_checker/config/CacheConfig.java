@@ -8,8 +8,10 @@ import org.springframework.context.annotation.Configuration;
 import org.springframework.data.redis.cache.RedisCacheConfiguration;
 import org.springframework.data.redis.cache.RedisCacheManager;
 import org.springframework.data.redis.connection.RedisConnectionFactory;
+import org.springframework.data.redis.core.RedisTemplate;
 import org.springframework.data.redis.serializer.GenericJackson2JsonRedisSerializer;
 import org.springframework.data.redis.serializer.RedisSerializationContext;
+import org.springframework.data.redis.serializer.StringRedisSerializer;
 
 import java.time.Duration;
 import java.util.HashMap;
@@ -21,6 +23,15 @@ import java.util.Map;
 public class CacheConfig {
 
     private final RedisConnectionFactory redisConnection;
+
+    @Bean
+    public RedisTemplate<String, Object> getMarketDataRedisTemplate(RedisConnectionFactory redisConnection) {
+        RedisTemplate<String, Object> redisTemplate = new RedisTemplate<>();
+        redisTemplate.setConnectionFactory(redisConnection);
+        redisTemplate.setKeySerializer(new StringRedisSerializer());
+        redisTemplate.setDefaultSerializer(new GenericJackson2JsonRedisSerializer());
+        return redisTemplate;
+    }
 
     @Bean
     public CacheManager cacheManager() {
@@ -50,7 +61,13 @@ public class CacheConfig {
                 4. Return RedisCacheManager
         */
         Map<String, RedisCacheConfiguration> redisCacheConfigMap = new HashMap<>();
-        RedisCacheConfiguration defaultCacheConfig = RedisCacheConfiguration.defaultCacheConfig().entryTtl(Duration.ofSeconds(60)).serializeValuesWith(RedisSerializationContext.SerializationPair.fromSerializer(new GenericJackson2JsonRedisSerializer()));
+        RedisCacheConfiguration defaultCacheConfig = RedisCacheConfiguration.defaultCacheConfig()
+                .entryTtl(Duration.ofSeconds(60))
+                .serializeValuesWith(
+                        RedisSerializationContext
+                                .SerializationPair
+                                .fromSerializer(new GenericJackson2JsonRedisSerializer())
+                );
         // serializing the values to store them a proper JSON format, so that it's easier to read
 
         // ----------------------------- Index Caching -----------------------------
@@ -64,7 +81,10 @@ public class CacheConfig {
         redisCacheConfigMap.put("stockWeekendClosed", defaultCacheConfig.entryTtl(Duration.ofMinutes(3945)));
 
         // assigning the map to RedisCacheManger
-        return RedisCacheManager.builder(redisConnection).cacheDefaults(defaultCacheConfig).withInitialCacheConfigurations(redisCacheConfigMap).build();
+        return RedisCacheManager.builder(redisConnection)
+                .cacheDefaults(defaultCacheConfig)
+                .withInitialCacheConfigurations(redisCacheConfigMap)
+                .build();
     }
 }
 

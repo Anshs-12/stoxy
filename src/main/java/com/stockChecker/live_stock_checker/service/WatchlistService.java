@@ -12,7 +12,7 @@ public interface WatchlistService {
 
     WatchlistStockResponseDTO addStockToWatchlist(String userEmail, Long watchlistId, WatchlistStockRequestDTO watchlistStockRequestDTO);
 
-    void deleteStockFromWatchlist(String userEmail, Long watchlistId, WatchlistStockRequestDTO watchlistStockRequestDTO);
+    void deleteStockFromWatchlist(String userEmail, Long watchlistId, String instrumentKey);
 
     WatchlistResponseDTO getWatchlistById(String userEmail, Long watchlistId);
 

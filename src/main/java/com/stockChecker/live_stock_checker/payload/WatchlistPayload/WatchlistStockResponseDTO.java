@@ -17,6 +17,7 @@ public class WatchlistStockResponseDTO {
     // lightWeight stock response object which would be sent when a watchlist is requested, instead of the entire stockObject!
     String stockName;
     String stockSymbol;
+    String instrumentKey;
     BigDecimal priceAddedAt;
     LocalDateTime addedAt;
 }

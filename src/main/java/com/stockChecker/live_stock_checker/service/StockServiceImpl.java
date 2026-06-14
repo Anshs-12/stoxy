@@ -9,6 +9,7 @@ import com.stockChecker.live_stock_checker.model.Stock;
 import com.stockChecker.live_stock_checker.payload.MarketStatusResponse;
 import com.stockChecker.live_stock_checker.payload.StockPayload.*;
 import com.stockChecker.live_stock_checker.repository.StockRepository;
+import com.stockChecker.live_stock_checker.websocket.UpstoxWebSocketClient;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
 import org.modelmapper.ModelMapper;
@@ -30,16 +31,12 @@ import java.util.List;
 public class StockServiceImpl implements StockService {
 
     private final StockRepository stockRepository;
-
     private final ModelMapper modelMapper;
-
     private final ObjectMapper objectMapper;
-
     private final MarketStatusService marketStatusService;
-
     private final StockCacheService stockCacheService;
-
     private final RestClient restClient;
+    private final UpstoxWebSocketClient upstoxWebSocketClient;
 
     /*
         entire flow, first checking if the stock exits in a database,
@@ -49,7 +46,10 @@ public class StockServiceImpl implements StockService {
     @Override
     public StockDetailResponseDTO getStockDetails(StockSearchDTO stockRequest) {
         MarketStatusResponse response = marketStatusService.isMarketOpen();
+        log.info("Fetching stock details - symbol: {}, instrumentKey: {}", stockRequest.getStockSymbol(),
+                stockRequest.getInstrumentKey());
         if (response.getIsOpen()) {
+            upstoxWebSocketClient.onSubscribe(List.of(stockRequest.getInstrumentKey()), "sub", "full");
             return stockCacheService.getStockLive(stockRequest);
         }
         if (response.getNextOpeningDay().equals("MONDAY")) {
@@ -62,7 +62,7 @@ public class StockServiceImpl implements StockService {
     // this method needs no caching as it's used for search bar when a user tries to search a stock name.
     public StockSearchResponseDTO searchStockByName(String query) {
         // spring data jpa translates Containing to LIKE %VALUE%
-
+        log.info("Searching stock - query: {}", query);
         List<Stock> stockList = stockRepository.searchStocks(query);
 
         List<StockSearchDTO> stockSearchList = stockList
@@ -72,9 +72,9 @@ public class StockServiceImpl implements StockService {
                 .toList();
         if (stockSearchList.isEmpty()) {
             // this indicates that database doesn't have any stock regarding the search, so expand to upstox search.
+            log.info("DB miss for query: {}. Falling back to Upstox search.", query);
             stockSearchList = searchUpstoxEquity(query);
         }
-
         return StockSearchResponseDTO.builder()
                 .content(stockSearchList)
                 .build();

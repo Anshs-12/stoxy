@@ -13,7 +13,7 @@ import java.time.LocalDateTime;
 @Builder
 
 public class WatchlistSummaryDTO {
-    // This class basically is used for returning the list of all the watchlist of a user, so it should be lightweight!
+    // This class basically is used for returning the list of all the watchlist of a user
     Long watchlistId;
     String watchlistName;
     LocalDateTime createdAt;

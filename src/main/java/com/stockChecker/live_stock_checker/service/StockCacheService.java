@@ -61,14 +61,20 @@ public class StockCacheService {
 
     @Transactional
     public StockDetailResponseDTO fetchCompleteStockData(StockSearchDTO stockRequest) {
-        log.info("Fetching from API and DB for stock: {}", stockRequest.getStockSymbol());
+        log.info("Assembling complete stock data for: {} ({})", stockRequest.getStockSymbol(), stockRequest.getIsin());
 
         //checking database first.
         Stock stock = stockRepository.findByIsin(stockRequest.getIsin())
                 .orElseGet(() -> stockDBService.saveStockInDB(stockRequest));
 
         // creating a DTO of the stock.
-        StockDetailResponseDTO stockDTO = modelMapper.map(stock, StockDetailResponseDTO.class);
+        StockDetailResponseDTO stockDTO = StockDetailResponseDTO.builder()
+                .stockName(stock.getStockName())
+                .stockSymbol(stock.getStockSymbol())
+                .exchange(stock.getExchange())
+                .isin(stock.getIsin())
+                .instrumentKey(stock.getUpstoxInstrumentKey())
+                .build();
 
         // attaching the companyInfo to the stock.
         stockDTO.setCompanyResponseDTO(mapCompanyDTO(stock));
@@ -84,7 +90,7 @@ public class StockCacheService {
     }
 
     private StockFinancialsDTO mapStockFinancialsDTO(Stock stock) {
-        log.info("StockFinancials from stock: {}", stock.getStockFinancials());
+        log.debug("StockFinancials from stock: {}", stock.getStockFinancials());
         if (stock.getStockFinancials() == null) return null;
         StockFinancials financials = stock.getStockFinancials();
 //        BigDecimal marketCap = new BigDecimal(priceInfoNode.get("lastPrice").asText())
