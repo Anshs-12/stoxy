@@ -11,6 +11,4 @@ public interface WatchlistResponseMapper {
     @Mapping(source = "name", target = "watchlistName")
     @Mapping(source = "watchlistStockList", target = "watchlistStocks")
     WatchlistResponseDTO toResponseDTO(Watchlist watchlist);
-
-
 }
