@@ -36,7 +36,7 @@ public class WebSecurityConfig {
     }
 
     @Bean
-    public SecurityFilterChain securityFilterChain(HttpSecurity http,RateLimitFilter rateLimitFilter) throws Exception {
+    public SecurityFilterChain securityFilterChain(HttpSecurity http, RateLimitFilter rateLimitFilter) throws Exception {
 
         // csrf disabling
         http.csrf((eachCheck) -> eachCheck.disable());
@@ -44,6 +44,7 @@ public class WebSecurityConfig {
         http.authorizeHttpRequests((eachRequest) -> eachRequest
                 .requestMatchers("/stocks/**").permitAll()
                 .requestMatchers("/index/**").permitAll()
+                .requestMatchers("/ticker/live/**").permitAll()
                 .requestMatchers("/auth/userInfo").authenticated()
                 .requestMatchers("/auth/**").permitAll()
                 .requestMatchers("/login/**").permitAll()

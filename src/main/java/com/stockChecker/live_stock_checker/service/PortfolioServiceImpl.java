@@ -4,16 +4,18 @@ import com.stockChecker.live_stock_checker.config.AuthUtils;
 import com.stockChecker.live_stock_checker.exceptions.InsufficientQuantityException;
 import com.stockChecker.live_stock_checker.exceptions.ResourceNotFoundException;
 import com.stockChecker.live_stock_checker.exceptions.StockNotFoundException;
+import com.stockChecker.live_stock_checker.exceptions.UpstoxFeedException;
 import com.stockChecker.live_stock_checker.mapper.PortfolioTransactionMapper;
 import com.stockChecker.live_stock_checker.model.*;
 import com.stockChecker.live_stock_checker.payload.PortfolioPayload.*;
-import com.stockChecker.live_stock_checker.payload.StockPayload.StockDetailResponseDTO;
+import com.stockChecker.live_stock_checker.payload.WebsocketPayload.LtpcDataDTO;
 import com.stockChecker.live_stock_checker.repository.PortfolioRepository;
 import com.stockChecker.live_stock_checker.repository.PortfolioStockRepository;
 import com.stockChecker.live_stock_checker.repository.PortfolioTransactionRepository;
 import com.stockChecker.live_stock_checker.repository.StockRepository;
 import jakarta.transaction.Transactional;
 import lombok.RequiredArgsConstructor;
+import lombok.extern.slf4j.Slf4j;
 import org.springframework.stereotype.Service;
 
 import java.math.BigDecimal;
@@ -23,6 +25,7 @@ import java.util.*;
 
 @Service
 @RequiredArgsConstructor
+@Slf4j
 public class PortfolioServiceImpl implements PortfolioService {
 
     // Repositories
@@ -32,8 +35,8 @@ public class PortfolioServiceImpl implements PortfolioService {
     private final PortfolioTransactionRepository portfolioTransactionRepository;
 
     // Services
-    private final StockService stockService;
     private final PDFService pdfService;
+    private final TickerService tickerService;
 
     // Mapper & Utils
     private final PortfolioTransactionMapper transactionMapper;
@@ -42,45 +45,34 @@ public class PortfolioServiceImpl implements PortfolioService {
     @Override
     @Transactional
     public PortfolioResponseDTO getPortfolio(String userEmail) {
+        log.info("Fetching portfolio - user: {}", userEmail);
         User user = authUtils.getloggedInUser(userEmail);
 
         Optional<Portfolio> portfolioExists = portfolioRepository.findByUser(user);
         if (portfolioExists.isEmpty()) {
+            log.info("No portfolio found, returning demo data - user: {}", userEmail);
             return demoPortfolio();
         }
         Portfolio portfolio = portfolioExists.get();
 
         BigDecimal totalInvestedValue = BigDecimal.ZERO;
-        BigDecimal totalCurrentValue = BigDecimal.ZERO;
-        BigDecimal totalUnrealizedPnL = BigDecimal.ZERO;
-        BigDecimal totalUnrealizedPnLPercent = BigDecimal.ZERO;
-        BigDecimal totalDayPnL = BigDecimal.ZERO;
-        BigDecimal totalDayPnLPercent = BigDecimal.ZERO;
 
         List<PortfolioStock> portfolioStocksList = portfolioStockRepository
                 .findByPortfolio(portfolio);
         List<PortfolioStockResponseDTO> portfolioStockResponseDTOList = new ArrayList<>();
 
-        // map for storing <Sector, totalInvestedInSector>
         Map<String, BigDecimal> sectorBreakdown = new HashMap<>();
 
         for (PortfolioStock eachStock : portfolioStocksList) {
-            // getting the entireStock data for each stock
-            StockDetailResponseDTO liveEachStock =
-                    stockService.getStockBySymbol(eachStock.getStock().getStockSymbol());
 
-            PortfolioStockResponseDTO eachPortfolioStockResponseDTO = getPortfolioStockResponse(eachStock, liveEachStock);
+            PortfolioStockResponseDTO eachPortfolioStockResponseDTO = getPortfolioStockResponse(eachStock);
+
             totalInvestedValue = totalInvestedValue.add(eachPortfolioStockResponseDTO.getInvestedAmount());
-            totalCurrentValue = totalCurrentValue.add(eachPortfolioStockResponseDTO.getCurrentValue());
-            totalUnrealizedPnL = totalUnrealizedPnL.add(eachPortfolioStockResponseDTO.getUnrealizedPnL());
-            totalDayPnL = totalDayPnL.add(eachPortfolioStockResponseDTO.getDayPnL());
 
-            String eachStockSector = liveEachStock.getCompanyResponseDTO() != null
-                    ? liveEachStock.getCompanyResponseDTO().getSector()
-                    : "Unknown";
+            String eachStockSector = eachStock.getStock().getCompany().getSector();
+
+            // calculating the sector breakdown data for the portfolio level data.
             BigDecimal eachStockInvestedAmount = eachPortfolioStockResponseDTO.getInvestedAmount();
-
-
             sectorBreakdown.put(eachStockSector,
                     sectorBreakdown.getOrDefault(eachStockSector, BigDecimal.ZERO)
                             .add(eachStockInvestedAmount));
@@ -88,77 +80,44 @@ public class PortfolioServiceImpl implements PortfolioService {
 
             portfolioStockResponseDTOList.add(eachPortfolioStockResponseDTO);
         }
-        totalUnrealizedPnLPercent = (totalUnrealizedPnL.divide(totalInvestedValue, 2, RoundingMode.HALF_UP))
-                .multiply(BigDecimal.valueOf(100));
-        totalDayPnLPercent = totalDayPnL.divide(totalInvestedValue, 2, RoundingMode.HALF_UP)
-                .multiply(BigDecimal.valueOf(100));
 
-        // sector wise loop running
-        BigDecimal finalTotalInvestedValue = totalInvestedValue;
-        sectorBreakdown.replaceAll((sector, invested) ->
-                invested.divide(finalTotalInvestedValue, 4, RoundingMode.HALF_UP)
-                        .multiply(BigDecimal.valueOf(100)));
-
+        // calculating the percentage breakdown for each sector based on the total invested value in the portfolio.
+        final BigDecimal finalTotalInvestedValue = totalInvestedValue;
+        sectorBreakdown.replaceAll(
+                (sector, investedAmount) ->
+                        investedAmount.divide(finalTotalInvestedValue, 4, RoundingMode.HALF_UP)
+                                .multiply(BigDecimal.valueOf(100))
+        );
+        log.info("Portfolio fetched - user: {}, totalInvestedValue: {}, stocksCount: {}, sectorBreakdown: {}"
+                , userEmail, totalInvestedValue, portfolioStocksList.size(), sectorBreakdown);
         return PortfolioResponseDTO.builder()
                 .portfolioId(portfolio.getId())
-                .createdAt(portfolio.getCreatedAt())
                 .lastUpdatedAt(LocalDateTime.now())
                 .totalInvestedValue(totalInvestedValue)
-                .totalCurrentValue(totalCurrentValue)
-                .totalUnrealizedPnL(totalUnrealizedPnL)
-                .totalUnrealizedPnLPercent(totalUnrealizedPnLPercent)
-                .totalDayPnL(totalDayPnL)
-                .totalDayPnLPercent(totalDayPnLPercent)
                 .stocks(portfolioStockResponseDTOList)
                 .sectorBreakdown(sectorBreakdown)
                 .build();
     }
 
-    // helper method for getPortfolio() method
     private PortfolioResponseDTO demoPortfolio() {
         return PortfolioResponseDTO.builder()
                 .portfolioId(null)
-                .createdAt(LocalDateTime.now())
                 .lastUpdatedAt(LocalDateTime.now())
-                .totalDayPnLPercent(BigDecimal.ZERO)
-                .totalCurrentValue(BigDecimal.ZERO)
-                .totalUnrealizedPnL(BigDecimal.ZERO)
-                .totalUnrealizedPnLPercent(BigDecimal.ZERO)
-                .totalDayPnL(BigDecimal.ZERO)
-                .totalDayPnLPercent(BigDecimal.ZERO)
                 .stocks(new ArrayList<>())
                 .sectorBreakdown(new HashMap<>())
                 .build();
     }
 
-    // helper method for getPortfolio() method
-    private PortfolioStockResponseDTO getPortfolioStockResponse(PortfolioStock portfolioStock, StockDetailResponseDTO liveStock) {
-
-        BigDecimal avgBuyingPrice = portfolioStock.getAvgBuyPrice();
-        BigDecimal totalQuantity = BigDecimal.valueOf(portfolioStock.getTotalQuantity());
-        BigDecimal investedAmount = avgBuyingPrice.multiply(totalQuantity);
-
-        BigDecimal lastTradedPrice = (liveStock.getStockPriceInfoDTO().getLastPrice());
-        BigDecimal currentValue = lastTradedPrice.multiply(totalQuantity);
-
-        BigDecimal unrealizedPnL = currentValue.subtract(investedAmount);
-        BigDecimal unrealizedPnLPercent = ((currentValue.subtract(investedAmount))
-                .divide(investedAmount, 2, RoundingMode.HALF_UP)).multiply(BigDecimal.valueOf(100));
-        BigDecimal dayPnL = lastTradedPrice.subtract(liveStock.getStockPriceInfoDTO().getPreviousClose())
-                .multiply(totalQuantity);
-
+    private PortfolioStockResponseDTO getPortfolioStockResponse(PortfolioStock portfolioStock) {
+        log.info("Generating portfolio stock response - portfolioId: {}, stockSymbol: {}", portfolioStock.getPortfolio().getId(), portfolioStock.getStock().getStockSymbol());
         return PortfolioStockResponseDTO.builder()
-                .stockName(liveStock.getStockName())
-                .stockSymbol(liveStock.getStockSymbol())
-                .avgBuyingPrice(avgBuyingPrice)
+                .stockName(portfolioStock.getStock().getStockName())
+                .stockSymbol(portfolioStock.getStock().getStockSymbol())
+                .avgBuyingPrice(portfolioStock.getAvgBuyPrice())
                 .totalQuantity(portfolioStock.getTotalQuantity())
-                .currentValue(currentValue)
-                .investedAmount(investedAmount)
-                .LTP(lastTradedPrice)
-                .unrealizedPnL(unrealizedPnL)
-                .unrealizedPnLPercent(unrealizedPnLPercent)
-                .dayPnL(dayPnL)
-                .dayPnLPercent(liveStock.getStockPriceInfoDTO().getPChange())
+                .investedAmount(portfolioStock.getAvgBuyPrice()
+                        .multiply(BigDecimal.valueOf(portfolioStock.getTotalQuantity())))
+                .instrumentKey(portfolioStock.getStock().getUpstoxInstrumentKey())
                 .build();
     }
 
@@ -168,7 +127,6 @@ public class PortfolioServiceImpl implements PortfolioService {
     public BuyStockResponseDTO buyStock(String userEmail, BuyStockRequestDTO buyStockRequestDTO) {
 
         // getting the user first to get the related portfolio
-
         User user = authUtils.getloggedInUser(userEmail);
 
         Portfolio portfolio = portfolioRepository.findByUser(user)
@@ -179,17 +137,30 @@ public class PortfolioServiceImpl implements PortfolioService {
                                 .build()));
 
         // getting the stock Object to fill in the details!
-        String requestedStockSymbol = buyStockRequestDTO.getStockSymbol().trim().toUpperCase();
+        Stock stock = stockRepository.findByUpstoxInstrumentKey(buyStockRequestDTO.getInstrumentKey())
+                .orElseThrow(() ->
+                        new StockNotFoundException("Stock does not exist with symbol: " + buyStockRequestDTO.getStockSymbol()));
 
-        Stock stock = stockRepository.findByStockSymbol(requestedStockSymbol)
-                .orElseThrow(() -> new StockNotFoundException("Stock does not exist with stockSymbol: " + requestedStockSymbol));
+        log.info("Buying stock - user: {}, instrumentKey: {}, quantity: {}, expectedPrice: {}"
+                , userEmail, buyStockRequestDTO.getInstrumentKey(),
+                buyStockRequestDTO.getQuantity(), buyStockRequestDTO.getBuyPrice());
+        return executeBuyStock(buyStockRequestDTO, stock, portfolio);
+    }
 
-        StockDetailResponseDTO stockDetailResponseDTO = stockService.getStockBySymbol(requestedStockSymbol);
+    private BuyStockResponseDTO executeBuyStock(BuyStockRequestDTO buyStockRequestDTO,
+                                                Stock stock,
+                                                Portfolio portfolio) {
 
         // checking if the portfolio already has the stock present so the details get updated!
+        String requestedStockSymbol = stock.getStockSymbol();
 
-        Optional<PortfolioStock> existing = portfolioStockRepository.findByPortfolioAndStock_stockSymbol(portfolio, requestedStockSymbol);
-        BigDecimal liveStockPrice = stockDetailResponseDTO.getStockPriceInfoDTO().getLastPrice();
+        Optional<PortfolioStock> existing =
+                portfolioStockRepository.findByPortfolioAndStock_upstoxInstrumentKey(portfolio, buyStockRequestDTO.getInstrumentKey());
+        BigDecimal expectedPrice = buyStockRequestDTO.getBuyPrice();
+        String instrumentKey = buyStockRequestDTO.getInstrumentKey();
+
+        final BigDecimal liveStockPrice = getLiveStockPrice(instrumentKey, expectedPrice);
+
         if (existing.isPresent()) {
             PortfolioStock portfolioStock = existing.get();
 
@@ -203,9 +174,9 @@ public class PortfolioServiceImpl implements PortfolioService {
             portfolioStock.setTotalQuantity(totalQuantity);
             portfolioStock.setAvgBuyPrice(newAvgBuyPrice);
 
-
             portfolioStockRepository.save(portfolioStock);
         } else {
+
             // the portfolio doesn't have this stock yet, so creating a new PortfolioStock.
             PortfolioStock portfolioStock = PortfolioStock.builder()
                     .totalQuantity(buyStockRequestDTO.getQuantity())
@@ -214,14 +185,13 @@ public class PortfolioServiceImpl implements PortfolioService {
                     .avgBuyPrice(liveStockPrice)
                     .build();
 
-
             portfolioStockRepository.save(portfolioStock);
-
         }
 
         PortfolioTransaction portfolioTransaction = PortfolioTransaction.builder()
                 .portfolio(portfolio)
                 .stockSymbol(requestedStockSymbol)
+                .instrumentKey(stock.getUpstoxInstrumentKey())
                 .transactionAt(LocalDateTime.now())
                 .type(TransactionType.BUY)
                 .quantity(buyStockRequestDTO.getQuantity())
@@ -229,14 +199,15 @@ public class PortfolioServiceImpl implements PortfolioService {
                 .build();
 
         portfolioTransactionRepository.save(portfolioTransaction);
-
+        log.info("Stock bought - portfolioId: {}, instrumentKey: {}, quantity: {}, price: {}"
+                , portfolio.getId(), instrumentKey, buyStockRequestDTO.getQuantity(), liveStockPrice);
         return BuyStockResponseDTO.builder()
                 .stockSymbol(requestedStockSymbol)
-                .price(stockDetailResponseDTO.getStockPriceInfoDTO().getLastPrice())
-                .quantity(buyStockRequestDTO.getQuantity())
+                .instrumentKey(buyStockRequestDTO.getInstrumentKey())
+                .buyPrice(liveStockPrice)
+                .quantityBought(buyStockRequestDTO.getQuantity())
                 .boughtAt(LocalDateTime.now())
                 .build();
-
     }
 
     @Override
@@ -249,73 +220,42 @@ public class PortfolioServiceImpl implements PortfolioService {
                 .orElseThrow(() -> new ResourceNotFoundException("No portfolio exists for the user!"));
 
         // checking if the stock exists!
-        String requestStockSymbol = sellStockRequestDTO.getStockSymbol().trim().toUpperCase();
-        PortfolioStock portfolioStock = portfolioStockRepository.findByPortfolioAndStock_stockSymbol(portfolio, requestStockSymbol)
-                .orElseThrow(() -> new ResourceNotFoundException("There is no stock to sell with the name: " + requestStockSymbol));
+        PortfolioStock portfolioStock = portfolioStockRepository
+                .findByPortfolioAndStock_upstoxInstrumentKey(portfolio, sellStockRequestDTO.getInstrumentKey())
+                .orElseThrow(() ->
+                        new ResourceNotFoundException("There is no stock to sell with the name: "
+                                + sellStockRequestDTO.getStockSymbol()));
 
         // checking if the requestedQuantity is less than the portfolio quantity present!
-        if (portfolioStock.getTotalQuantity() < sellStockRequestDTO.getQuantity()) {
-            throw new InsufficientQuantityException("Insufficient quantity of Stocks being sold, " +
-                    "Please reduce the quantity to or below: " + portfolioStock.getTotalQuantity());
+        if (sellStockRequestDTO.getQuantity() > portfolioStock.getTotalQuantity()) {
+            log.warn("Sell rejected - insufficient quantity - instrumentKey: {}, requested: {}, available: {}"
+                    , sellStockRequestDTO.getInstrumentKey(), sellStockRequestDTO.getQuantity(), portfolioStock.getTotalQuantity());
+            throw new InsufficientQuantityException(
+                    String.format(
+                            "Requested sell quantity (%d) exceeds available quantity (%d).",
+                            sellStockRequestDTO.getQuantity(),
+                            portfolioStock.getTotalQuantity()
+                    )
+            );
         }
-
-        StockDetailResponseDTO liveStock = stockService.getStockBySymbol(requestStockSymbol);
-
-
-        return executeSellStock(liveStock, sellStockRequestDTO, portfolioStock, portfolio);
+        log.info("Selling stock - user: {}, instrumentKey: {}, quantity: {}, expectedPrice: {}"
+                , userEmail, sellStockRequestDTO.getInstrumentKey(),
+                sellStockRequestDTO.getQuantity(), sellStockRequestDTO.getSellingPrice());
+        return executeSellStock(sellStockRequestDTO, portfolioStock, portfolio);
     }
 
-    // this method gets back the transaction history as per the stock!;
-    @Override
-    @Transactional
-    public List<TransactionResponseDTO> getTransactionsByStock(String userEmail, String stockSymbol) {
+    private SellStockResponseDTO executeSellStock(
+            SellStockRequestDTO sellStockRequestDTO,
+            PortfolioStock portfolioStock,
+            Portfolio portfolio) {
 
-        User user = authUtils.getloggedInUser(userEmail);
-        // checking if the portfolio exists!
-        Portfolio portfolio = portfolioRepository.findByUser(user)
-                .orElseThrow(() -> new ResourceNotFoundException("No portfolio exists for the user!"));
+        String requestStockSymbol = portfolioStock.getStock().getStockSymbol();
 
+        BigDecimal expectedPrice = sellStockRequestDTO.getSellingPrice();
+        String instrumentKey = sellStockRequestDTO.getInstrumentKey();
 
-        List<PortfolioTransaction> transactionsList =
-                portfolioTransactionRepository.findByPortfolioAndStockSymbol(portfolio, stockSymbol);
-        if (transactionsList.isEmpty())
-            throw new ResourceNotFoundException("Never bought/sold this stock!");
+        BigDecimal liveStockPrice = getLiveStockPrice(instrumentKey, expectedPrice);
 
-        return transactionMapper.toResponseDTOList(transactionsList);
-    }
-
-    @Override
-    @Transactional
-    public List<TransactionResponseDTO> getTransactionHistory(String userEmail) {
-        User user = authUtils.getloggedInUser(userEmail);
-        // checking if the portfolio exists!
-        Portfolio portfolio = portfolioRepository.findByUser(user)
-                .orElseThrow(() -> new ResourceNotFoundException("No portfolio exists for the user!"));
-
-        List<PortfolioTransaction> transactionHistoryList =
-                portfolioTransactionRepository.findByPortfolioOrderByTransactionAtDesc(portfolio);
-        if (transactionHistoryList.isEmpty()) {
-            throw new ResourceNotFoundException("Please buy/sell stocks to generate a transaction history!");
-        }
-
-        return transactionMapper.toResponseDTOList(transactionHistoryList);
-    }
-
-    @Override
-    @Transactional
-    public byte[] getTransactionHistoryPDF(String userEmail) {
-        List<TransactionResponseDTO> transactionsList = getTransactionHistory(userEmail);
-        byte[] transactionsPDF = pdfService.generateTransactionsPDF(transactionsList);
-        return transactionsPDF;
-    }
-
-    private SellStockResponseDTO executeSellStock(StockDetailResponseDTO liveStock,
-                                                  SellStockRequestDTO sellStockRequestDTO,
-                                                  PortfolioStock portfolioStock,
-                                                  Portfolio portfolio) {
-
-        String requestStockSymbol = sellStockRequestDTO.getStockSymbol();
-        BigDecimal liveStockPrice = liveStock.getStockPriceInfoDTO().getLastPrice();
         BigDecimal quantityBeingSold = BigDecimal.valueOf(sellStockRequestDTO.getQuantity());
 
         BigDecimal realizedPnL = liveStockPrice.multiply(quantityBeingSold)
@@ -333,6 +273,7 @@ public class PortfolioServiceImpl implements PortfolioService {
         PortfolioTransaction portfolioTransaction = PortfolioTransaction.builder()
                 .portfolio(portfolio)
                 .stockSymbol(requestStockSymbol)
+                .instrumentKey(instrumentKey)
                 .quantity(sellStockRequestDTO.getQuantity())
                 .price(liveStockPrice)
                 .type(TransactionType.SELL)
@@ -341,23 +282,96 @@ public class PortfolioServiceImpl implements PortfolioService {
 
         portfolioTransactionRepository.save(portfolioTransaction);
 
+        log.info("Stock sold - portfolioId: {}, instrumentKey: {}, quantity: {}, price: {}, realizedPnL: {}"
+                , portfolio.getId(), instrumentKey, sellStockRequestDTO.getQuantity(), liveStockPrice, realizedPnL);
         return SellStockResponseDTO.builder()
                 .stockSymbol(requestStockSymbol)
-                .price(liveStockPrice)
+                .instrumentKey(instrumentKey)
+                .sellPrice(liveStockPrice)
                 .quantitySold(sellStockRequestDTO.getQuantity())
-                .realizedPnL(realizedPnL)
+                .realizedProfitLoss(realizedPnL)
                 .soldAt(LocalDateTime.now())
                 .build();
+    }
+
+    /*
+        This is the critical part of the buy flow, where we are checking the live price of
+            the stock with the expected price sent by the user in the request.
+        If the price difference is more than 1% then we are rejecting the order and
+            asking the user to retry with the updated price.
+    */
+    private BigDecimal getLiveStockPrice(String instrumentKey, BigDecimal expectedPrice) {
+        LtpcDataDTO liveData = tickerService.getLiveLtpcData(List.of(instrumentKey))
+                .get(instrumentKey);
+
+        if (liveData == null || liveData.getLastTradedPrice() == null) {
+            log.warn("Live price unavailable - instrumentKey: {}. Order rejected.", instrumentKey);
+            throw new UpstoxFeedException("Live price unavailable for: " + instrumentKey + ". Order rejected.");
+        }
+
+        BigDecimal actualPrice = liveData.getLastTradedPrice();
+        BigDecimal percentDiff = actualPrice.subtract(expectedPrice).abs()
+                .divide(expectedPrice, 4, RoundingMode.HALF_UP)
+                .multiply(BigDecimal.valueOf(100));
+
+        if (percentDiff.compareTo(BigDecimal.valueOf(1.0)) > 0) {
+            log.warn("Order rejected - price slippage exceeded - instrumentKey: {}, expected: {}, actual: {}, diff%: {}"
+                    , instrumentKey, expectedPrice, actualPrice, percentDiff);
+            throw new UpstoxFeedException("Order rejected due to price slippage. Expected: "
+                    + expectedPrice + ", Actual: " + actualPrice + ". Please retry.");
+        }
+
+        return actualPrice;
+    }
+
+    // this method gets back the transaction history as per the stock!;
+    @Override
+    @Transactional
+    public List<TransactionResponseDTO> getTransactionsByStock(String userEmail, String stockSymbol) {
+
+        User user = authUtils.getloggedInUser(userEmail);
+        // checking if the portfolio exists!
+        Portfolio portfolio = portfolioRepository.findByUser(user)
+                .orElseThrow(() -> new ResourceNotFoundException("No portfolio exists for the user!"));
 
 
+        List<PortfolioTransaction> transactionsList =
+                portfolioTransactionRepository.findByPortfolioAndStockSymbol(portfolio, stockSymbol);
+        if (transactionsList.isEmpty()) {
+            log.warn("No transactions found - user: {}, symbol: {}", userEmail, stockSymbol);
+            throw new ResourceNotFoundException("Never bought/sold this stock!");
+        }
+        log.info("Transactions fetched - user: {}, symbol: {}, transactionsCount: {}"
+                , userEmail, stockSymbol, transactionsList.size());
+        return transactionMapper.toResponseDTOList(transactionsList);
+    }
+
+    @Override
+    @Transactional
+    public List<TransactionResponseDTO> getTransactionHistory(String userEmail) {
+        User user = authUtils.getloggedInUser(userEmail);
+        // checking if the portfolio exists!
+        Portfolio portfolio = portfolioRepository.findByUser(user)
+                .orElseThrow(() -> new ResourceNotFoundException("No portfolio exists for the user!"));
+
+        List<PortfolioTransaction> transactionHistoryList =
+                portfolioTransactionRepository.findByPortfolioOrderByTransactionAtDesc(portfolio);
+        if (transactionHistoryList.isEmpty()) {
+            log.warn("No transaction history - user: {}", userEmail);
+            throw new ResourceNotFoundException("Please buy/sell stocks to generate a transaction history!");
+        }
+        log.info("Transaction history fetched - user: {}, transactionsCount: {}"
+                , userEmail, transactionHistoryList.size());
+        return transactionMapper.toResponseDTOList(transactionHistoryList);
+    }
+
+    @Override
+    @Transactional
+    public byte[] getTransactionHistoryPDF(String userEmail) {
+        List<TransactionResponseDTO> transactionsList = getTransactionHistory(userEmail);
+        byte[] transactionsPDF = pdfService.generateTransactionsPDF(transactionsList);
+        log.info("Transaction history PDF generated - user: {}, transactionsCount: {}, pdfSizeBytes: {}"
+                , userEmail, transactionsList.size(), transactionsPDF.length);
+        return transactionsPDF;
     }
 }
-
-
-
-
-
-
-
-
-

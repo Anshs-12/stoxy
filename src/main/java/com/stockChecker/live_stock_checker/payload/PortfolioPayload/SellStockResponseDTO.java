@@ -16,8 +16,10 @@ import java.time.LocalDateTime;
 public class SellStockResponseDTO {
 
     private String stockSymbol;
-    private BigDecimal price;
+    private String instrumentKey;
+    private BigDecimal sellPrice;
     private Integer quantitySold;
-    private BigDecimal realizedPnL;
+    private BigDecimal realizedProfitLoss;
     private LocalDateTime soldAt;
+
 }

@@ -1,10 +1,16 @@
 package com.stockChecker.live_stock_checker.service;
 
-import com.fasterxml.jackson.core.JsonProcessingException;
 import com.stockChecker.live_stock_checker.payload.IndexPayload.IndexDetailResponseDTO;
+import com.stockChecker.live_stock_checker.payload.IndexPayload.IndexSearchResponseDTO;
+
+import java.util.List;
 
 
 public interface IndexService {
 
-    IndexDetailResponseDTO getIndexBySymbol(String indexSymbol) throws JsonProcessingException;
+    IndexDetailResponseDTO getIndexBySymbol(String indexSymbol);
+
+    IndexSearchResponseDTO searchIndices(String query);
+
+    List<String> getMarqueeIndices();
 }

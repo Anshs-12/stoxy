@@ -3,6 +3,7 @@ package com.stockChecker.live_stock_checker.controller;
 import com.stockChecker.live_stock_checker.config.AuthUtils;
 import com.stockChecker.live_stock_checker.payload.WatchlistPayload.*;
 import com.stockChecker.live_stock_checker.service.WatchlistService;
+import jakarta.validation.Valid;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.http.HttpStatus;
@@ -42,7 +43,7 @@ public class WatchlistController {
 
     @PostMapping("/{watchlistId}/stocks")
     public ResponseEntity<WatchlistStockResponseDTO> addStockToWatchlist(
-            @PathVariable Long watchlistId, @RequestBody WatchlistStockRequestDTO watchlistStockRequestDTO) {
+            @PathVariable Long watchlistId,@Valid @RequestBody WatchlistStockRequestDTO watchlistStockRequestDTO) {
         String userEmail = getEmail();
         log.info("Adding stock to watchlist - user: {}, watchlistId: {}, symbol: {}", userEmail, watchlistId, watchlistStockRequestDTO.getStockSymbol());
         WatchlistStockResponseDTO watchlistStockResponseDTO =
@@ -52,11 +53,11 @@ public class WatchlistController {
 
     @DeleteMapping("/{watchlistId}/stocks")
     public ResponseEntity<Void> deleteStockFromWatchlist(
-            @PathVariable Long watchlistId, @RequestBody WatchlistStockRequestDTO watchlistStockRequestDTO
+            @PathVariable Long watchlistId, @RequestParam String stockInstrumentKey
     ) {
         String userEmail = getEmail();
-        log.info("Removing stock from watchlist - user: {}, watchlistId: {}, symbol: {}", userEmail, watchlistId, watchlistStockRequestDTO.getStockSymbol());
-        watchlistService.deleteStockFromWatchlist(userEmail, watchlistId, watchlistStockRequestDTO);
+        log.info("Removing stock from watchlist - user: {}, watchlistId: {}, instrumentKey: {}", userEmail, watchlistId, stockInstrumentKey);
+        watchlistService.deleteStockFromWatchlist(userEmail, watchlistId, stockInstrumentKey);
         return ResponseEntity.noContent().build();
     }
 

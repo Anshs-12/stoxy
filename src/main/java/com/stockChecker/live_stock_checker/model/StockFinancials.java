@@ -6,8 +6,6 @@ import lombok.Builder;
 import lombok.Data;
 import lombok.NoArgsConstructor;
 
-import java.math.BigDecimal;
-
 @Data
 @AllArgsConstructor
 @NoArgsConstructor
@@ -21,9 +19,16 @@ public class StockFinancials {
 
     private Double pe;
     private Double sectorPe;
-    private Integer faceValue;
-    private Long issuedSize;
 //    private BigDecimal marketCap; // this changes as priceChanges = lastPrice × issuedSize
+
+    private Double pb;
+    private Double sectorPb;
+
+    private Double roa;
+    private Double sectorRoa;
+
+    private Double roe;
+    private Double sectorRoe;
 
     @OneToOne
     @JoinColumn(name = "stock_id")

@@ -1,10 +1,15 @@
 package com.stockChecker.live_stock_checker.service;
 
+import com.fasterxml.jackson.core.JsonProcessingException;
+import com.fasterxml.jackson.databind.JsonNode;
+import com.fasterxml.jackson.databind.ObjectMapper;
 import com.stockChecker.live_stock_checker.Specification.StockScreenerSpec;
+import com.stockChecker.live_stock_checker.exceptions.UpstoxFeedException;
 import com.stockChecker.live_stock_checker.model.Stock;
 import com.stockChecker.live_stock_checker.payload.MarketStatusResponse;
 import com.stockChecker.live_stock_checker.payload.StockPayload.*;
 import com.stockChecker.live_stock_checker.repository.StockRepository;
+import com.stockChecker.live_stock_checker.websocket.UpstoxWebSocketClient;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
 import org.modelmapper.ModelMapper;
@@ -14,7 +19,9 @@ import org.springframework.data.domain.Pageable;
 import org.springframework.data.domain.Sort;
 import org.springframework.data.jpa.domain.Specification;
 import org.springframework.stereotype.Service;
+import org.springframework.web.client.RestClient;
 
+import java.util.ArrayList;
 import java.util.List;
 
 
@@ -24,12 +31,12 @@ import java.util.List;
 public class StockServiceImpl implements StockService {
 
     private final StockRepository stockRepository;
-
     private final ModelMapper modelMapper;
-
+    private final ObjectMapper objectMapper;
     private final MarketStatusService marketStatusService;
-
     private final StockCacheService stockCacheService;
+    private final RestClient restClient;
+    private final UpstoxWebSocketClient upstoxWebSocketClient;
 
     /*
         entire flow, first checking if the stock exits in a database,
@@ -37,43 +44,73 @@ public class StockServiceImpl implements StockService {
     */
 
     @Override
-    public StockDetailResponseDTO getStockBySymbol(String stockSymbol) {
+    public StockDetailResponseDTO getStockDetails(StockSearchDTO stockRequest) {
         MarketStatusResponse response = marketStatusService.isMarketOpen();
-        stockSymbol = stockSymbol.trim().toUpperCase();
+        log.info("Fetching stock details - symbol: {}, instrumentKey: {}", stockRequest.getStockSymbol(),
+                stockRequest.getInstrumentKey());
         if (response.getIsOpen()) {
-            return stockCacheService.getStockLive(stockSymbol);
+            upstoxWebSocketClient.onSubscribe(List.of(stockRequest.getInstrumentKey()), "sub", "full");
+            return stockCacheService.getStockLive(stockRequest);
         }
         if (response.getNextOpeningDay().equals("MONDAY")) {
-            return stockCacheService.getStockWeekendClosed(stockSymbol);
+            return stockCacheService.getStockWeekendClosed(stockRequest);
         }
-        return stockCacheService.getStockWeekdayClosed(stockSymbol);
+        return stockCacheService.getStockWeekdayClosed(stockRequest);
     }
 
     @Override
     // this method needs no caching as it's used for search bar when a user tries to search a stock name.
-    public StockResponse searchStockByName(String query, Integer pageNumber, Integer pageSize, String sortBy, String sortOrder) {
-        // spring data jpa translate's Containing to LIKE %VALUE%
-        Sort sortAndOrder = sortOrder.equalsIgnoreCase("asc") ? Sort.by(sortBy).ascending() : Sort.by(sortBy).descending();
+    public StockSearchResponseDTO searchStockByName(String query) {
+        // spring data jpa translates Containing to LIKE %VALUE%
+        log.info("Searching stock - query: {}", query);
+        List<Stock> stockList = stockRepository.searchStocks(query);
 
-        Pageable pageable = PageRequest.of(pageNumber, pageSize, sortAndOrder);
-
-        Page<Stock> stockList = stockRepository.findByStockNameContainingIgnoreCaseOrStockSymbolContainingIgnoreCase(query, query, pageable);
-
-        List<StockSearchResponseDTO> stockSearchResponseDTOList = stockList.getContent()
+        List<StockSearchDTO> stockSearchList = stockList
                 .stream()
                 .map((eachStock) ->
-                        modelMapper.map(eachStock, StockSearchResponseDTO.class))
+                        modelMapper.map(eachStock, StockSearchDTO.class))
                 .toList();
+        if (stockSearchList.isEmpty()) {
+            // this indicates that database doesn't have any stock regarding the search, so expand to upstox search.
+            log.info("DB miss for query: {}. Falling back to Upstox search.", query);
+            stockSearchList = searchUpstoxEquity(query);
+        }
+        return StockSearchResponseDTO.builder()
+                .content(stockSearchList)
+                .build();
+    }
 
-        StockResponse stockResponse = new StockResponse();
-        stockResponse.setContent(stockSearchResponseDTOList);
-        stockResponse.setPageNumber(stockList.getNumber());
-        stockResponse.setPageSize(stockList.getSize());
-        stockResponse.setTotalPages(stockList.getTotalPages());
-        stockResponse.setTotalElements(stockList.getTotalElements());
-        stockResponse.setLast(stockList.isLast());
-        stockResponse.setFirst(stockList.isFirst());
-        return stockResponse;
+    private List<StockSearchDTO> searchUpstoxEquity(String stockSymbol) {
+        String upstoxJsonResponse = restClient.get()
+                .uri("/v2/instruments/search?query={stockSymbol}", stockSymbol)
+                .retrieve()
+                .body(String.class);
+        return parseUpstoxSearchResults(upstoxJsonResponse);
+    }
+
+    private List<StockSearchDTO> parseUpstoxSearchResults(String jsonResponse) {
+        try {
+            JsonNode root = objectMapper.readTree(jsonResponse);
+            if (!root.path("status").asText().equals("success")) {
+                throw new UpstoxFeedException("Error in searching via endpoint");
+            }
+            List<StockSearchDTO> upstoxResponseList = new ArrayList<>();
+            for (var eachStockNode : root.path("data")) {
+                if (!eachStockNode.path("isin").asText().startsWith("INE")) continue;
+                StockSearchDTO stockResponse = StockSearchDTO.builder()
+                        .stockSymbol(eachStockNode.path("trading_symbol").asText())
+                        .stockName(eachStockNode.path("short_name").asText())
+                        .companyName(eachStockNode.path("name").asText())
+                        .exchange(eachStockNode.path("exchange").asText())
+                        .instrumentKey(eachStockNode.path("instrument_key").asText())
+                        .isin(eachStockNode.path("isin").asText())
+                        .build();
+                upstoxResponseList.add(stockResponse);
+            }
+            return upstoxResponseList;
+        } catch (JsonProcessingException e) {
+            throw new UpstoxFeedException("Failed to parse Upstox search response");
+        }
     }
 
     @Override

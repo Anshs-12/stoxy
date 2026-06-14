@@ -13,8 +13,8 @@ import lombok.NoArgsConstructor;
 public class IndexDetailResponseDTO {
 
     // Live data from NSE API
-    private String name;
-    private String time;
+    private String indexName;
+    private String indexSymbol;
     private IndexMetadataDTO indexMetadataDTO;
     private IndexAdvanceDTO indexAdvanceDTO;
     private IndexPriceInfoDTO indexPriceInfoDTO;

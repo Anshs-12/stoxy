@@ -1,47 +1,30 @@
 package com.stockChecker.live_stock_checker.service;
 
-import com.fasterxml.jackson.core.JsonProcessingException;
-import com.fasterxml.jackson.databind.JsonNode;
-import com.fasterxml.jackson.databind.ObjectMapper;
-import com.stockChecker.live_stock_checker.exceptions.IndexNotFoundException;
+import com.stockChecker.live_stock_checker.mapper.IndexSearchMapper;
 import com.stockChecker.live_stock_checker.model.MarketIndex;
-import com.stockChecker.live_stock_checker.payload.IndexPayload.IndexAdvanceDTO;
 import com.stockChecker.live_stock_checker.payload.IndexPayload.IndexDetailResponseDTO;
-import com.stockChecker.live_stock_checker.payload.IndexPayload.IndexMetadataDTO;
-import com.stockChecker.live_stock_checker.payload.IndexPayload.IndexPriceInfoDTO;
+import com.stockChecker.live_stock_checker.payload.IndexPayload.IndexSearchDTO;
+import com.stockChecker.live_stock_checker.payload.IndexPayload.IndexSearchResponseDTO;
 import com.stockChecker.live_stock_checker.payload.MarketStatusResponse;
 import com.stockChecker.live_stock_checker.repository.IndexRepository;
+import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
-import org.modelmapper.ModelMapper;
-import org.springframework.beans.factory.annotation.Autowired;
-import org.springframework.cache.annotation.Cacheable;
 import org.springframework.stereotype.Service;
-import org.springframework.web.client.RestClient;
-import org.springframework.web.reactive.function.client.WebClient;
 
-import java.math.BigDecimal;
+import java.util.List;
 
 @Service
 @Slf4j
+@RequiredArgsConstructor
 public class IndexServiceImpl implements IndexService {
 
-    @Autowired
-    private IndexRepository indexRepository;
+    private final IndexRepository indexRepository;
 
-    @Autowired
-    private ModelMapper modelMapper;
+    private final MarketStatusService marketStatusService;
 
-    @Autowired
-    private RestClient restClient;
+    private final IndexCacheService indexCacheService;
 
-    @Autowired
-    private ObjectMapper objectMapper;
-
-    @Autowired
-    private MarketStatusService marketStatusService;
-
-    @Autowired
-    private  IndexCacheService indexCacheService;
+    private final IndexSearchMapper indexSearchMapper;
     /*
 
         SELF-INJECTION PATTERN FOR AOP PROXY ACCESS
@@ -88,7 +71,7 @@ public class IndexServiceImpl implements IndexService {
 //    }
 
     @Override
-    public IndexDetailResponseDTO getIndexBySymbol(String indexSymbol) throws JsonProcessingException {
+    public IndexDetailResponseDTO getIndexBySymbol(String indexSymbol) {
         MarketStatusResponse response = marketStatusService.isMarketOpen();
         log.info("Fetching index - symbol: {}, marketOpen: {}", indexSymbol, response.getIsOpen());
         if (response.getIsOpen()) {
@@ -100,7 +83,36 @@ public class IndexServiceImpl implements IndexService {
         return indexCacheService.getIndicesWeekdayClosed(indexSymbol);
     }
 
-    // right now manually feeding indices until we find w working api
+    @Override
+    public IndexSearchResponseDTO searchIndices(String query) {
+        log.info("Searching indices - query: {}", query);
+        List<MarketIndex> marketIndices = indexRepository.searchIndices(query);
+
+        if (marketIndices.isEmpty()) {
+            return IndexSearchResponseDTO.builder()
+                    .indexSearchDTOList(List.of())
+                    .build();
+        }
+        List<IndexSearchDTO> indexSearchDTOList = indexSearchMapper.toIndexSearchDTO(marketIndices);
+        return IndexSearchResponseDTO.builder()
+                .indexSearchDTOList(indexSearchDTOList)
+                .build();
+    }
+
+    @Override
+    public List<String> getMarqueeIndices() {
+        // fetch the top 15 indices based on priority to display in the marquee bar
+        log.debug("Fetching top 15 marquee indices instrument keys.");
+        List<String> instrumentKeys = indexRepository.findTop15ByOrderByIndexPriorityAsc()
+                .stream()
+                .map((eachItem) -> eachItem.getUpstoxInstrumentKey())
+                .toList();
+        return instrumentKeys;
+    }
+}
+
+
+// right now manually feeding indices until we find w working api
 //    public MarketIndex saveIndexInDB(String indexSymbol, JsonNode rootNode) {
 //        JsonNode dataNode = rootNode.get("data");
 //        MarketIndex marketIndex = MarketIndex.builder()
@@ -112,4 +124,3 @@ public class IndexServiceImpl implements IndexService {
 //        indexRepository.save(marketIndex);
 //        return marketIndex;
 //    }
-}

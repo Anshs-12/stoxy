@@ -11,10 +11,7 @@ import lombok.NoArgsConstructor;
 
 public class CompanyResponseDTO {
     private String companyName;
-    private String aboutCompany;
-    private String isIN;
-    private String subIndustry;
-    private String industry;
+    private String description;
     private String sector;
-    private String listingDate;
+    private String sectorMarketCap;
 }
