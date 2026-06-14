@@ -1,10 +1,13 @@
 package com.stockChecker.live_stock_checker.config;
 
 import org.modelmapper.ModelMapper;
+import org.springframework.beans.factory.annotation.Value;
 import org.springframework.context.annotation.Bean;
 import org.springframework.context.annotation.Configuration;
 import org.springframework.http.HttpHeaders;
 import org.springframework.http.MediaType;
+import org.springframework.scheduling.TaskScheduler;
+import org.springframework.scheduling.concurrent.ThreadPoolTaskScheduler;
 import org.springframework.web.client.RestClient;
 
 @Configuration
@@ -16,18 +19,22 @@ public class AppConfig {
     }
 
     @Bean
-    public RestClient restClient() {
+    public RestClient restClient(@Value("${upstox_analytics_token}") String token) {
         return RestClient.builder()
-                .baseUrl("https://www.nseindia.com/api/")
+                .baseUrl("https://api.upstox.com/")
                 .defaultHeader(HttpHeaders.CONTENT_TYPE,
                         MediaType.APPLICATION_JSON_VALUE)
                 .defaultHeader(HttpHeaders.ACCEPT,
                         MediaType.APPLICATION_JSON_VALUE)
-                .defaultHeader(HttpHeaders.USER_AGENT,
-                        "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/120.0.0.0 Safari/537.36")
-                .defaultHeader(HttpHeaders.REFERER, "https://www.nseindia.com/")
+                .defaultHeader("Authorization", "Bearer " + token)
                 .build();
     }
+
+    @Bean
+    public TaskScheduler taskScheduler() {
+        return new ThreadPoolTaskScheduler();
+    }
+
     /*
         Here, we need to add default headers when sending a request so that the request doesn't get blocked.
 

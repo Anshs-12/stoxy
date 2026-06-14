@@ -8,7 +8,7 @@ import org.springframework.data.jpa.repository.JpaRepository;
 public interface WatchlistStockRepository extends JpaRepository<WatchlistStock, Long> {
     boolean existsByWatchListAndStock(Watchlist watchlist, Stock stock);
 
-    void deleteByWatchListAndStock_StockSymbol(Watchlist watchlist, String stockSymbol);
+    void deleteByWatchListAndStock_UpstoxInstrumentKey(Watchlist watchlist, String instrumentKey);
 
-    boolean existsByWatchListAndStock_StockSymbol(Watchlist watchlist, String stockSymbol);
+    boolean existsByWatchListAndStock_UpstoxInstrumentKey(Watchlist watchlist, String instrumentKey);
 }

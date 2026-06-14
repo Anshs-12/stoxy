@@ -1,15 +1,11 @@
 package com.stockChecker.live_stock_checker.service;
 
-import com.fasterxml.jackson.core.JsonProcessingException;
-import com.fasterxml.jackson.databind.JsonNode;
-import com.fasterxml.jackson.databind.ObjectMapper;
-import com.stockChecker.live_stock_checker.exceptions.StockNotFoundException;
 import com.stockChecker.live_stock_checker.model.Stock;
 import com.stockChecker.live_stock_checker.model.StockFinancials;
 import com.stockChecker.live_stock_checker.payload.StockPayload.CompanyResponseDTO;
 import com.stockChecker.live_stock_checker.payload.StockPayload.StockDetailResponseDTO;
 import com.stockChecker.live_stock_checker.payload.StockPayload.StockFinancialsDTO;
-import com.stockChecker.live_stock_checker.payload.StockPayload.StockPriceInfoDTO;
+import com.stockChecker.live_stock_checker.payload.StockPayload.StockSearchDTO;
 import com.stockChecker.live_stock_checker.repository.StockRepository;
 import jakarta.transaction.Transactional;
 import lombok.RequiredArgsConstructor;
@@ -17,9 +13,6 @@ import lombok.extern.slf4j.Slf4j;
 import org.modelmapper.ModelMapper;
 import org.springframework.cache.annotation.Cacheable;
 import org.springframework.stereotype.Service;
-import org.springframework.web.client.RestClient;
-
-import java.math.BigDecimal;
 
 @Service
 @Slf4j
@@ -27,118 +20,68 @@ import java.math.BigDecimal;
 public class StockCacheService {
 
     private final StockRepository stockRepository;
-
     private final ModelMapper modelMapper;
-
-    private final RestClient restClient;
-
-    private final ObjectMapper objectMapper;
-
     private final StockDBService stockDBService;
 
     // ----------------------------- Stock Live Caching -----------------------------
     @Cacheable(
             cacheNames = "stockLive",
-            key = "#stockSymbol.toUpperCase().trim().replace(' ', '_')",
-            condition = "#stockSymbol !=null",
+            key = "#stockRequest.instrumentKey",
+            condition = "#stockRequest.instrumentKey != null",
             unless = "#result == null"
     )
-    public StockDetailResponseDTO getStockLive(String stockSymbol) {
-        log.info("Fetching LIVE stock data for: {}", stockSymbol);
-        return fetchCompleteStockData(stockSymbol);
+    public StockDetailResponseDTO getStockLive(StockSearchDTO stockRequest) {
+        log.info("Fetching LIVE stock data for: {}", stockRequest.getStockName());
+        return fetchCompleteStockData(stockRequest);
     }
 
     // ----------------------------- Stock Weekday Caching -----------------------------
     @Cacheable(
             cacheNames = "stockWeekDayClosed",
-            key = "#stockSymbol.toUpperCase().trim().replace(' ', '_')",
-            condition = "#stockSymbol !=null",
+            key = "#stockRequest.instrumentKey",
+            condition = "#stockRequest.instrumentKey != null",
             unless = "#result == null"
     )
-    public StockDetailResponseDTO getStockWeekdayClosed(String stockSymbol) {
-        log.info("Fetching WEEKDAY CLOSED stock data for: {}", stockSymbol);
-        return fetchCompleteStockData(stockSymbol);
+    public StockDetailResponseDTO getStockWeekdayClosed(StockSearchDTO stockRequest) {
+        log.info("Fetching WEEKDAY CLOSED stock data for: {}", stockRequest.getStockName());
+        return fetchCompleteStockData(stockRequest);
     }
 
     // ----------------------------- Stock Weekend Caching -----------------------------
     @Cacheable(
             cacheNames = "stockWeekendClosed",
-            key = "#stockSymbol.toUpperCase().trim().replace(' ', '_')",
-            condition = "#stockSymbol !=null",
+            key = "#stockRequest.instrumentKey",
+            condition = "#stockRequest.instrumentKey != null",
             unless = "#result == null"
     )
-    public StockDetailResponseDTO getStockWeekendClosed(String stockSymbol) {
-        log.info("Fetching WEEKEND CLOSED stock data for: {}", stockSymbol);
-        return fetchCompleteStockData(stockSymbol);
+    public StockDetailResponseDTO getStockWeekendClosed(StockSearchDTO stockRequest) {
+        log.info("Fetching WEEKEND CLOSED stock data for: {}", stockRequest.getStockName());
+        return fetchCompleteStockData(stockRequest);
     }
 
     @Transactional
-    public StockDetailResponseDTO fetchCompleteStockData(String stockSymbol) {
-        log.info("Fetching from API and DB for stock: {}", stockSymbol);
-        String jsonResponseString = fetchStockDataFromAPI(stockSymbol);
-        JsonNode rootNode;
-        try {
-            rootNode = objectMapper.readTree(jsonResponseString);
-        } catch (JsonProcessingException e) {
-            throw new RuntimeException("Failed to parse stock data for: " + stockSymbol, e);
-        }
+    public StockDetailResponseDTO fetchCompleteStockData(StockSearchDTO stockRequest) {
+        log.info("Assembling complete stock data for: {} ({})", stockRequest.getStockSymbol(), stockRequest.getIsin());
 
-        if (rootNode.has("error") || rootNode.has("message")) {
-            throw new StockNotFoundException("Stock not found: " + stockSymbol);
-        }
+        //checking database first.
+        Stock stock = stockRepository.findByIsin(stockRequest.getIsin())
+                .orElseGet(() -> stockDBService.saveStockInDB(stockRequest));
 
-        JsonNode infoNode = rootNode.get("info");
-        JsonNode priceInfoNode = rootNode.get("priceInfo");
+        // creating a DTO of the stock.
+        StockDetailResponseDTO stockDTO = StockDetailResponseDTO.builder()
+                .stockName(stock.getStockName())
+                .stockSymbol(stock.getStockSymbol())
+                .exchange(stock.getExchange())
+                .isin(stock.getIsin())
+                .instrumentKey(stock.getUpstoxInstrumentKey())
+                .build();
 
-        // finding the stock through a database otherwise saving it then.
-        Stock stockFound = stockRepository.findByStockSymbol(stockSymbol.toUpperCase())
-                .orElseGet(() -> stockDBService.saveStockInDB(stockSymbol, rootNode, infoNode));
-        // Lazy Initialization - object creation delayed until first access
-
-        // creating a DTO of the stockFound.
-        StockDetailResponseDTO stockFoundDTO = modelMapper.map(stockFound, StockDetailResponseDTO.class);
-
-        // attaching the priceInfo to the stock.
-        stockFoundDTO.setStockPriceInfoDTO(mapStockPriceInfo(priceInfoNode));
         // attaching the companyInfo to the stock.
-        stockFoundDTO.setCompanyResponseDTO(mapCompanyDTO(stockFound));
+        stockDTO.setCompanyResponseDTO(mapCompanyDTO(stock));
         // attaching stockFinancials Info to the stock.
-        stockFoundDTO.setStockFinancialsDTO(mapStockFinancialsDTO(stockFound, priceInfoNode));
+        stockDTO.setStockFinancialsDTO(mapStockFinancialsDTO(stock));
         // Combined stored metadata with real-time price data and returning complete StockFoundDTO
-        return stockFoundDTO;
-    }
-
-    private String fetchStockDataFromAPI(String stockSymbol) {
-        return restClient.get()
-                .uri("/quote-equity?symbol={symbol}", stockSymbol.toUpperCase())
-                .retrieve()
-                .body(String.class);
-    }
-
-
-    // private method which is being used in implementation and not allowed outside
-    private StockPriceInfoDTO mapStockPriceInfo(JsonNode priceInfoNode) {
-        StockPriceInfoDTO stockPriceInfoDTO = new StockPriceInfoDTO();
-        stockPriceInfoDTO.setLastPrice(new BigDecimal(priceInfoNode.get("lastPrice").asText()));
-        stockPriceInfoDTO.setChange(new BigDecimal(priceInfoNode.get("change").asText()));
-        stockPriceInfoDTO.setPChange(new BigDecimal(priceInfoNode.get("pChange").asText()));
-        stockPriceInfoDTO.setPreviousClose(new BigDecimal(priceInfoNode.get("previousClose").asText()));
-        stockPriceInfoDTO.setOpen(new BigDecimal(priceInfoNode.get("open").asText()));
-        stockPriceInfoDTO.setClose(new BigDecimal(priceInfoNode.get("close").asText()));
-        // setting the high-low of the day
-        stockPriceInfoDTO.setDayHigh(new BigDecimal(priceInfoNode.get("intraDayHighLow").get("max").asText()));
-        stockPriceInfoDTO.setDayLow(new BigDecimal(priceInfoNode.get("intraDayHighLow").get("min").asText()));
-        // setting the high-low of the week
-        stockPriceInfoDTO.setWeekLow(new BigDecimal(priceInfoNode.get("weekHighLow").get("min").asText()));
-        stockPriceInfoDTO.setWeekLowDate(priceInfoNode.get("weekHighLow").get("minDate").asText());
-        stockPriceInfoDTO.setWeekHigh(new BigDecimal(priceInfoNode.get("weekHighLow").get("max").asText()));
-        stockPriceInfoDTO.setWeekHighDate(priceInfoNode.get("weekHighLow").get("maxDate").asText());
-        // setting the lowerCircuitPrice and upperCircuitPrice
-        stockPriceInfoDTO.setLowerCP(new BigDecimal(priceInfoNode.get("lowerCP").asText()));
-        stockPriceInfoDTO.setUpperCP(new BigDecimal(priceInfoNode.get("upperCP").asText()));
-        // setting the basePrice
-        stockPriceInfoDTO.setBasePrice(new BigDecimal(priceInfoNode.get("basePrice").asText()));
-        return stockPriceInfoDTO;
+        return stockDTO;
     }
 
     private CompanyResponseDTO mapCompanyDTO(Stock stock) {
@@ -146,21 +89,23 @@ public class StockCacheService {
         return modelMapper.map(stock.getCompany(), CompanyResponseDTO.class);
     }
 
-    private StockFinancialsDTO mapStockFinancialsDTO(Stock stock, JsonNode priceInfoNode) {
-        log.info("StockFinancials from stock: {}", stock.getStockFinancials());
+    private StockFinancialsDTO mapStockFinancialsDTO(Stock stock) {
+        log.debug("StockFinancials from stock: {}", stock.getStockFinancials());
         if (stock.getStockFinancials() == null) return null;
         StockFinancials financials = stock.getStockFinancials();
-        BigDecimal marketCap = new BigDecimal(priceInfoNode.get("lastPrice").asText())
-                .multiply(new BigDecimal(financials.getIssuedSize()));
+//        BigDecimal marketCap = new BigDecimal(priceInfoNode.get("lastPrice").asText())
+//                .multiply(new BigDecimal(financials.getIssuedSize()));
         return StockFinancialsDTO.builder()
                 .pe(financials.getPe())
                 .sectorPe(financials.getSectorPe())
-                .faceValue(financials.getFaceValue())
-                .issuedSize(financials.getIssuedSize())
-                .marketCap(marketCap)
+                .pb(financials.getPb())
+                .sectorPb(financials.getSectorPb())
+                .roa(financials.getRoa())
+                .sectorRoa(financials.getSectorRoa())
+                .roe(financials.getRoe())
+                .sectorRoe(financials.getSectorRoe())
                 .build();
     }
-
 }
 
 //====================================================================================

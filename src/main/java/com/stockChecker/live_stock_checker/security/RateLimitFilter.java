@@ -1,7 +1,7 @@
 package com.stockChecker.live_stock_checker.security;
 
 import com.fasterxml.jackson.databind.ObjectMapper;
-import com.stockChecker.live_stock_checker.payload.APIResponse;
+import com.stockChecker.live_stock_checker.payload.ApiErrorResponse;
 import com.stockChecker.live_stock_checker.payload.ErrorCode;
 import com.stockChecker.live_stock_checker.service.RateLimitService;
 import jakarta.servlet.FilterChain;
@@ -47,7 +47,7 @@ public class RateLimitFilter extends OncePerRequestFilter {
         response.setContentType(MediaType.APPLICATION_JSON_VALUE);
         response.setStatus(429);
 
-        APIResponse apiResponse = APIResponse.builder()
+        ApiErrorResponse apiErrorResponse = ApiErrorResponse.builder()
                 .success(false)
                 .message("Too Many Requests")
                 .error(ErrorCode.RATE_LIMIT_EXCEEDED)
@@ -55,7 +55,7 @@ public class RateLimitFilter extends OncePerRequestFilter {
                 .build();
 
         // objectMapper (from Jackson library) converts the Java object(POJO) → JSON
-        objectMapper.writeValue(response.getOutputStream(), apiResponse);
+        objectMapper.writeValue(response.getOutputStream(), apiErrorResponse);
     }
 }
 

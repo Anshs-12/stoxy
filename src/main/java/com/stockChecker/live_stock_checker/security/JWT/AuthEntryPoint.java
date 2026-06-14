@@ -1,7 +1,7 @@
 package com.stockChecker.live_stock_checker.security.JWT;
 
 import com.fasterxml.jackson.databind.ObjectMapper;
-import com.stockChecker.live_stock_checker.payload.APIResponse;
+import com.stockChecker.live_stock_checker.payload.ApiErrorResponse;
 import com.stockChecker.live_stock_checker.payload.ErrorCode;
 import jakarta.servlet.ServletException;
 import jakarta.servlet.http.HttpServletRequest;
@@ -34,7 +34,7 @@ public class AuthEntryPoint implements AuthenticationEntryPoint {
                                          AuthenticationException authException) throws IOException {
         response.setContentType(MediaType.APPLICATION_JSON_VALUE);
         response.setStatus(HttpServletResponse.SC_UNAUTHORIZED);
-        APIResponse apiResponse = APIResponse.builder()
+        ApiErrorResponse apiErrorResponse = ApiErrorResponse.builder()
                 .success(false)
                 .message("UnAuthorized Request")
                 .error(ErrorCode.UNAUTHORIZED)
@@ -42,6 +42,6 @@ public class AuthEntryPoint implements AuthenticationEntryPoint {
                 .build();
 
 
-        objectMapper.writeValue(response.getOutputStream(), apiResponse);
+        objectMapper.writeValue(response.getOutputStream(), apiErrorResponse);
     }
 }

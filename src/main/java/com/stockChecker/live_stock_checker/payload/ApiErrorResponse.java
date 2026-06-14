@@ -13,7 +13,7 @@ import java.time.LocalDateTime;
 @NoArgsConstructor
 @Builder
 @JsonInclude(JsonInclude.Include.NON_NULL) // this tells Jackson to skip null fields entirely when serializing.
-public class APIResponse {
+public class ApiErrorResponse {
     Boolean success;
     ErrorCode error;
     String message;

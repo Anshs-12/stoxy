@@ -30,23 +30,20 @@ import java.util.List;
 
 public class WatchlistStockServiceImpl implements WatchlistService {
 
+    // Repositories
+    private final StockRepository stockRepository;
     private final WatchlistRepository watchlistRepository;
-
     private final WatchlistStockRepository watchlistStockRepository;
 
     private final AuthUtils authUtils;
 
+    // Mappers
     private final WatchlistSummaryMapper watchlistSummaryMapper;
-
-    private final StockRepository stockRepository;
-
-    private final StockService stockService;
-
     private final WatchlistStockMapper watchlistStockMapper;
-
     private final WatchlistResponseMapper watchlistResponseMapper;
 
     // creating a new Watchlist
+    @Override
     public WatchlistResponseDTO createWatchlist(String userEmail, CreateWatchRequestDTO createWatchRequestDTO) {
         String watchlistName = createWatchRequestDTO.getWatchlistName();
         User loggedInUser = authUtils.getloggedInUser(userEmail);
@@ -66,25 +63,7 @@ public class WatchlistStockServiceImpl implements WatchlistService {
         watchlistRepository.save(newWatchlist);
         log.info("Watchlist created - user: {}, name: {}", userEmail, watchlistName);
 
-
-        List<WatchlistStockResponseDTO> watchlistStockResponseDTOList =
-                newWatchlist.getWatchlistStockList()
-                        .stream()
-                        .map((eachObject) -> {
-                            WatchlistStockResponseDTO watchlistStockResponseDTO = new WatchlistStockResponseDTO();
-                            watchlistStockResponseDTO.setStockName(eachObject.getStock().getStockName());
-                            watchlistStockResponseDTO.setStockSymbol(eachObject.getStock().getStockSymbol());
-                            watchlistStockResponseDTO.setPriceAddedAt(eachObject.getPriceAddedAt());
-                            watchlistStockResponseDTO.setAddedAt(eachObject.getAddedAt());
-                            return watchlistStockResponseDTO;
-                        })
-                        .toList();
-
-        WatchlistResponseDTO watchlistResponseDTO = new WatchlistResponseDTO();
-        watchlistResponseDTO.setWatchlistName(newWatchlist.getName());
-        watchlistResponseDTO.setCreatedAt(newWatchlist.getCreatedAt());
-        watchlistResponseDTO.setWatchlistStocks(new ArrayList<>());
-        return watchlistResponseDTO;
+        return watchlistResponseMapper.toResponseDTO(newWatchlist);
     }
 
     // getting all Watchlists of the loggedInUser!
@@ -92,24 +71,19 @@ public class WatchlistStockServiceImpl implements WatchlistService {
     public List<WatchlistSummaryDTO> getAllWatchlists(String userEmail) {
         User loggedInUser = authUtils.getloggedInUser(userEmail);
         List<Watchlist> watchlistList = watchlistRepository.findByUser(loggedInUser);
-
-//        // adding a safety net if the watchlists are empty!
-//        if (watchlistList.isEmpty())
-//            throw new ResourceNotFoundException("No Watchlists created till now!");
-
         return watchlistSummaryMapper.toSummaryDTOList(watchlistList);
-
     }
 
     @Override
     @Transactional
     public WatchlistStockResponseDTO addStockToWatchlist(String userEmail, Long watchlistId, WatchlistStockRequestDTO watchlistStockRequestDTO) {
 
-        Stock stock = stockRepository.findByStockSymbol(watchlistStockRequestDTO.getStockSymbol())
-                .orElseThrow(() -> new StockNotFoundException("Stock not found: " + watchlistStockRequestDTO.getStockSymbol()));
+        Stock stock = stockRepository.findByUpstoxInstrumentKey(watchlistStockRequestDTO.getInstrumentKey())
+                .orElseThrow(() -> new StockNotFoundException("Stock not found: " + watchlistStockRequestDTO.getInstrumentKey()));
 
         Watchlist watchlist = watchlistRepository.findByIdAndUser_UserMailId(watchlistId, userEmail)
-                .orElseThrow(() -> new ResourceNotFoundException("Watchlist not found"));
+                .orElseThrow(() ->
+                        new ResourceNotFoundException(String.format("Watchlist with id %d not found for user %s", watchlistId, userEmail)));
 
         if (watchlistStockRepository.existsByWatchListAndStock(watchlist, stock)) {
             log.warn("Duplicate stock in watchlist - watchlistId: {}, symbol: {}", watchlistId, watchlistStockRequestDTO.getStockSymbol());
@@ -119,7 +93,7 @@ public class WatchlistStockServiceImpl implements WatchlistService {
         WatchlistStock newWatchlistStock = WatchlistStock.builder()
                 .watchList(watchlist)
                 .stock(stock)
-                .priceAddedAt(stockService.getStockBySymbol(watchlistStockRequestDTO.getStockSymbol()).getStockPriceInfoDTO().getLastPrice())
+                .priceAddedAt(watchlistStockRequestDTO.getPriceAddedAt())
                 .addedAt(LocalDateTime.now())
                 .build();
         watchlistStockRepository.save(newWatchlistStock);
@@ -129,17 +103,18 @@ public class WatchlistStockServiceImpl implements WatchlistService {
 
     @Override
     @Transactional
-    public void deleteStockFromWatchlist(String userEmail, Long watchlistId, WatchlistStockRequestDTO watchlistStockRequestDTO) {
+    public void deleteStockFromWatchlist(String userEmail, Long watchlistId, String instrumentKey) {
 
         Watchlist watchlist = watchlistRepository.findByIdAndUser_UserMailId(watchlistId, userEmail)
-                .orElseThrow(() -> new ResourceNotFoundException("Watchlist not found"));
+                .orElseThrow(() ->
+                        new ResourceNotFoundException(String.format("Watchlist with id %d not found for user %s", watchlistId, userEmail)));
 
-        if (!watchlistStockRepository.existsByWatchListAndStock_StockSymbol(watchlist, watchlistStockRequestDTO.getStockSymbol())) {
-            log.warn("Stock not found in watchlist - watchlistId: {}, symbol: {}", watchlistId, watchlistStockRequestDTO.getStockSymbol());
+        if (!watchlistStockRepository.existsByWatchListAndStock_UpstoxInstrumentKey(watchlist, instrumentKey)) {
+            log.warn("Stock not found in watchlist - watchlistId: {}, instrumentKey: {}", watchlistId, instrumentKey);
             throw new ResourceNotFoundException("Stock not found in this watchlist");
         }
-        watchlistStockRepository.deleteByWatchListAndStock_StockSymbol(watchlist, watchlistStockRequestDTO.getStockSymbol());
-        log.info("Stock removed from watchlist - watchlistId: {}, symbol: {}", watchlistId, watchlistStockRequestDTO.getStockSymbol());
+        watchlistStockRepository.deleteByWatchListAndStock_UpstoxInstrumentKey(watchlist, instrumentKey);
+        log.info("Stock removed from watchlist - watchlistId: {}, instrumentKey: {}", watchlistId, instrumentKey);
     }
 
     @Override

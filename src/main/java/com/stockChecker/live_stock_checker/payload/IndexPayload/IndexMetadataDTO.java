@@ -12,7 +12,7 @@ import lombok.NoArgsConstructor;
 
 public class IndexMetadataDTO {
 
-    private String indexIdentifier;
+
     private Integer indexPriority;
     private Integer numberOfConstituents;
     private String launchDate;

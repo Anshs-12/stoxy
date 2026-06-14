@@ -25,6 +25,7 @@ public class PortfolioTransaction {
     private Portfolio portfolio;
 
     private String stockSymbol;
+    private String instrumentKey;
     private Integer quantity;
     private BigDecimal price;
 

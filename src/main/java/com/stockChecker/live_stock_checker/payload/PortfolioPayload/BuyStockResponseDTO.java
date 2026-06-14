@@ -16,8 +16,8 @@ import java.time.LocalDateTime;
 public class BuyStockResponseDTO {
 
     private String stockSymbol;
-    private BigDecimal price;
-    private Integer quantity;
+    private String instrumentKey;
+    private BigDecimal buyPrice;
+    private Integer quantityBought;
     private LocalDateTime boughtAt;
-
 }

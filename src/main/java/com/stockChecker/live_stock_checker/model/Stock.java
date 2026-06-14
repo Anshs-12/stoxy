@@ -27,9 +27,11 @@ public class Stock {
     @Column(unique = true, nullable = false)
     private String stockSymbol;
     @Column(unique = true, nullable = false)
-    private String stockName;
-    private String listedExchangeName;
-    private String stockWebsite;
+    private String stockName; // using short_name from the api
+    private String exchange;
+    private String segment;
+    private String isin;
+    private String upstoxInstrumentKey;
 
     @OneToOne
     @ToString.Exclude

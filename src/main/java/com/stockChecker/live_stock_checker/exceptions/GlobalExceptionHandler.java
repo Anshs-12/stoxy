@@ -1,6 +1,6 @@
 package com.stockChecker.live_stock_checker.exceptions;
 
-import com.stockChecker.live_stock_checker.payload.APIResponse;
+import com.stockChecker.live_stock_checker.payload.ApiErrorResponse;
 import com.stockChecker.live_stock_checker.payload.ErrorCode;
 import jakarta.servlet.http.HttpServletRequest;
 import lombok.extern.slf4j.Slf4j;
@@ -19,9 +19,9 @@ import java.time.ZonedDateTime;
 public class GlobalExceptionHandler {
 
     @ExceptionHandler(StockNotFoundException.class)
-    public ResponseEntity<APIResponse> handleStockNotFoundException(StockNotFoundException ex, HttpServletRequest request) {
+    public ResponseEntity<ApiErrorResponse> handleStockNotFoundException(StockNotFoundException ex, HttpServletRequest request) {
         log.warn("Stock not found at {} : {}", request.getRequestURI(), ex.getMessage());
-        APIResponse response = APIResponse.builder()
+        ApiErrorResponse response = ApiErrorResponse.builder()
                 .success(false)
                 .error(ErrorCode.STOCK_NOT_FOUND)
                 .message(ex.getMessage())
@@ -32,9 +32,9 @@ public class GlobalExceptionHandler {
     }
 
     @ExceptionHandler(IndexNotFoundException.class)
-    public ResponseEntity<APIResponse> handleIndexNotFoundException(IndexNotFoundException ex, HttpServletRequest request) {
+    public ResponseEntity<ApiErrorResponse> handleIndexNotFoundException(IndexNotFoundException ex, HttpServletRequest request) {
         log.warn("Index not found at {} : {}", request.getRequestURI(), ex.getMessage());
-        APIResponse response = APIResponse.builder()
+        ApiErrorResponse response = ApiErrorResponse.builder()
                 .success(false)
                 .error(ErrorCode.INDEX_NOT_FOUND)
                 .message(ex.getMessage())
@@ -45,9 +45,9 @@ public class GlobalExceptionHandler {
     }
 
     @ExceptionHandler(ResourceNotFoundException.class)
-    public ResponseEntity<APIResponse> resourceNotFoundExceptionHandler(ResourceNotFoundException ex, HttpServletRequest request) {
+    public ResponseEntity<ApiErrorResponse> resourceNotFoundExceptionHandler(ResourceNotFoundException ex, HttpServletRequest request) {
         log.warn("Resource not found at {} : {}", request.getRequestURI(), ex.getMessage());
-        APIResponse response = APIResponse.builder()
+        ApiErrorResponse response = ApiErrorResponse.builder()
                 .success(false)
                 .error(ErrorCode.RESOURCE_NOT_FOUND)
                 .message(ex.getMessage())
@@ -58,9 +58,9 @@ public class GlobalExceptionHandler {
     }
 
     @ExceptionHandler(Exception.class)
-    public ResponseEntity<APIResponse> internalServerErrorExceptionHandler(Exception ex, HttpServletRequest request) {
+    public ResponseEntity<ApiErrorResponse> internalServerErrorExceptionHandler(Exception ex, HttpServletRequest request) {
         log.error("Unexpected error at {} : {}", request.getRequestURI(), ex.getMessage(), ex);
-        APIResponse response = APIResponse.builder()
+        ApiErrorResponse response = ApiErrorResponse.builder()
                 .success(false)
                 .error(ErrorCode.INTERNAL_SERVER_ERROR)
                 .message(ex.getMessage())
@@ -71,9 +71,9 @@ public class GlobalExceptionHandler {
     }
 
     @ExceptionHandler(ResourceExistsException.class)
-    public ResponseEntity<APIResponse> resourceExistsExceptionHandler(ResourceExistsException ex, HttpServletRequest request) {
+    public ResponseEntity<ApiErrorResponse> resourceExistsExceptionHandler(ResourceExistsException ex, HttpServletRequest request) {
         log.warn("Resource found at {} : {}", request.getRequestURI(), ex.getMessage());
-        APIResponse response = APIResponse.builder()
+        ApiErrorResponse response = ApiErrorResponse.builder()
                 .success(false)
                 .error(ErrorCode.RESOURCE_ALREADY_EXISTS)
                 .message(ex.getMessage())
@@ -84,8 +84,8 @@ public class GlobalExceptionHandler {
     }
 
     @ExceptionHandler(InsufficientQuantityException.class)
-    public ResponseEntity<APIResponse> insufficientQuantityExceptionHandler(InsufficientQuantityException ex, HttpServletRequest request) {
-        APIResponse response = APIResponse.builder()
+    public ResponseEntity<ApiErrorResponse> insufficientQuantityExceptionHandler(InsufficientQuantityException ex, HttpServletRequest request) {
+        ApiErrorResponse response = ApiErrorResponse.builder()
                 .success(false)
                 .error(ErrorCode.INSUFFICIENT_QUANTITY)
                 .message(ex.getMessage())
@@ -96,10 +96,10 @@ public class GlobalExceptionHandler {
     }
 
     @ExceptionHandler(MethodArgumentNotValidException.class)
-    public ResponseEntity<APIResponse> methodArgumentNotValidExceptionHandler(MethodArgumentNotValidException ex, HttpServletRequest request) {
+    public ResponseEntity<ApiErrorResponse> methodArgumentNotValidExceptionHandler(MethodArgumentNotValidException ex, HttpServletRequest request) {
         FieldError fieldError = ex.getBindingResult().getFieldErrors().getFirst();
 
-        APIResponse response = APIResponse.builder()
+        ApiErrorResponse response = ApiErrorResponse.builder()
                 .success(false)
                 .error(ErrorCode.INVALID_REQUEST)
                 .message(fieldError.getField() + " " + fieldError.getDefaultMessage())
@@ -107,5 +107,20 @@ public class GlobalExceptionHandler {
                 .path(request.getRequestURI())
                 .build();
         return new ResponseEntity<>(response, HttpStatus.BAD_REQUEST);
+    }
+
+    @ExceptionHandler(UpstoxFeedException.class)
+    public ResponseEntity<ApiErrorResponse> upstoxFeedExceptionHandler(UpstoxFeedException ex, HttpServletRequest request) {
+        log.error("Upstox Feed Connection failed at {} : {}", request.getRequestURI(), ex.getMessage(), ex);
+
+        ApiErrorResponse response = ApiErrorResponse.builder()
+                .success(false)
+                .error(ErrorCode.UPSTOX_FEED_ERROR)
+                .message(ex.getMessage())
+                .time(ZonedDateTime.now(ZoneId.of("Asia/Kolkata")).toLocalDateTime())
+                .path(request.getRequestURI())
+                .build();
+
+        return new ResponseEntity<>(response, HttpStatus.SERVICE_UNAVAILABLE);  // 503 is suitable for feed connection issues
     }
 }
