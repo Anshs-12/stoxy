@@ -15,6 +15,7 @@ import com.stockChecker.live_stock_checker.repository.PortfolioTransactionReposi
 import com.stockChecker.live_stock_checker.repository.StockRepository;
 import jakarta.transaction.Transactional;
 import lombok.RequiredArgsConstructor;
+import lombok.extern.slf4j.Slf4j;
 import org.springframework.stereotype.Service;
 
 import java.math.BigDecimal;
@@ -24,6 +25,7 @@ import java.util.*;
 
 @Service
 @RequiredArgsConstructor
+@Slf4j
 public class PortfolioServiceImpl implements PortfolioService {
 
     // Repositories
@@ -43,10 +45,12 @@ public class PortfolioServiceImpl implements PortfolioService {
     @Override
     @Transactional
     public PortfolioResponseDTO getPortfolio(String userEmail) {
+        log.info("Fetching portfolio - user: {}", userEmail);
         User user = authUtils.getloggedInUser(userEmail);
 
         Optional<Portfolio> portfolioExists = portfolioRepository.findByUser(user);
         if (portfolioExists.isEmpty()) {
+            log.info("No portfolio found, returning demo data - user: {}", userEmail);
             return demoPortfolio();
         }
         Portfolio portfolio = portfolioExists.get();
@@ -84,7 +88,8 @@ public class PortfolioServiceImpl implements PortfolioService {
                         investedAmount.divide(finalTotalInvestedValue, 4, RoundingMode.HALF_UP)
                                 .multiply(BigDecimal.valueOf(100))
         );
-
+        log.info("Portfolio fetched - user: {}, totalInvestedValue: {}, stocksCount: {}, sectorBreakdown: {}"
+                , userEmail, totalInvestedValue, portfolioStocksList.size(), sectorBreakdown);
         return PortfolioResponseDTO.builder()
                 .portfolioId(portfolio.getId())
                 .lastUpdatedAt(LocalDateTime.now())
@@ -104,6 +109,7 @@ public class PortfolioServiceImpl implements PortfolioService {
     }
 
     private PortfolioStockResponseDTO getPortfolioStockResponse(PortfolioStock portfolioStock) {
+        log.info("Generating portfolio stock response - portfolioId: {}, stockSymbol: {}", portfolioStock.getPortfolio().getId(), portfolioStock.getStock().getStockSymbol());
         return PortfolioStockResponseDTO.builder()
                 .stockName(portfolioStock.getStock().getStockName())
                 .stockSymbol(portfolioStock.getStock().getStockSymbol())
@@ -135,6 +141,9 @@ public class PortfolioServiceImpl implements PortfolioService {
                 .orElseThrow(() ->
                         new StockNotFoundException("Stock does not exist with symbol: " + buyStockRequestDTO.getStockSymbol()));
 
+        log.info("Buying stock - user: {}, instrumentKey: {}, quantity: {}, expectedPrice: {}"
+                , userEmail, buyStockRequestDTO.getInstrumentKey(),
+                buyStockRequestDTO.getQuantity(), buyStockRequestDTO.getBuyPrice());
         return executeBuyStock(buyStockRequestDTO, stock, portfolio);
     }
 
@@ -190,7 +199,8 @@ public class PortfolioServiceImpl implements PortfolioService {
                 .build();
 
         portfolioTransactionRepository.save(portfolioTransaction);
-
+        log.info("Stock bought - portfolioId: {}, instrumentKey: {}, quantity: {}, price: {}"
+                , portfolio.getId(), instrumentKey, buyStockRequestDTO.getQuantity(), liveStockPrice);
         return BuyStockResponseDTO.builder()
                 .stockSymbol(requestedStockSymbol)
                 .instrumentKey(buyStockRequestDTO.getInstrumentKey())
@@ -218,6 +228,8 @@ public class PortfolioServiceImpl implements PortfolioService {
 
         // checking if the requestedQuantity is less than the portfolio quantity present!
         if (sellStockRequestDTO.getQuantity() > portfolioStock.getTotalQuantity()) {
+            log.warn("Sell rejected - insufficient quantity - instrumentKey: {}, requested: {}, available: {}"
+                    , sellStockRequestDTO.getInstrumentKey(), sellStockRequestDTO.getQuantity(), portfolioStock.getTotalQuantity());
             throw new InsufficientQuantityException(
                     String.format(
                             "Requested sell quantity (%d) exceeds available quantity (%d).",
@@ -226,7 +238,9 @@ public class PortfolioServiceImpl implements PortfolioService {
                     )
             );
         }
-
+        log.info("Selling stock - user: {}, instrumentKey: {}, quantity: {}, expectedPrice: {}"
+                , userEmail, sellStockRequestDTO.getInstrumentKey(),
+                sellStockRequestDTO.getQuantity(), sellStockRequestDTO.getSellingPrice());
         return executeSellStock(sellStockRequestDTO, portfolioStock, portfolio);
     }
 
@@ -268,6 +282,8 @@ public class PortfolioServiceImpl implements PortfolioService {
 
         portfolioTransactionRepository.save(portfolioTransaction);
 
+        log.info("Stock sold - portfolioId: {}, instrumentKey: {}, quantity: {}, price: {}, realizedPnL: {}"
+                , portfolio.getId(), instrumentKey, sellStockRequestDTO.getQuantity(), liveStockPrice, realizedPnL);
         return SellStockResponseDTO.builder()
                 .stockSymbol(requestStockSymbol)
                 .instrumentKey(instrumentKey)
@@ -289,6 +305,7 @@ public class PortfolioServiceImpl implements PortfolioService {
                 .get(instrumentKey);
 
         if (liveData == null || liveData.getLastTradedPrice() == null) {
+            log.warn("Live price unavailable - instrumentKey: {}. Order rejected.", instrumentKey);
             throw new UpstoxFeedException("Live price unavailable for: " + instrumentKey + ". Order rejected.");
         }
 
@@ -298,6 +315,8 @@ public class PortfolioServiceImpl implements PortfolioService {
                 .multiply(BigDecimal.valueOf(100));
 
         if (percentDiff.compareTo(BigDecimal.valueOf(1.0)) > 0) {
+            log.warn("Order rejected - price slippage exceeded - instrumentKey: {}, expected: {}, actual: {}, diff%: {}"
+                    , instrumentKey, expectedPrice, actualPrice, percentDiff);
             throw new UpstoxFeedException("Order rejected due to price slippage. Expected: "
                     + expectedPrice + ", Actual: " + actualPrice + ". Please retry.");
         }
@@ -318,9 +337,12 @@ public class PortfolioServiceImpl implements PortfolioService {
 
         List<PortfolioTransaction> transactionsList =
                 portfolioTransactionRepository.findByPortfolioAndStockSymbol(portfolio, stockSymbol);
-        if (transactionsList.isEmpty())
+        if (transactionsList.isEmpty()) {
+            log.warn("No transactions found - user: {}, symbol: {}", userEmail, stockSymbol);
             throw new ResourceNotFoundException("Never bought/sold this stock!");
-
+        }
+        log.info("Transactions fetched - user: {}, symbol: {}, transactionsCount: {}"
+                , userEmail, stockSymbol, transactionsList.size());
         return transactionMapper.toResponseDTOList(transactionsList);
     }
 
@@ -335,9 +357,11 @@ public class PortfolioServiceImpl implements PortfolioService {
         List<PortfolioTransaction> transactionHistoryList =
                 portfolioTransactionRepository.findByPortfolioOrderByTransactionAtDesc(portfolio);
         if (transactionHistoryList.isEmpty()) {
+            log.warn("No transaction history - user: {}", userEmail);
             throw new ResourceNotFoundException("Please buy/sell stocks to generate a transaction history!");
         }
-
+        log.info("Transaction history fetched - user: {}, transactionsCount: {}"
+                , userEmail, transactionHistoryList.size());
         return transactionMapper.toResponseDTOList(transactionHistoryList);
     }
 
@@ -346,6 +370,8 @@ public class PortfolioServiceImpl implements PortfolioService {
     public byte[] getTransactionHistoryPDF(String userEmail) {
         List<TransactionResponseDTO> transactionsList = getTransactionHistory(userEmail);
         byte[] transactionsPDF = pdfService.generateTransactionsPDF(transactionsList);
+        log.info("Transaction history PDF generated - user: {}, transactionsCount: {}, pdfSizeBytes: {}"
+                , userEmail, transactionsList.size(), transactionsPDF.length);
         return transactionsPDF;
     }
 }
