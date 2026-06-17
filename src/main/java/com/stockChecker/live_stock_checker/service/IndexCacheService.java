@@ -58,16 +58,17 @@ public class IndexCacheService {
     }
 
 
-    private IndexDetailResponseDTO fetchCompleteIndexData(String indexSymbol) {
-        log.info("Fetching from DB and API for index: {}", indexSymbol);
-        MarketIndex indexFetched = indexRepository.findByIndexSymbol(indexSymbol)
+    private IndexDetailResponseDTO fetchCompleteIndexData(String instrumentKey) {
+        log.info("Fetching from DB and API for index: {}", instrumentKey);
+        MarketIndex indexFetched = indexRepository.findByUpstoxInstrumentKey(instrumentKey)
                 .orElseThrow(() -> new ResourceNotFoundException("Index not found!"));
 
         IndexMetadataDTO indexMetadataDTO = indexMetadataMapper.toIndexMetadataDTO(indexFetched);
 
         return IndexDetailResponseDTO.builder()
                 .indexName(indexFetched.getIndexName())
-                .indexSymbol(indexSymbol)
+                .indexSymbol(indexFetched.getIndexSymbol())
+                .instrumentKey(indexFetched.getUpstoxInstrumentKey())
                 .indexMetadataDTO(indexMetadataDTO)
                 .indexAdvanceDTO(null)
                 .indexPriceInfoDTO(null)

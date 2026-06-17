@@ -8,7 +8,7 @@ import java.util.List;
 
 public interface IndexService {
 
-    IndexDetailResponseDTO getIndexBySymbol(String indexSymbol);
+    IndexDetailResponseDTO getIndexByInstrumentKey(String instrumentKey);
 
     IndexSearchResponseDTO searchIndices(String query);
 

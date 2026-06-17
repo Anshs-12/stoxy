@@ -35,12 +35,12 @@ public class IndexServiceImpl implements IndexService {
         - When a method in this class calls another method in the SAME class (internal call),
           Spring's AOP proxy is bypassed
         - @Cacheable annotations don't work on internal method calls
-        - Example: getIndexBySymbol() calls getIndexLive() directly → cache ignored
+        - Example: getIndexBySymbol() calls getIndexLive() directly ? cache ignored
 
         Solution:
         - Inject the service into itself as 'self'
         - Call methods through 'self' instead of 'this'
-        - self.getIndexLive() goes through Spring proxy → cache works
+        - self.getIndexLive() goes through Spring proxy ? cache works
 
         Trade-offs:
         - Creates circular dependency (requires spring.main.allow-circular-references=true)
@@ -71,16 +71,16 @@ public class IndexServiceImpl implements IndexService {
 //    }
 
     @Override
-    public IndexDetailResponseDTO getIndexBySymbol(String indexSymbol) {
+    public IndexDetailResponseDTO getIndexByInstrumentKey(String instrumentKey) {
         MarketStatusResponse response = marketStatusService.isMarketOpen();
-        log.info("Fetching index - symbol: {}, marketOpen: {}", indexSymbol, response.getIsOpen());
+        log.info("Fetching index - symbol: {}, marketOpen: {}", instrumentKey, response.getIsOpen());
         if (response.getIsOpen()) {
-            return indexCacheService.getIndexLive(indexSymbol);
+            return indexCacheService.getIndexLive(instrumentKey);
         }
         if (response.getNextOpeningDay().equals("MONDAY")) {
-            return indexCacheService.getIndicesWeekendClosed(indexSymbol);
+            return indexCacheService.getIndicesWeekendClosed(instrumentKey);
         }
-        return indexCacheService.getIndicesWeekdayClosed(indexSymbol);
+        return indexCacheService.getIndicesWeekdayClosed(instrumentKey);
     }
 
     @Override
