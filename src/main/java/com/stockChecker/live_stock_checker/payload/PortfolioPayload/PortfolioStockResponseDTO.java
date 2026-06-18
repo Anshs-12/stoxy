@@ -20,4 +20,11 @@ public class PortfolioStockResponseDTO {
     private Integer totalQuantity;
     private BigDecimal investedAmount;
     private String instrumentKey;
+
+    private BigDecimal currentValue;
+    private BigDecimal ltp;
+    private BigDecimal unrealizedPnL;
+    private BigDecimal unrealizedPnLPercent;
+    private BigDecimal dayPnL;
+    private BigDecimal dayPnLPercent;
 }
