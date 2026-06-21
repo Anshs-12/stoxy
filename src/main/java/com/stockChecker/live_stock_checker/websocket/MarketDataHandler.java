@@ -124,6 +124,10 @@ public class MarketDataHandler implements WebSocket.Listener {
     }
 
     private FullFeedDataDTO generateFullFeedDTO(String instrumentKey, MarketDataFeedV3.Feed stockData) {
+        FullFeedDataDTO existing = (FullFeedDataDTO) redisTemplate.opsForValue().get("FULL:" + instrumentKey);
+        double upperCircuit = existing != null ? existing.getUpperCircuit() : 0.0;
+        double lowerCircuit = existing != null ? existing.getLowerCircuit() : 0.0;
+
         return FullFeedDataDTO.builder()
                 .instrumentKey(instrumentKey)
                 .lastTradedPrice(BigDecimal.valueOf(stockData.getFullFeed().getMarketFF().getLtpc().getLtp()))
@@ -136,6 +140,8 @@ public class MarketDataHandler implements WebSocket.Listener {
                 .impliedVolatility(BigDecimal.valueOf(stockData.getFullFeed().getMarketFF().getIv()))
                 .totalBuyQuantity((long) stockData.getFullFeed().getMarketFF().getTbq())
                 .totalSellQuantity((long) stockData.getFullFeed().getMarketFF().getTsq())
+                .upperCircuit(upperCircuit)
+                .lowerCircuit(lowerCircuit)
                 .build();
     }
 

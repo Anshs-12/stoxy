@@ -18,7 +18,7 @@ public interface IndexRepository extends JpaRepository<MarketIndex, Long> {
             "LOWER(m.exchange) LIKE LOWER(CONCAT('%', :query, '%'))")
     List<MarketIndex> searchIndices(@Param("query") String query);
 
-    Optional<MarketIndex> findByIndexSymbol(String indexSymbol);
+    Optional<MarketIndex> findByUpstoxInstrumentKey(String instrumentKey);
 
     List<MarketIndex> findTop15ByOrderByIndexPriorityAsc();
 }

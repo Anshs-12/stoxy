@@ -50,4 +50,10 @@ public class FullFeedDataDTO {
 
     @JsonProperty("tsq")
     private long totalSellQuantity;
+
+    @JsonProperty("upper_circuit")
+    private double upperCircuit;
+
+    @JsonProperty("lower_circuit")
+    private double lowerCircuit;
 }

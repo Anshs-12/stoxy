@@ -15,10 +15,8 @@ public class IndexDetailResponseDTO {
     // Live data from NSE API
     private String indexName;
     private String indexSymbol;
+    private String instrumentKey;
     private IndexMetadataDTO indexMetadataDTO;
     private IndexAdvanceDTO indexAdvanceDTO;
     private IndexPriceInfoDTO indexPriceInfoDTO;
-
-    // Metadata from your database
-
 }

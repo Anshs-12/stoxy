@@ -59,19 +59,40 @@ public class PortfolioServiceImpl implements PortfolioService {
 
         List<PortfolioStock> portfolioStocksList = portfolioStockRepository
                 .findByPortfolio(portfolio);
+
+        List<String> instrumentKeys = portfolioStocksList.stream()
+                .map(stock -> stock.getStock().getUpstoxInstrumentKey())
+                .toList();
+
+        Map<String, LtpcDataDTO> liveDataList = tickerService.getLiveLtpcData(instrumentKeys);
+
         List<PortfolioStockResponseDTO> portfolioStockResponseDTOList = new ArrayList<>();
 
         Map<String, BigDecimal> sectorBreakdown = new HashMap<>();
 
+        BigDecimal totalCurrentValue = BigDecimal.ZERO;
+        BigDecimal totalUnrealizedPnL = BigDecimal.ZERO;
+        BigDecimal totalDayPnL = BigDecimal.ZERO;
+
         for (PortfolioStock eachStock : portfolioStocksList) {
+            String instrumentKey = eachStock.getStock().getUpstoxInstrumentKey();
+            LtpcDataDTO liveData = liveDataList.get(instrumentKey);
+            if (liveData == null) {
+                log.warn("Live data not found for instrumentKey: {}. Skipping this stock in portfolio calculation.", instrumentKey);
+                continue;
+            }
+            PortfolioStockResponseDTO eachPortfolioStockResponseDTO = getPortfolioStockResponse(eachStock, liveData);
 
-            PortfolioStockResponseDTO eachPortfolioStockResponseDTO = getPortfolioStockResponse(eachStock);
 
+            // --- global variables for the portfolio ---
             totalInvestedValue = totalInvestedValue.add(eachPortfolioStockResponseDTO.getInvestedAmount());
+            totalCurrentValue = totalCurrentValue.add(eachPortfolioStockResponseDTO.getCurrentValue());
+            totalUnrealizedPnL = totalUnrealizedPnL.add(eachPortfolioStockResponseDTO.getUnrealizedPnL());
+            totalDayPnL = totalDayPnL.add(eachPortfolioStockResponseDTO.getDayPnL());
 
-            String eachStockSector = eachStock.getStock().getCompany().getSector();
 
             // calculating the sector breakdown data for the portfolio level data.
+            String eachStockSector = eachStock.getStock().getCompany().getSector();
             BigDecimal eachStockInvestedAmount = eachPortfolioStockResponseDTO.getInvestedAmount();
             sectorBreakdown.put(eachStockSector,
                     sectorBreakdown.getOrDefault(eachStockSector, BigDecimal.ZERO)
@@ -88,12 +109,21 @@ public class PortfolioServiceImpl implements PortfolioService {
                         investedAmount.divide(finalTotalInvestedValue, 4, RoundingMode.HALF_UP)
                                 .multiply(BigDecimal.valueOf(100))
         );
+
+        BigDecimal totalUnrealizedPnLPercent = calculatePercentage(totalUnrealizedPnL, totalInvestedValue);
+        BigDecimal totalDayPnLPercent = calculatePercentage(totalDayPnL, totalInvestedValue);
+
         log.info("Portfolio fetched - user: {}, totalInvestedValue: {}, stocksCount: {}, sectorBreakdown: {}"
                 , userEmail, totalInvestedValue, portfolioStocksList.size(), sectorBreakdown);
         return PortfolioResponseDTO.builder()
                 .portfolioId(portfolio.getId())
                 .lastUpdatedAt(LocalDateTime.now())
                 .totalInvestedValue(totalInvestedValue)
+                .totalCurrentValue(totalCurrentValue)
+                .totalUnrealizedPnL(totalUnrealizedPnL)
+                .totalUnrealizedPnLPercent(totalUnrealizedPnLPercent)
+                .totalDayPnL(totalDayPnL)
+                .totalDayPnLPercent(totalDayPnLPercent)
                 .stocks(portfolioStockResponseDTOList)
                 .sectorBreakdown(sectorBreakdown)
                 .build();
@@ -108,19 +138,46 @@ public class PortfolioServiceImpl implements PortfolioService {
                 .build();
     }
 
-    private PortfolioStockResponseDTO getPortfolioStockResponse(PortfolioStock portfolioStock) {
-        log.info("Generating portfolio stock response - portfolioId: {}, stockSymbol: {}", portfolioStock.getPortfolio().getId(), portfolioStock.getStock().getStockSymbol());
+    private PortfolioStockResponseDTO getPortfolioStockResponse(PortfolioStock portfolioStock, LtpcDataDTO liveData) {
+
+        BigDecimal avgBuyingPrice = portfolioStock.getAvgBuyPrice();
+        BigDecimal totalQuantity = BigDecimal.valueOf(portfolioStock.getTotalQuantity());
+        BigDecimal investedAmount = avgBuyingPrice.multiply(totalQuantity);
+
+        // Mapping from your new LtpcDataDTO
+        BigDecimal lastTradedPrice = liveData.getLastTradedPrice();
+        BigDecimal previousClose = liveData.getClosePrice();
+
+        BigDecimal currentValue = lastTradedPrice.multiply(totalQuantity);
+
+        BigDecimal unrealizedPnL = currentValue.subtract(investedAmount);
+        BigDecimal unrealizedPnLPercent = calculatePercentage(unrealizedPnL, investedAmount);
+
+        BigDecimal dayPnL = lastTradedPrice.subtract(previousClose).multiply(totalQuantity);
+        BigDecimal dayPnLPercent = calculatePercentage(lastTradedPrice.subtract(previousClose), previousClose);
+
         return PortfolioStockResponseDTO.builder()
                 .stockName(portfolioStock.getStock().getStockName())
                 .stockSymbol(portfolioStock.getStock().getStockSymbol())
-                .avgBuyingPrice(portfolioStock.getAvgBuyPrice())
-                .totalQuantity(portfolioStock.getTotalQuantity())
-                .investedAmount(portfolioStock.getAvgBuyPrice()
-                        .multiply(BigDecimal.valueOf(portfolioStock.getTotalQuantity())))
                 .instrumentKey(portfolioStock.getStock().getUpstoxInstrumentKey())
+                .avgBuyingPrice(avgBuyingPrice)
+                .totalQuantity(portfolioStock.getTotalQuantity())
+                .investedAmount(investedAmount)
+                .currentValue(currentValue)
+                .ltp(lastTradedPrice)
+                .unrealizedPnL(unrealizedPnL)
+                .unrealizedPnLPercent(unrealizedPnLPercent)
+                .dayPnL(dayPnL)
+                .dayPnLPercent(dayPnLPercent)
                 .build();
     }
 
+    private BigDecimal calculatePercentage(BigDecimal part, BigDecimal total) {
+        if (total == null || total.compareTo(BigDecimal.ZERO) == 0) {
+            return BigDecimal.ZERO;
+        }
+        return part.divide(total, 4, RoundingMode.HALF_UP).multiply(BigDecimal.valueOf(100));
+    }
 
     @Override
     @Transactional

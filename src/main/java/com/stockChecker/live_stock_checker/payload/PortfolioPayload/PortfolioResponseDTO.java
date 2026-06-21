@@ -20,6 +20,13 @@ public class PortfolioResponseDTO {
     private Long portfolioId;
     private LocalDateTime lastUpdatedAt;
     private BigDecimal totalInvestedValue;
+
+    private BigDecimal totalCurrentValue;
+    private BigDecimal totalUnrealizedPnL;
+    private BigDecimal totalUnrealizedPnLPercent;
+    private BigDecimal totalDayPnL;
+    private BigDecimal totalDayPnLPercent;
+
     private List<PortfolioStockResponseDTO> stocks;
     private Map<String, BigDecimal> sectorBreakdown;
 }

@@ -7,6 +7,7 @@ import com.stockChecker.live_stock_checker.exceptions.UpstoxFeedException;
 import com.stockChecker.live_stock_checker.payload.UpstoxPayload.UpstoxSubscribeData;
 import com.stockChecker.live_stock_checker.payload.UpstoxPayload.UpstoxSubscribeRequest;
 import jakarta.annotation.PostConstruct;
+import jakarta.annotation.PreDestroy;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.stereotype.Service;
@@ -90,6 +91,15 @@ public class UpstoxWebSocketClient {
             throw new UpstoxFeedException("Invalid response format from Upstox authorization" + e.getMessage());
         } catch (Exception e) {
             throw new UpstoxFeedException("Failed to fetch WebSocket URL from Upstox" + e.getMessage());
+        }
+    }
+
+    @PreDestroy
+    public void gracefulShutdown() {
+        log.info("Application shutting down. Closing Upstox WebSocket...");
+        if (activeWebSocketObject != null && !activeWebSocketObject.isOutputClosed()) {
+            activeWebSocketObject.sendClose(WebSocket.NORMAL_CLOSURE, "shutdown").join();
+            log.info("WebSocket closed successfully.");
         }
     }
 

@@ -17,11 +17,11 @@ public class IndexController {
 
     private final IndexService indexService;
 
-    // get entire Index Response by indexSymbol
-    @GetMapping("/search/{indexSymbol}")
-    public ResponseEntity<IndexDetailResponseDTO> getIndexBySymbol(@PathVariable String indexSymbol) {
-        log.info("Index request - symbol: {}", indexSymbol);
-        IndexDetailResponseDTO indexDetailResponseDTO = indexService.getIndexBySymbol(indexSymbol);
+    // get entire Index Response by instrumentKey
+    @GetMapping("/search/{instrumentKey}")
+    public ResponseEntity<IndexDetailResponseDTO> getIndexByInstrumentKey(@PathVariable String instrumentKey) {
+        log.info("Index request - instrument key: {}", instrumentKey);
+        IndexDetailResponseDTO indexDetailResponseDTO = indexService.getIndexByInstrumentKey(instrumentKey);
         return new ResponseEntity<>(indexDetailResponseDTO, HttpStatus.OK);
     }
 
