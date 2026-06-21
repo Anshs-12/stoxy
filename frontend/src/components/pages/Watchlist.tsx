@@ -73,28 +73,28 @@ export const Watchlist = () => {
     <div className="space-y-8 pb-12">
       <div className="flex justify-between items-end">
         <div>
-          <h1 className="text-4xl font-heading font-light tracking-tight">Precision Assets</h1>
+          <h1 className="text-4xl font-heading font-light tracking-tight text-primary">Precision Assets</h1>
           <p className="text-[11px] text-muted tracking-[0.15em] uppercase mt-2 font-medium">
             Curated Watchlists & Tracking
           </p>
         </div>
         <button onClick={() => setShowCreate(true)}
-          className="px-4 py-2 bg-primary text-base text-[12px] font-medium flex items-center gap-1.5 hover:bg-primary/90 transition-colors">
+          className="px-4 py-2.5 bg-accent text-white text-[12px] font-semibold flex items-center gap-1.5 hover:bg-accent/90 transition-all rounded-lg shadow-ambient">
           <Plus className="h-3 w-3" /> Create Watchlist
         </button>
       </div>
 
       {/* Create Modal */}
       {showCreate && (
-        <div className="bg-neutral p-5 flex gap-3 items-end">
+        <div className="bg-neutral rounded-xl p-5 flex gap-3 items-end border border-border-light">
           <div className="flex-1">
             <label className="text-[9px] text-muted uppercase tracking-widest block mb-1.5">Watchlist Name</label>
             <input value={newName} onChange={e => setNewName(e.target.value)}
-              className="w-full bg-surface text-[13px] px-3 py-2 border border-border outline-none focus:border-primary/30 font-sans"
+              className="w-full bg-surface text-[13px] px-3 py-2.5 border border-border outline-none focus:border-accent font-sans rounded-lg text-primary transition-colors"
               placeholder="e.g. Tech Growth" autoFocus />
           </div>
-          <button onClick={handleCreate} className="px-4 py-2 bg-primary text-base text-[12px] font-medium hover:bg-primary/90">Create</button>
-          <button onClick={() => setShowCreate(false)} className="px-3 py-2 text-muted hover:text-primary"><X className="h-4 w-4" /></button>
+          <button onClick={handleCreate} className="px-4 py-2.5 bg-accent text-white text-[12px] font-semibold hover:bg-accent/90 rounded-lg transition-colors">Create</button>
+          <button onClick={() => setShowCreate(false)} className="px-3 py-2.5 text-muted hover:text-primary rounded-lg hover:bg-neutral transition-colors"><X className="h-4 w-4" /></button>
         </div>
       )}
 
@@ -107,11 +107,16 @@ export const Watchlist = () => {
           {lists.map(w => (
             <div key={w.watchlistId}>
               <button onClick={() => loadDetail(w.watchlistId)}
-                className={`w-full text-left p-4 transition-all ${
-                  activeId === w.watchlistId ? 'bg-surface card-border' : 'bg-neutral hover:bg-neutral'
+                className={`w-full text-left p-4 rounded-xl transition-all border ${
+                  activeId === w.watchlistId
+                    ? 'bg-surface border-accent/30 shadow-ambient'
+                    : 'bg-surface border-border-light hover:border-border'
                 }`}>
                 <div className="flex justify-between items-center">
-                  <span className="text-[13px] font-medium">{w.watchlistName}</span>
+                  <div className="flex items-center gap-2">
+                    {activeId === w.watchlistId && <div className="w-1.5 h-1.5 rounded-full bg-accent" />}
+                    <span className="text-[13px] font-medium text-primary">{w.watchlistName}</span>
+                  </div>
                   <button onClick={e => { e.stopPropagation(); setDeleteConfirmId(w.watchlistId); }}
                     className="text-muted hover:text-negative transition-colors">
                     <Trash2 className="h-3.5 w-3.5" />
@@ -152,7 +157,7 @@ export const Watchlist = () => {
           )}
 
           {activeId && !detailLoading && activeList && (
-            <div className="bg-surface p-5 card-border">
+            <div className="bg-surface rounded-xl border border-border-light p-5">
               <div className="flex justify-between items-center mb-5 pb-4 border-b border-border-light">
                 <div className="flex items-center gap-3">
                   <h3 className="text-sm font-heading font-medium">{activeList.watchlistName}</h3>

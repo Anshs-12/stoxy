@@ -17,18 +17,18 @@ const dayRangeChart = (low: number, high: number, last: number) => {
 };
 
 const MiniChart = ({ data, color }: { data: { v: number }[]; color: string }) => {
-  if (!data.length) return <div className="h-16 w-full mt-4 bg-neutral rounded" />;
+  if (!data.length) return <div className="h-16 w-full mt-4 bg-neutral rounded-md" />;
   return (
     <div className="h-16 w-full mt-4 relative">
       <ResponsiveContainer width="100%" height="100%">
         <AreaChart data={data} margin={{ top: 4, right: 0, left: 0, bottom: 0 }}>
           <defs>
             <linearGradient id={`mc-${color.replace('#', '')}`} x1="0" y1="0" x2="0" y2="1">
-              <stop offset="0%" stopColor={color} stopOpacity={0.2} />
+              <stop offset="0%" stopColor={color} stopOpacity={0.18} />
               <stop offset="100%" stopColor={color} stopOpacity={0} />
             </linearGradient>
           </defs>
-          <Area type="monotone" dataKey="v" stroke={color} strokeWidth={2}
+          <Area type="monotone" dataKey="v" stroke={color} strokeWidth={1.5}
                 fillOpacity={1} fill={`url(#mc-${color.replace('#', '')})`} isAnimationActive={false} />
         </AreaChart>
       </ResponsiveContainer>
@@ -70,9 +70,7 @@ export const Dashboard = () => {
 
   if (loading && indices.length === 0) return (
     <div className="flex flex-col items-center justify-center h-80">
-      <div className="relative">
-        <div className="h-10 w-10 border-2 border-positive/30 border-t-positive rounded-full animate-spin" />
-      </div>
+      <div className="h-8 w-8 border-2 border-accent/30 border-t-accent rounded-full animate-spin" />
       <p className="text-sm font-mono text-muted mt-4">Loading market data...</p>
     </div>
   );
@@ -85,7 +83,7 @@ export const Dashboard = () => {
       <p className="text-sm font-mono text-negative mb-2">Connection Error</p>
       <p className="text-[13px] text-muted max-w-md mx-auto mb-6">{error}</p>
       <button onClick={handleRefresh}
-        className="px-4 py-2 bg-positive/10 text-positive font-mono text-sm rounded-md hover:bg-positive/20 transition-colors">
+        className="px-5 py-2.5 bg-accent text-white font-sans text-sm rounded-lg hover:bg-accent/90 transition-colors">
         Try Again
       </button>
     </div>
@@ -99,7 +97,7 @@ export const Dashboard = () => {
     <div className="pb-12">
       {/* Hero Section */}
       <div className={`transition-all duration-700 ${mounted ? 'opacity-100 translate-y-0' : 'opacity-0 translate-y-4'}`}>
-        <div className="flex items-center gap-2 mb-3">
+        <div className="flex items-center gap-2 mb-4">
           <div className={`h-2 w-2 rounded-full ${marketOpen ? 'bg-positive' : 'bg-muted'} ${marketOpen ? 'animate-pulse' : ''}`} />
           <span className="text-[10px] font-mono uppercase tracking-widest text-muted">
             {marketOpen ? 'Market Open' : 'Market Closed'}
@@ -108,11 +106,11 @@ export const Dashboard = () => {
         </div>
         <div className="flex items-end justify-between">
           <div>
-            <h1 className="text-4xl font-heading font-normal tracking-tight text-primary">Market Overview</h1>
-            <p className="text-[12px] font-mono text-muted mt-1">Real-time NSE India indices & market breadth</p>
+            <h1 className="text-4xl font-heading font-light tracking-tight text-primary">Market Overview</h1>
+            <p className="text-[12px] font-mono text-muted mt-1.5">Real-time NSE India indices &amp; market breadth</p>
           </div>
           <button onClick={handleRefresh} disabled={loading}
-            className="flex items-center gap-2 px-4 py-2 bg-neutral hover:bg-neutral transition-all text-[11px] font-mono border border-border disabled:opacity-50 text-primary rounded-md group">
+            className="flex items-center gap-2 px-4 py-2 bg-surface border border-border hover:border-border text-[11px] font-mono text-primary rounded-lg disabled:opacity-50 group transition-all hover:shadow-ambient">
             <RefreshCw className={`h-3.5 w-3.5 transition-transform ${loading ? 'animate-spin' : 'group-hover:rotate-180'} duration-500`} />
             Refresh
           </button>
@@ -125,21 +123,21 @@ export const Dashboard = () => {
           const p = idx.indexPriceInfoDTO;
           const isUp = (p?.change ?? 0) >= 0;
           const chart = dayRangeChart(p?.dayLow, p?.dayHigh, p?.lastPrice);
-          const changeColor = isUp ? (isDark ? '#6bd6b4' : '#2E7D32') : (isDark ? '#ff6b6b' : '#DC2626');
+          const changeColor = isUp ? (isDark ? '#5ab870' : '#2e7d32') : (isDark ? '#e06060' : '#c62828');
           return (
             <Link to={`/index/${encodeURIComponent(INDEX_SYMBOLS[i])}`} key={idx.name}
-              className={`group bg-surface card-border rounded-lg p-6 transition-all duration-300 hover:shadow-lg hover:-translate-y-0.5 cursor-pointer fade-in-up`}
+              className={`group bg-surface card-border rounded-xl p-6 transition-all duration-300 cursor-pointer fade-in-up`}
               style={{ animationDelay: `${i * 0.12 + 0.2}s`, opacity: 0 }}>
               <div className="flex items-start justify-between mb-1">
                 <div className="flex items-center gap-2">
                   <div className={`h-6 w-6 rounded-md flex items-center justify-center ${isUp ? 'bg-positive/10' : 'bg-negative/10'}`}>
                     {isUp ? <TrendingUp className="h-3.5 w-3.5 text-positive" /> : <TrendingDown className="h-3.5 w-3.5 text-negative" />}
                   </div>
-                  <span className="text-[11px] font-mono text-muted tracking-wider uppercase">{idx.name}</span>
+                  <span className="text-[10px] font-mono text-muted tracking-wider uppercase">{idx.name}</span>
                 </div>
                 <ArrowUpRight className="h-4 w-4 text-muted opacity-0 group-hover:opacity-100 transition-opacity" />
               </div>
-              <div className="text-2xl font-mono font-semibold tracking-tight mt-3">{fmt(p?.lastPrice)}</div>
+              <div className="text-2xl font-mono font-semibold tracking-tight mt-3 text-primary">{fmt(p?.lastPrice)}</div>
               <div className={`flex items-center gap-1.5 text-[13px] font-mono font-medium mt-1 ${getChangeColor(p?.change)}`}>
                 {isUp ? <ArrowUpRight className="h-3.5 w-3.5" /> : <TrendingDown className="h-3.5 w-3.5" />}
                 <span>{isUp ? '+' : ''}{fmt(p?.change)}</span>
@@ -153,14 +151,14 @@ export const Dashboard = () => {
 
       {/* Market Breadth + Index Table */}
       {adv && (
-        <div className="grid grid-cols-12 gap-4 mt-8">
+        <div className="grid grid-cols-12 gap-4 mt-6">
           {/* Market Breadth */}
-          <div className={`col-span-5 bg-surface p-6 card-border rounded-lg fade-in-up`} style={{ animationDelay: '0.5s', opacity: 0 }}>
+          <div className={`col-span-5 bg-surface p-6 card-border rounded-xl fade-in-up`} style={{ animationDelay: '0.5s', opacity: 0 }}>
             <div className="flex items-center gap-2 mb-5">
               <Activity className="h-4 w-4 text-muted" />
-              <h3 className="text-[11px] font-mono text-muted tracking-widest uppercase">Market Breadth</h3>
+              <h3 className="text-[10px] font-mono text-muted tracking-widest uppercase">Market Breadth</h3>
             </div>
-            
+
             <div className="flex justify-between items-end mb-6">
               <div>
                 <div className="text-3xl font-mono font-semibold text-positive">{fmtVol(adv.advances)}</div>
@@ -187,9 +185,9 @@ export const Dashboard = () => {
           </div>
 
           {/* Index Overview Table */}
-          <div className={`col-span-7 bg-surface p-6 card-border rounded-lg fade-in-up`} style={{ animationDelay: '0.6s', opacity: 0 }}>
+          <div className={`col-span-7 bg-surface p-6 card-border rounded-xl fade-in-up`} style={{ animationDelay: '0.6s', opacity: 0 }}>
             <div className="flex items-center justify-between mb-5">
-              <h3 className="text-[11px] font-mono text-muted tracking-widest uppercase">Index Overview</h3>
+              <h3 className="text-[10px] font-mono text-muted tracking-widest uppercase">Index Overview</h3>
               <ArrowRight className="h-3.5 w-3.5 text-muted" />
             </div>
             <table className="w-full text-[13px] font-mono">
@@ -208,7 +206,7 @@ export const Dashboard = () => {
                   return (
                     <tr key={idx.name} onClick={() => navigate(`/index/${encodeURIComponent(INDEX_SYMBOLS[i])}`)}
                       className="hover:bg-neutral transition-colors cursor-pointer group border-t border-border-light">
-                      <td className="py-3.5 font-medium group-hover:text-positive transition-colors">{idx.name}</td>
+                      <td className="py-3.5 font-medium group-hover:text-accent transition-colors">{idx.name}</td>
                       <td className="py-3.5 text-right text-muted-heavy">{fmt(p?.lastPrice)}</td>
                       <td className="py-3.5 text-right text-muted">{fmt(p?.open)}</td>
                       <td className="py-3.5 text-right text-muted">{fmt(p?.dayHigh)}</td>

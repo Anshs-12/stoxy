@@ -55,20 +55,23 @@ export const Header = ({ onMenuClick }: { onMenuClick?: () => void }) => {
         <button className="md:hidden p-1 text-muted hover:text-primary transition-colors" onClick={onMenuClick}>
           <Menu className="h-5 w-5" />
         </button>
-        <NavLink to="/" className="text-base font-heading font-medium tracking-tight whitespace-nowrap hidden sm:block">
-          NSE Precision
+        <NavLink to="/" className="flex items-center gap-1 text-base font-heading font-semibold tracking-tight whitespace-nowrap hidden sm:flex">
+          <span className="text-primary">Stoxy</span>
+          <span className="text-accent">.</span>
         </NavLink>
         <nav className="hidden md:flex items-center gap-6">
           {[
-            { label: 'Market', to: '/' }, 
-            { label: 'Watchlist', to: '/watchlist' }, 
+            { label: 'Market', to: '/' },
+            { label: 'Watchlist', to: '/watchlist' },
             { label: 'Portfolio', to: '/portfolio' },
             { label: 'Screener', to: '/screener' },
             { label: 'Search', to: '/search' }
           ].map(item => (
             <NavLink key={item.to} to={item.to}
               className={({ isActive }) =>
-                `text-[13px] font-sans transition-colors ${isActive ? 'text-primary font-medium' : 'text-muted hover:text-muted-heavy'}`
+                `text-[13px] font-sans transition-colors pb-0.5 ${isActive
+                  ? 'text-primary font-semibold border-b-2 border-accent'
+                  : 'text-muted hover:text-muted-heavy border-b-2 border-transparent'}`
               }>
               {item.label}
             </NavLink>
@@ -76,40 +79,42 @@ export const Header = ({ onMenuClick }: { onMenuClick?: () => void }) => {
         </nav>
       </div>
 
-      <div className="flex items-center gap-5">
+      <div className="flex items-center gap-4">
         {/* Search */}
         <div className="relative" ref={dropdownRef}>
           <Search className="absolute left-3 top-1/2 -translate-y-1/2 h-3.5 w-3.5 text-muted" />
           <input type="text" value={query} onChange={e => setQuery(e.target.value)}
             placeholder="Search TCS, Reliance..."
-            className="bg-neutral text-[13px] pl-9 pr-4 py-1.5 rounded w-36 sm:w-48 lg:w-64 border-none outline-none focus:bg-neutral placeholder:text-muted font-sans transition-colors" />
+            className="bg-surface text-[13px] pl-9 pr-4 py-1.5 rounded-md w-36 sm:w-48 lg:w-64 border border-border-light outline-none focus:border-border font-sans transition-colors placeholder:text-muted" />
           {showDropdown && results.length > 0 && (
-            <div className="absolute top-full left-0 right-0 mt-1 bg-surface card-border border border-border-light rounded z-50 max-h-80 overflow-y-auto">
+            <div className="absolute top-full left-0 right-0 mt-1 bg-surface border border-border rounded-md z-50 max-h-80 overflow-y-auto shadow-ambient">
               {results.map((r) => (
                 <button key={r.stockSymbol} onClick={() => selectStock(r.stockSymbol)}
                   className="w-full text-left px-4 py-2.5 hover:bg-neutral transition-colors flex justify-between items-center group">
-                  <span className="text-[13px] font-medium">{r.stockName}</span>
-                  <span className="text-[11px] text-muted font-sans tracking-wider group-hover:text-muted">{r.stockSymbol}</span>
+                  <span className="text-[13px] font-medium text-primary">{r.stockName}</span>
+                  <span className="text-[11px] text-muted font-mono tracking-wider">{r.stockSymbol}</span>
                 </button>
               ))}
             </div>
           )}
           {showDropdown && query.length >= 2 && results.length === 0 && (
-            <div className="absolute top-full left-0 right-0 mt-1 bg-surface card-border border border-border-light rounded z-50 p-4">
+            <div className="absolute top-full left-0 right-0 mt-1 bg-surface border border-border rounded-md z-50 p-4 shadow-ambient">
               <p className="text-[12px] text-muted text-center">No stocks found for "{query}"</p>
             </div>
           )}
         </div>
 
-        <div className="flex items-center gap-4 text-muted">
-          <button 
+        <div className="flex items-center gap-3 text-muted">
+          <button
             onClick={() => setTheme(theme === 'dark' ? 'light' : theme === 'light' ? 'system' : 'dark')}
-            className="hover:text-primary transition-colors relative"
+            className="hover:text-primary transition-colors p-1.5 rounded-md hover:bg-neutral"
             title={`Theme: ${theme}`}
           >
-            {isDark ? <Sun className="h-4 w-4 text-primary" /> : <Moon className="h-4 w-4" />}
+            {isDark ? <Sun className="h-4 w-4 text-accent" /> : <Moon className="h-4 w-4" />}
           </button>
-          <button className="hover:text-primary transition-colors"><Bell className="h-4 w-4" /></button>
+          <button className="hover:text-primary transition-colors p-1.5 rounded-md hover:bg-neutral">
+            <Bell className="h-4 w-4" />
+          </button>
 
           {/* Profile */}
           <div className="relative" ref={profileRef}>
@@ -117,11 +122,11 @@ export const Header = ({ onMenuClick }: { onMenuClick?: () => void }) => {
               onClick={() => setShowProfile(v => !v)}
               className="flex items-center gap-1.5 hover:text-primary transition-colors">
               {user ? (
-                <div className="h-7 w-7 rounded-full bg-neutral flex items-center justify-center font-medium text-[11px] text-muted-heavy uppercase">
+                <div className="h-7 w-7 rounded-full bg-accent/15 flex items-center justify-center font-semibold text-[11px] text-accent uppercase">
                   {user.name.charAt(0)}
                 </div>
               ) : (
-                <div className="h-7 w-7 rounded-full bg-neutral flex items-center justify-center">
+                <div className="h-7 w-7 rounded-full bg-neutral border border-border flex items-center justify-center">
                   <User className="h-3.5 w-3.5 text-muted" />
                 </div>
               )}
@@ -129,30 +134,30 @@ export const Header = ({ onMenuClick }: { onMenuClick?: () => void }) => {
             </button>
 
             {showProfile && (
-              <div className="absolute top-full right-0 mt-2 w-56 bg-surface card-border border border-border-light z-50">
+              <div className="absolute top-full right-0 mt-2 w-56 bg-surface border border-border rounded-md z-50 shadow-ambient overflow-hidden">
                 {user ? (
                   <>
                     <div className="px-4 py-3 border-b border-border-light">
-                      <p className="text-[13px] font-medium truncate">{user.name}</p>
+                      <p className="text-[13px] font-semibold truncate text-primary">{user.name}</p>
                       <p className="text-[11px] text-muted truncate mt-0.5">{user.email}</p>
                     </div>
                     <button onClick={() => { setShowProfile(false); navigate('/portfolio'); }}
-                      className="w-full text-left px-4 py-2.5 text-[13px] hover:bg-neutral transition-colors">
+                      className="w-full text-left px-4 py-2.5 text-[13px] hover:bg-neutral transition-colors text-primary">
                       Portfolio
                     </button>
                     <button onClick={() => { setShowProfile(false); navigate('/watchlist'); }}
-                      className="w-full text-left px-4 py-2.5 text-[13px] hover:bg-neutral transition-colors">
+                      className="w-full text-left px-4 py-2.5 text-[13px] hover:bg-neutral transition-colors text-primary">
                       Watchlist
                     </button>
                     <div className="border-t border-border-light" />
                     <button onClick={handleLogout}
-                      className="w-full text-left px-4 py-2.5 text-[13px] text-negative hover:bg-negative/10 transition-colors flex items-center gap-2">
+                      className="w-full text-left px-4 py-2.5 text-[13px] text-negative hover:bg-negative/8 transition-colors flex items-center gap-2">
                       <LogOut className="h-3.5 w-3.5" /> Sign out
                     </button>
                   </>
                 ) : (
                   <a href="/api/v2/oauth2/authorization/google"
-                    className="flex items-center gap-3 px-4 py-3 text-[13px] hover:bg-neutral transition-colors">
+                    className="flex items-center gap-3 px-4 py-3 text-[13px] hover:bg-neutral transition-colors text-primary">
                     <User className="h-4 w-4 text-muted" /> Sign in with Google
                   </a>
                 )}

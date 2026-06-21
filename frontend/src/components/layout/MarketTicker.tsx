@@ -57,13 +57,13 @@ export const MarketTicker = () => {
   const repeated = [...items, ...items];
 
   return (
-    <div className="w-full bg-neutral border-b border-border-light overflow-hidden">
+    <div className="w-full bg-neutral/80 border-b border-border-light overflow-hidden">
       <div className="ticker-animate flex items-center gap-8 py-2 px-4 whitespace-nowrap">
         {repeated.map((item, i) => (
-          <div key={`${item.id}-${i}`} className="flex items-center gap-2 text-[12px] font-mono flex-shrink-0">
-            <span className="text-muted-heavy font-medium">{item.symbol}</span>
-            <span className="text-primary">{item.price}</span>
-            <span className={`font-medium ${getChangeColor(item.change)}`}>
+          <div key={`${item.id}-${i}`} className="flex items-center gap-2.5 text-[12px] font-mono flex-shrink-0">
+            <span className="text-muted-heavy font-medium tracking-wide">{item.symbol}</span>
+            <span className="text-primary font-medium">{item.price}</span>
+            <span className={`font-semibold ${getChangeColor(item.change)}`}>
               {item.change >= 0 ? '+' : ''}{item.change}%
             </span>
           </div>

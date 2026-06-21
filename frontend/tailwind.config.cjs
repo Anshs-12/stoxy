@@ -18,8 +18,8 @@ module.exports = {
         accent: "var(--color-accent)",
       },
       fontFamily: {
-        sans: ["DM Sans", "system-ui", "sans-serif"],
-        heading: ["DM Sans", "system-ui", "sans-serif"],
+        sans: ["Inter", "DM Sans", "system-ui", "sans-serif"],
+        heading: ["Inter", "DM Sans", "system-ui", "sans-serif"],
         mono: ["Geist Mono", "SF Mono", "Fira Code", "monospace"],
       },
       borderRadius: {

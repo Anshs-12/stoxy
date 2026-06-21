@@ -34,7 +34,7 @@ export const StockSearch = () => {
   return (
     <div className="space-y-8 pb-12">
       <div>
-        <h1 className="text-4xl font-heading font-light tracking-tight">Stock Search</h1>
+        <h1 className="text-4xl font-heading font-light tracking-tight text-primary">Stock Search</h1>
         <p className="text-[11px] text-muted tracking-[0.15em] uppercase mt-2 font-medium">
           Search across all NSE-listed equities
         </p>
@@ -44,13 +44,13 @@ export const StockSearch = () => {
         <Search className="absolute left-4 top-1/2 -translate-y-1/2 h-4 w-4 text-muted" />
         <input value={query} onChange={e => { setQuery(e.target.value); setPage(0); }}
           placeholder="Search by name or symbol..."
-          className="w-full bg-surface text-[14px] pl-11 pr-4 py-3 border border-border outline-none focus:border-primary/30 font-sans card-border"
+          className="w-full bg-surface text-[14px] pl-11 pr-4 py-3 border border-border outline-none focus:border-border font-sans rounded-xl text-primary placeholder:text-muted transition-colors"
           autoFocus />
       </div>
 
       {loading && (
         <div className="flex items-center text-muted py-8">
-          <Loader2 className="h-4 w-4 animate-spin mr-2" />
+          <Loader2 className="h-4 w-4 animate-spin mr-2 text-accent" />
           <span className="text-[13px]">Searching...</span>
         </div>
       )}
@@ -60,7 +60,7 @@ export const StockSearch = () => {
       )}
 
       {data && !loading && (
-        <div className="bg-surface p-5 card-border">
+        <div className="bg-surface rounded-xl border border-border-light p-5">
           <div className="flex justify-between items-center mb-4 pb-3 border-b border-border-light">
             <span className="text-[10px] text-muted tracking-widest uppercase font-medium">
               {data.totalElements} result{data.totalElements !== 1 ? 's' : ''} found
@@ -84,9 +84,9 @@ export const StockSearch = () => {
             </thead>
             <tbody>
               {data.content.map((s) => (
-                <tr key={s.stockSymbol} className="hover:bg-neutral transition-colors cursor-pointer"
+                <tr key={s.stockSymbol} className="hover:bg-neutral transition-colors cursor-pointer border-t border-border-light"
                     onClick={() => navigate(`/stocks/${s.stockSymbol}`)}>
-                  <td className="py-3 font-medium">{s.stockSymbol}</td>
+                  <td className="py-3 font-medium text-primary group-hover:text-accent transition-colors">{s.stockSymbol}</td>
                   <td className="py-3 text-muted">{s.stockName}</td>
                 </tr>
               ))}

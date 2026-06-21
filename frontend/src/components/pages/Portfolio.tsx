@@ -32,17 +32,17 @@ const TradeModal = ({ type, stock, onClose, onConfirm, loadingLTP }: TradeModalP
 
   return (
     <div className="fixed inset-0 bg-black/40 backdrop-blur-sm flex items-center justify-center z-50">
-      <div className="bg-surface p-6 w-[400px] card-border">
+      <div className="bg-surface rounded-xl p-6 w-[400px] border border-border shadow-ambient">
         <div className="flex justify-between items-center mb-5">
           <div>
-            <h3 className="text-base font-heading font-medium">
+            <h3 className="text-base font-heading font-semibold text-primary">
               {type === 'buy' ? 'Buy' : 'Sell'} {stock.stockSymbol}
             </h3>
             {stock.stockName && (
               <p className="text-[11px] text-muted mt-0.5">{stock.stockName}</p>
             )}
           </div>
-          <button onClick={onClose} className="text-muted hover:text-primary transition-colors">
+          <button onClick={onClose} className="text-muted hover:text-primary transition-colors p-1 rounded-md hover:bg-neutral">
             <X className="h-4 w-4" />
           </button>
         </div>
@@ -58,7 +58,7 @@ const TradeModal = ({ type, stock, onClose, onConfirm, loadingLTP }: TradeModalP
               onChange={e => handleQtyChange(e.target.value)}
               onBlur={handleQtyBlur}
               placeholder="Enter quantity"
-              className="w-full bg-neutral text-[22px] font-heading font-light px-4 py-3 outline-none focus:bg-neutral transition-colors tracking-tight"
+              className="w-full bg-neutral text-[22px] font-heading font-light px-4 py-3 outline-none rounded-lg focus:ring-1 focus:ring-border transition-colors tracking-tight text-primary"
             />
             {type === 'sell' && (
               <p className="text-[10px] text-muted mt-1.5">
@@ -70,7 +70,7 @@ const TradeModal = ({ type, stock, onClose, onConfirm, loadingLTP }: TradeModalP
             )}
           </div>
 
-          <div className="bg-neutral p-4 space-y-3">
+          <div className="bg-neutral rounded-lg p-4 space-y-3">
             <div className="flex justify-between text-[13px]">
               <span className="text-muted">Last Traded Price</span>
               {loadingLTP ? (
@@ -78,14 +78,14 @@ const TradeModal = ({ type, stock, onClose, onConfirm, loadingLTP }: TradeModalP
                   <Loader2 className="h-3 w-3 animate-spin" /> fetching...
                 </span>
               ) : (
-                <span className="font-medium">₹{fmt(stock.LTP)}</span>
+                <span className="font-medium text-primary">₹{fmt(stock.LTP)}</span>
               )}
             </div>
             <div className="flex justify-between text-[13px]">
               <span className="text-muted">Quantity</span>
-              <span>{qty}</span>
+              <span className="text-primary">{qty}</span>
             </div>
-            <div className="flex justify-between text-[14px] font-medium border-t border-primary/8 pt-3 mt-1">
+            <div className="flex justify-between text-[14px] font-semibold border-t border-border-light pt-3 mt-1 text-primary">
               <span>Estimated Total</span>
               <span>{loadingLTP ? '—' : `₹${fmt(total)}`}</span>
             </div>
@@ -93,16 +93,16 @@ const TradeModal = ({ type, stock, onClose, onConfirm, loadingLTP }: TradeModalP
 
           <div className="flex gap-2">
             <button onClick={onClose}
-              className="flex-1 py-2.5 bg-neutral text-[12px] font-medium hover:bg-neutral/80 transition-colors">
+              className="flex-1 py-2.5 bg-neutral text-[12px] font-medium hover:bg-neutral/80 transition-colors rounded-lg text-primary">
               Cancel
             </button>
             <button
               onClick={() => onConfirm(stock.stockSymbol, qty)}
               disabled={overSell || loadingLTP}
-              className={`flex-1 py-2.5 text-[12px] font-medium transition-colors disabled:opacity-40 ${
+              className={`flex-1 py-2.5 text-[12px] font-semibold transition-colors disabled:opacity-40 rounded-lg text-white ${
                 type === 'buy'
-                  ? 'bg-primary text-base hover:bg-primary/90'
-                  : 'bg-negative text-white hover:bg-negative/90'
+                  ? 'bg-accent hover:bg-accent/90'
+                  : 'bg-negative hover:bg-negative/90'
               }`}>
               Confirm {type === 'buy' ? 'Buy' : 'Sell'}
             </button>
@@ -147,13 +147,13 @@ export const Portfolio = () => {
   }, [buySearch, searchStocks]);
 
   const openBuyModal = (symbol: string, stockName: string, existingLTP?: number) => {
-    const skeleton: PortfolioStock = { 
-      stockSymbol: symbol, stockName, LTP: existingLTP || 0, 
-      totalQuantity: 0, avgBuyingPrice: 0, currentValue: 0, 
-      investedAmount: 0, unrealizedPnL: 0, unrealizedPnLPercent: 0, 
-      dayPnL: 0, dayPnLPercent: 0 
+    const skeleton: PortfolioStock = {
+      stockSymbol: symbol, stockName, LTP: existingLTP || 0,
+      totalQuantity: 0, avgBuyingPrice: 0, currentValue: 0,
+      investedAmount: 0, unrealizedPnL: 0, unrealizedPnLPercent: 0,
+      dayPnL: 0, dayPnLPercent: 0
     };
-    
+
     setTradeModal({ type: 'buy', stock: skeleton });
 
     if (!existingLTP || existingLTP <= 0) {
@@ -174,7 +174,7 @@ export const Portfolio = () => {
     const success = tradeModal?.type === 'buy'
       ? await buyStock(symbol, quantity)
       : await sellStock(symbol, quantity);
-    
+
     if (success) {
       setTradeModal(null);
     }
@@ -199,7 +199,7 @@ export const Portfolio = () => {
     setShowTx(true);
     setSelectedStockForTx(symbol);
     fetchTransactionHistory(symbol);
-    
+
     setTimeout(() => {
       window.scrollTo({ top: document.body.scrollHeight, behavior: 'smooth' });
     }, 100);
@@ -207,7 +207,7 @@ export const Portfolio = () => {
 
   if (loading && !portfolio) return (
     <div className="flex items-center justify-center h-64 text-muted">
-      <Loader2 className="h-5 w-5 animate-spin mr-2" />
+      <Loader2 className="h-5 w-5 animate-spin mr-2 text-accent" />
       <span className="text-sm font-sans">Loading portfolio...</span>
     </div>
   );
@@ -216,28 +216,28 @@ export const Portfolio = () => {
     <div className="space-y-8 pb-12">
       <div className="flex justify-between items-end">
         <div>
-          <h1 className="text-4xl font-heading font-light tracking-tight">Portfolio</h1>
+          <h1 className="text-4xl font-heading font-light tracking-tight text-primary">Portfolio</h1>
           <p className="text-[11px] text-muted tracking-[0.15em] uppercase mt-2 font-medium">Holdings &amp; P&amp;L Analysis</p>
         </div>
         <button onClick={loadPortfolio} disabled={loading}
-          className="flex items-center gap-1.5 px-3 py-2 bg-neutral hover:bg-neutral transition-colors text-[11px] font-medium border border-border-light disabled:opacity-50 text-primary">
+          className="flex items-center gap-1.5 px-3 py-2 bg-surface border border-border hover:border-border text-[11px] font-medium disabled:opacity-50 text-primary rounded-lg transition-all">
           <RefreshCw className={`h-3.5 w-3.5 ${loading ? 'animate-spin' : ''}`} />
           Refresh
         </button>
       </div>
-      <div className="text-center py-12 bg-surface card-border">
+      <div className="text-center py-12 bg-surface rounded-xl border border-border">
         <p className="text-sm text-muted font-sans mb-6">{error}</p>
         <div className="relative inline-block">
           <input value={buySearch} onChange={e => setBuySearch(e.target.value)}
             placeholder="Search a stock to buy..."
-            className="bg-neutral text-[13px] px-4 py-2.5 w-72 outline-none font-sans focus:bg-neutral transition-colors" />
+            className="bg-neutral text-[13px] px-4 py-2.5 w-72 outline-none font-sans rounded-lg border border-border focus:border-accent transition-colors text-primary" />
           {buyResults.length > 0 && (
-            <div className="absolute top-full left-0 right-0 bg-surface card-border border border-border-light z-10 text-left">
+            <div className="absolute top-full left-0 right-0 bg-surface border border-border rounded-lg z-10 text-left shadow-ambient mt-1">
               {buyResults.map((s) => (
                 <button key={s.stockSymbol} onClick={() => {
                   setBuySearch('');
                   openBuyModal(s.stockSymbol, s.stockName);
-                }} className="w-full text-left px-4 py-2.5 hover:bg-neutral flex justify-between text-[13px]">
+                }} className="w-full text-left px-4 py-2.5 hover:bg-neutral flex justify-between text-[13px] text-primary transition-colors">
                   <span>{s.stockName}</span>
                   <span className="text-muted">{s.stockSymbol}</span>
                 </button>
@@ -255,7 +255,7 @@ export const Portfolio = () => {
   const dayPnLPositive = (portfolio.totalDayPnL ?? 0) >= 0;
 
   return (
-    <div className="space-y-8 pb-12">
+    <div className="space-y-6 pb-12">
       {tradeModal && (
         <TradeModal type={tradeModal.type} stock={tradeModal.stock} loadingLTP={loadingLTP}
           onClose={() => { setTradeModal(null); setLoadingLTP(false); }}
@@ -265,23 +265,23 @@ export const Portfolio = () => {
       {/* Header */}
       <div className="flex justify-between items-end">
         <div>
-          <h1 className="text-4xl font-heading font-light tracking-tight">Portfolio</h1>
+          <h1 className="text-4xl font-heading font-light tracking-tight text-primary">Portfolio</h1>
           <p className="text-[11px] text-muted tracking-[0.15em] uppercase mt-2 font-medium">
             Holdings &amp; P&amp;L Analysis
           </p>
         </div>
-        <div className="flex items-end gap-4 text-right">
+        <div className="flex items-end gap-3 text-right">
           <div className="relative">
             <input value={buySearch} onChange={e => setBuySearch(e.target.value)}
               placeholder="+ Buy a new stock..."
-              className="bg-surface card-border text-[12px] px-4 py-2 w-52 outline-none border border-border-light font-sans" />
+              className="bg-surface border border-border text-[12px] px-4 py-2 w-52 outline-none font-sans rounded-lg focus:border-accent transition-colors text-primary" />
             {buyResults.length > 0 && (
-              <div className="absolute top-full right-0 w-64 bg-surface card-border border border-border-light z-10">
+              <div className="absolute top-full right-0 w-64 bg-surface border border-border rounded-lg z-10 shadow-ambient mt-1">
               {buyResults.map((s) => (
                 <button key={s.stockSymbol} onClick={() => {
                   setBuySearch('');
                   openBuyModal(s.stockSymbol, s.stockName);
-                }} className="w-full text-left px-4 py-2.5 hover:bg-neutral flex justify-between text-[12px]">
+                }} className="w-full text-left px-4 py-2.5 hover:bg-neutral flex justify-between text-[12px] text-primary transition-colors">
                   <span>{s.stockName}</span>
                   <span className="text-muted">{s.stockSymbol}</span>
                 </button>
@@ -290,14 +290,14 @@ export const Portfolio = () => {
             )}
           </div>
           <button onClick={loadPortfolio} disabled={loading}
-            className="flex items-center gap-1.5 px-3 py-2 bg-neutral hover:bg-neutral transition-colors text-[11px] font-medium border border-border-light disabled:opacity-50 text-primary">
+            className="flex items-center gap-1.5 px-3 py-2 bg-surface border border-border hover:border-border text-[11px] font-medium disabled:opacity-50 text-primary rounded-lg transition-all">
             <RefreshCw className={`h-3.5 w-3.5 ${loading ? 'animate-spin' : ''}`} />
             Refresh
           </button>
         </div>
       </div>
 
-      {/* KPIs */}
+      {/* KPI Cards */}
       <div className="grid grid-cols-4 gap-4">
         {[
           { l: 'INVESTED', v: fmtCr(portfolio.totalInvestedValue), sub: null, color: '' },
@@ -315,16 +315,16 @@ export const Portfolio = () => {
             color: getChangeColor(portfolio.totalDayPnL),
           },
         ].map((k) => (
-          <div key={k.l} className="bg-surface p-4 card-border">
+          <div key={k.l} className="bg-surface p-5 rounded-xl border border-border-light">
             <p className="text-[9px] text-muted uppercase tracking-widest mb-2">{k.l}</p>
-            <p className={`text-xl font-sans font-light ${k.color}`}>{k.v}</p>
-            {k.sub && <p className={`text-[11px] mt-0.5 ${k.color}`}>{k.sub}</p>}
+            <p className={`text-2xl font-heading font-light tracking-tight ${k.color || 'text-primary'}`}>{k.v}</p>
+            {k.sub && <p className={`text-[11px] mt-1 font-medium ${k.color}`}>{k.sub}</p>}
           </div>
         ))}
       </div>
 
       {/* Holdings Table */}
-      <div className="bg-surface p-5 card-border">
+      <div className="bg-surface rounded-xl border border-border-light p-5">
         <div className="flex justify-between items-center mb-5 pb-4 border-b border-border-light">
           <h3 className="text-[10px] text-muted tracking-[0.12em] uppercase font-medium">
             Holdings ({portfolio.stocks?.length ?? 0})
@@ -351,19 +351,19 @@ export const Portfolio = () => {
                 const pnlPos = (s.unrealizedPnL ?? 0) >= 0;
                 const dayPos = (s.dayPnL ?? 0) >= 0;
                 return (
-                  <tr key={s.stockSymbol} className="hover:bg-neutral transition-colors group">
+                  <tr key={s.stockSymbol} className="hover:bg-neutral transition-colors group border-t border-border-light">
                     <td className="py-3">
                       <button onClick={() => navigate(`/stocks/${s.stockSymbol}`)}
-                        className="font-medium text-primary hover:underline text-left">
+                        className="font-medium text-primary hover:text-accent transition-colors text-left">
                         <div>{s.stockSymbol}</div>
                         <div className="text-[10px] text-muted font-normal">{s.stockName}</div>
                       </button>
                     </td>
-                    <td className="py-3 text-right">{s.totalQuantity}</td>
+                    <td className="py-3 text-right text-primary">{s.totalQuantity}</td>
                     <td className="py-3 text-right text-muted">₹{fmt(s.avgBuyingPrice)}</td>
-                    <td className="py-3 text-right font-medium">₹{fmt(s.LTP)}</td>
+                    <td className="py-3 text-right font-medium text-primary">₹{fmt(s.LTP)}</td>
                     <td className="py-3 text-right text-muted">₹{fmt(s.investedAmount)}</td>
-                    <td className="py-3 text-right">₹{fmt(s.currentValue)}</td>
+                    <td className="py-3 text-right text-primary">₹{fmt(s.currentValue)}</td>
                     <td className={`py-3 text-right font-medium ${getChangeColor(s.unrealizedPnL)}`}>
                       {pnlPos ? '+' : ''}₹{fmt(s.unrealizedPnL)}
                     </td>
@@ -376,16 +376,16 @@ export const Portfolio = () => {
                     <td className="py-3 text-right">
                       <div className="flex gap-1 justify-end opacity-0 group-hover:opacity-100 transition-opacity">
                         <button onClick={() => openStockTx(s.stockSymbol)}
-                          title="Transactions" className="p-1 bg-neutral hover:bg-blue-100 transition-colors rounded">
-                          <List className="h-3 w-3" />
+                          title="Transactions" className="p-1.5 bg-neutral hover:bg-border-light transition-colors rounded-md">
+                          <List className="h-3 w-3 text-muted" />
                         </button>
                         <button onClick={() => setTradeModal({ type: 'buy', stock: s })}
-                          title="Buy more" className="p-1 bg-neutral hover:bg-[#C7FFD8] transition-colors rounded">
-                          <Plus className="h-3 w-3" />
+                          title="Buy more" className="p-1.5 bg-positive/10 hover:bg-positive/20 transition-colors rounded-md">
+                          <Plus className="h-3 w-3 text-positive" />
                         </button>
                         <button onClick={() => setTradeModal({ type: 'sell', stock: s })}
-                          title="Sell" className="p-1 bg-neutral hover:bg-negative/10 transition-colors rounded">
-                          <Minus className="h-3 w-3" />
+                          title="Sell" className="p-1.5 bg-negative/10 hover:bg-negative/20 transition-colors rounded-md">
+                          <Minus className="h-3 w-3 text-negative" />
                         </button>
                       </div>
                     </td>
@@ -399,9 +399,9 @@ export const Portfolio = () => {
 
       {/* Sector Breakdown */}
       {portfolio.sectorBreakdown && Object.keys(portfolio.sectorBreakdown).length > 0 && (
-        <div className="bg-surface p-5 card-border">
+        <div className="bg-surface rounded-xl border border-border-light p-5">
           <h3 className="text-[10px] text-muted tracking-[0.12em] uppercase font-medium mb-5">Sector Allocation</h3>
-          <div className="space-y-3">
+          <div className="space-y-4">
             {Object.entries(portfolio.sectorBreakdown)
               .sort(([, a], [, b]) => Number(b) - Number(a))
               .map(([sector, value]) => {
@@ -411,11 +411,11 @@ export const Portfolio = () => {
                 return (
                   <div key={sector}>
                     <div className="flex justify-between text-[12px] mb-1.5">
-                      <span className="font-medium">{sector}</span>
+                      <span className="font-medium text-primary">{sector}</span>
                       <span className="text-muted">{pct}% · {fmtCr(Number(value))}</span>
                     </div>
-                    <div className="h-1 w-full bg-neutral rounded-full overflow-hidden">
-                      <div className="h-full bg-primary/60 rounded-full transition-all" style={{ width: `${pct}%` }} />
+                    <div className="h-1.5 w-full bg-neutral rounded-full overflow-hidden">
+                      <div className="h-full bg-accent/70 rounded-full transition-all duration-700" style={{ width: `${pct}%` }} />
                     </div>
                   </div>
                 );
@@ -426,18 +426,18 @@ export const Portfolio = () => {
 
       {/* Transaction History */}
       {showTx && (
-        <div className="bg-surface p-5 card-border mt-4">
+        <div className="bg-surface rounded-xl border border-border-light p-5">
           <div className="flex justify-between items-center mb-5 pb-4 border-b border-border-light">
             <h3 className="text-[10px] text-muted tracking-[0.12em] uppercase font-medium">
               {selectedStockForTx ? `${selectedStockForTx} Transactions` : 'All Transactions'}
             </h3>
-            <button onClick={exportPDF} title="Download Statement" className="flex items-center gap-1.5 text-[11px] text-muted hover:text-primary transition-colors rounded p-1.5 hover:bg-neutral">
+            <button onClick={exportPDF} title="Download Statement" className="flex items-center gap-1.5 text-[11px] text-muted hover:text-primary transition-colors rounded-md p-1.5 hover:bg-neutral">
               <Download className="h-3.5 w-3.5" /> Export PDF
             </button>
           </div>
           {txLoading ? (
             <div className="flex items-center text-muted py-8 justify-center">
-              <Loader2 className="h-4 w-4 animate-spin mr-2" />
+              <Loader2 className="h-4 w-4 animate-spin mr-2 text-accent" />
               <span className="text-[13px]">Loading...</span>
             </div>
           ) : txHistory && txHistory.length > 0 ? (
@@ -453,12 +453,12 @@ export const Portfolio = () => {
               </thead>
               <tbody>
                 {txHistory.map((tx, i) => (
-                  <tr key={`${tx.stockSymbol}-${tx.transactionDate}-${i}`} className="hover:bg-neutral transition-colors">
-                    <td className="py-2.5 font-medium">{tx.stockSymbol}</td>
-                    <td className={`py-2.5 font-medium ${tx.transactionType === 'BUY' ? 'text-positive' : 'text-negative'}`}>
+                  <tr key={`${tx.stockSymbol}-${tx.transactionDate}-${i}`} className="hover:bg-neutral transition-colors border-t border-border-light">
+                    <td className="py-2.5 font-medium text-primary">{tx.stockSymbol}</td>
+                    <td className={`py-2.5 font-semibold text-[12px] ${tx.transactionType === 'BUY' ? 'text-positive' : 'text-negative'}`}>
                       {tx.transactionType}
                     </td>
-                    <td className="py-2.5 text-right">{tx.quantity}</td>
+                    <td className="py-2.5 text-right text-primary">{tx.quantity}</td>
                     <td className="py-2.5 text-right text-muted-heavy">₹{fmt(tx.price)}</td>
                     <td className="py-2.5 text-right text-muted text-[11px]">
                       {new Date(tx.transactionDate).toLocaleDateString('en-IN', { day: 'numeric', month: 'short', year: 'numeric' })}

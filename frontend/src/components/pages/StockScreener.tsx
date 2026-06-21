@@ -25,14 +25,14 @@ export const StockScreener = () => {
   return (
     <div className="space-y-8 pb-12">
       <div>
-        <h1 className="text-4xl font-heading font-light tracking-tight">Stock Screener</h1>
+        <h1 className="text-4xl font-heading font-light tracking-tight text-primary">Stock Screener</h1>
         <p className="text-[11px] text-muted tracking-[0.15em] uppercase mt-2 font-medium">
           Filter NSE equities by fundamental criteria
         </p>
       </div>
 
       {/* Filter Form */}
-      <form onSubmit={handleSearch} className="bg-surface p-5 card-border space-y-5">
+      <form onSubmit={handleSearch} className="bg-surface rounded-xl border border-border-light p-6 space-y-5">
         <h3 className="text-[10px] text-muted tracking-[0.12em] uppercase font-medium">Filter Parameters</h3>
         <div className="grid grid-cols-4 gap-5">
           {[
@@ -48,7 +48,7 @@ export const StockScreener = () => {
                 placeholder={placeholder}
                 value={filters[key as keyof ScreenerFilters] as string}
                 onChange={(e) => setFilters(p => ({ ...p, [key]: e.target.value }))}
-                className="w-full bg-neutral text-[13px] px-3 py-2 border-none outline-none focus:bg-neutral font-sans placeholder:text-muted transition-colors"
+                className="w-full bg-neutral text-[13px] px-3 py-2.5 outline-none focus:bg-neutral font-sans placeholder:text-muted transition-colors rounded-lg border border-transparent focus:border-border text-primary"
               />
             </div>
           ))}
@@ -63,7 +63,7 @@ export const StockScreener = () => {
                   <button key={val}
                     type="button"
                     onClick={() => setFilters(p => ({ ...p, sortBy: val }))}
-                    className={`px-3 py-1 text-[11px] font-medium transition-colors border border-border first:rounded-l last:rounded-r -ml-px ${
+                    className={`px-3 py-1.5 text-[11px] font-medium transition-colors border border-border first:rounded-l last:rounded-r -ml-px ${
                       filters.sortBy === val
                         ? 'bg-primary text-base border-primary z-10'
                         : 'bg-surface text-muted hover:bg-neutral'
@@ -81,7 +81,7 @@ export const StockScreener = () => {
                   <button key={val}
                     type="button"
                     onClick={() => setFilters(p => ({ ...p, sortOrder: val }))}
-                    className={`px-3 py-1 text-[11px] font-medium transition-colors border border-border first:rounded-l last:rounded-r -ml-px ${
+                    className={`px-3 py-1.5 text-[11px] font-medium transition-colors border border-border first:rounded-l last:rounded-r -ml-px ${
                       filters.sortOrder === val
                         ? 'bg-primary text-base border-primary z-10'
                         : 'bg-surface text-muted hover:bg-neutral'
@@ -94,11 +94,11 @@ export const StockScreener = () => {
           </div>
           <div className="flex gap-2">
             <button type="button" onClick={resetFilters}
-              className="px-4 py-2 bg-neutral text-[12px] font-medium hover:bg-neutral/80 transition-colors">
+              className="px-4 py-2 bg-neutral text-[12px] font-medium hover:bg-neutral/80 transition-colors rounded-lg text-primary">
               Reset
             </button>
             <button type="submit" disabled={loading}
-              className="px-5 py-2 bg-primary text-base text-[12px] font-medium flex items-center gap-2 hover:bg-primary/90 transition-colors disabled:opacity-50">
+              className="px-5 py-2 bg-accent text-white text-[12px] font-semibold flex items-center gap-2 hover:bg-accent/90 transition-colors disabled:opacity-50 rounded-lg">
               {loading && <Loader2 className="h-3 w-3 animate-spin" />}
               {loading ? 'Screening...' : 'Screen Stocks'}
             </button>
@@ -112,7 +112,7 @@ export const StockScreener = () => {
 
       {/* Results */}
       {data && (
-        <div className="bg-surface p-5 card-border">
+        <div className="bg-surface rounded-xl border border-border-light p-5">
           <div className="flex justify-between items-center mb-5 pb-3 border-b border-border-light">
             <span className="text-[10px] text-muted tracking-widest uppercase font-medium">
               {data.totalElements} result{data.totalElements !== 1 ? 's' : ''}
@@ -154,7 +154,7 @@ export const StockScreener = () => {
               <tbody>
                 {data.content.map((s: ScreenerStockResult) => (
                   <tr key={s.stockSymbol}
-                    className="hover:bg-neutral transition-colors cursor-pointer"
+                    className="hover:bg-neutral transition-colors cursor-pointer group border-t border-border-light"
                     onClick={() => navigate(`/stocks/${s.stockSymbol}`)}>
                     <td className="py-3 font-medium">{s.stockSymbol}</td>
                     <td className="py-3 text-muted-heavy">{s.stockName}</td>

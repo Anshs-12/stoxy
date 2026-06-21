@@ -4,39 +4,41 @@
 
 @layer base {
   :root {
-    --color-bg-base: #F5F5F0;
-    --color-bg-surface: #FFFFFF;
-    --color-bg-neutral: rgba(26, 26, 31, 0.04);
-    
-    --color-text-primary: #1a1a1f;
-    --color-text-muted: #6c6a5e;
-    --color-text-muted-heavy: #4a4840;
-    --color-border: rgba(26, 26, 31, 0.08);
-    --color-border-light: rgba(26, 26, 31, 0.04);
-    
-    --color-positive: #2E7D32;
-    --color-negative: #DC2626;
-    --color-accent: #ff7a3a;
+    /* ── Light Mode: Warm Almond / Deep Charcoal ── */
+    --color-bg-base: #EEE5DA;
+    --color-bg-surface: #FDFAF5;
+    --color-bg-neutral: rgba(38, 36, 36, 0.05);
 
-    --grid-color: rgba(26, 26, 31, 0.02);
+    --color-text-primary: #262424;
+    --color-text-muted: #7a7167;
+    --color-text-muted-heavy: #4a4640;
+    --color-border: rgba(38, 36, 36, 0.12);
+    --color-border-light: rgba(38, 36, 36, 0.06);
+
+    --color-positive: #2e7d32;
+    --color-negative: #c62828;
+    --color-accent: #ff4f00;
+
+    --grid-color: rgba(38, 36, 36, 0.025);
   }
 
   .dark {
-    --color-bg-base: #0b0b0f;
-    --color-bg-surface: #1a1a1f;
-    --color-bg-neutral: rgba(236, 230, 212, 0.04);
-    
-    --color-text-primary: #ece6d4;
-    --color-text-muted: #b6b1a0;
-    --color-text-muted-heavy: #d4cfc0;
-    --color-border: rgba(236, 230, 212, 0.08);
-    --color-border-light: rgba(236, 230, 212, 0.04);
-    
-    --color-positive: #6bd6b4;
-    --color-negative: #ff6b6b;
-    --color-accent: #ff7a3a;
+    /* ── Dark Mode: Deep Charcoal / Warm Almond text ── */
+    --color-bg-base: #0f0e0d;
+    --color-bg-surface: #1a1917;
+    --color-bg-neutral: rgba(238, 229, 218, 0.06);
 
-    --grid-color: rgba(236, 230, 212, 0.015);
+    --color-text-primary: #ece6d4;
+    --color-text-muted: #a09880;
+    --color-text-muted-heavy: #c8bfab;
+    --color-border: rgba(238, 229, 218, 0.10);
+    --color-border-light: rgba(238, 229, 218, 0.05);
+
+    --color-positive: #5ab870;
+    --color-negative: #e06060;
+    --color-accent: #ff4f00;
+
+    --grid-color: rgba(238, 229, 218, 0.02);
   }
 
   html {
@@ -58,17 +60,25 @@
   .card-border {
     border: 1px solid var(--color-border);
     background-color: var(--color-bg-surface);
-    transition: border-color 0.2s ease, transform 0.2s ease;
+    transition: border-color 0.2s ease, transform 0.2s ease, box-shadow 0.2s ease;
   }
   .card-border:hover {
-    border-color: var(--color-border);
+    border-color: rgba(38, 36, 36, 0.2);
     transform: translateY(-1px);
+    box-shadow: 0 4px 16px rgba(38, 36, 36, 0.08);
   }
+  .dark .card-border:hover {
+    border-color: rgba(238, 229, 218, 0.15);
+    box-shadow: 0 4px 16px rgba(0, 0, 0, 0.3);
+  }
+
   .check-light-grid {
     background-image: linear-gradient(var(--grid-color) 1px, transparent 1px),
                       linear-gradient(90deg, var(--grid-color) 1px, transparent 1px);
     background-size: 24px 24px;
   }
+
+  /* ── Animations ── */
   .fade-in {
     animation: fadeIn 0.5s ease-out forwards;
   }
@@ -83,6 +93,8 @@
     from { opacity: 0; transform: translateY(12px); }
     to { opacity: 1; transform: translateY(0); }
   }
+
+  /* ── Ticker ── */
   @keyframes ticker-scroll {
     0% { transform: translateX(0); }
     100% { transform: translateX(-50%); }
@@ -93,12 +105,16 @@
   .ticker-animate:hover {
     animation-play-state: paused;
   }
+
+  /* ── Shadows ── */
   .shadow-ambient {
-    box-shadow: 0 1px 3px rgba(0,0,0,0.04), 0 1px 2px rgba(0,0,0,0.06);
+    box-shadow: 0 1px 4px rgba(38, 36, 36, 0.06), 0 1px 2px rgba(38, 36, 36, 0.04);
   }
   .dark .shadow-ambient {
-    box-shadow: 0 1px 3px rgba(0,0,0,0.2), 0 1px 2px rgba(0,0,0,0.3);
+    box-shadow: 0 1px 4px rgba(0, 0, 0, 0.3), 0 1px 2px rgba(0, 0, 0, 0.2);
   }
+
+  /* ── Skeleton ── */
   .skeleton {
     background: var(--color-bg-neutral);
     border-radius: 4px;
@@ -109,16 +125,31 @@
     content: '';
     position: absolute;
     inset: 0;
-    background: linear-gradient(90deg, transparent, rgba(255,255,255,0.08), transparent);
+    background: linear-gradient(90deg, transparent, rgba(255,255,255,0.06), transparent);
     animation: shimmer 1.5s infinite;
   }
   @keyframes shimmer {
     0% { transform: translateX(-100%); }
     100% { transform: translateX(100%); }
   }
+
+  /* ── Accent Button ── */
+  .btn-accent {
+    background-color: var(--color-accent);
+    color: #FDFAF5;
+    border-radius: 8px;
+    font-weight: 500;
+    transition: opacity 0.15s ease, transform 0.15s ease;
+  }
+  .btn-accent:hover {
+    opacity: 0.9;
+    transform: translateY(-1px);
+  }
+
+  /* ── Scrollbar ── */
   ::-webkit-scrollbar {
-    width: 6px;
-    height: 6px;
+    width: 5px;
+    height: 5px;
   }
   ::-webkit-scrollbar-track {
     background: transparent;

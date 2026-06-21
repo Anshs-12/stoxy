@@ -89,7 +89,7 @@ export const StockDetails = () => {
           <p className="text-[9px] text-muted tracking-[0.12em] uppercase mb-3">
             {stock.listedExchangeName}: {stock.stockSymbol} &bull; {c.sector} &bull; {c.industry}
           </p>
-          <h1 className="text-3xl font-heading font-light tracking-tight leading-tight mb-3">
+          <h1 className="text-3xl font-heading font-light tracking-tight leading-tight mb-3 text-primary">
             {stock.stockName}
           </h1>
           <p className="text-sm text-muted font-sans font-light leading-relaxed">
@@ -124,17 +124,17 @@ export const StockDetails = () => {
               )}
             </div>
             <button onClick={() => { setBuyOpen(true); setSellOpen(false); setWlOpen(false); }}
-              className="px-4 py-2 bg-primary text-base text-[12px] font-medium flex items-center gap-1.5 hover:bg-primary/90 transition-colors border border-transparent">
+              className="px-4 py-2 bg-accent text-white text-[12px] font-semibold flex items-center gap-1.5 hover:bg-accent/90 transition-all rounded-lg">
               <ShoppingCart className="h-3.5 w-3.5" /> Buy
             </button>
             <button onClick={() => { setSellOpen(true); setBuyOpen(false); setWlOpen(false); }}
-              className="px-4 py-2 bg-surface text-primary text-[12px] font-medium flex items-center gap-1.5 hover:bg-neutral transition-colors border border-border">
+              className="px-4 py-2 bg-surface text-primary text-[12px] font-medium flex items-center gap-1.5 hover:bg-neutral transition-colors border border-border rounded-lg">
               Sell
             </button>
           </div>
 
           {(buyOpen || sellOpen) && (
-            <div className="mt-3 bg-surface border border-primary/8 p-4 card-border text-left">
+            <div className="mt-3 bg-surface border border-border-light rounded-xl p-4 text-left shadow-ambient">
               <div className="flex justify-between items-center mb-3">
                 <span className="text-[11px] text-muted uppercase tracking-widest">{buyOpen ? 'Buy' : 'Sell'} {symbol}</span>
                 <button onClick={() => { setBuyOpen(false); setSellOpen(false); }} className="text-muted hover:text-primary">
@@ -169,7 +169,7 @@ export const StockDetails = () => {
                   </div>
                 </div>
                 <button onClick={buyOpen ? handleBuy : handleSell} disabled={buyOpen ? buyLoading : sellLoading}
-                  className={`w-full py-2.5 text-base text-[12px] font-medium transition-colors disabled:opacity-50 flex items-center justify-center gap-2 ${buyOpen ? 'bg-primary hover:bg-primary/90' : 'bg-negative hover:bg-negative/90'}`}>
+                  className={`w-full py-2.5 text-white text-[12px] font-semibold transition-colors disabled:opacity-50 flex items-center justify-center gap-2 rounded-lg ${buyOpen ? 'bg-accent hover:bg-accent/90' : 'bg-negative hover:bg-negative/90'}`}>
                   {(buyLoading || sellLoading) && <Loader2 className="h-3.5 w-3.5 animate-spin" />}
                   Confirm {buyOpen ? 'Buy' : 'Sell'}
                 </button>
@@ -181,13 +181,12 @@ export const StockDetails = () => {
 
       <div className="grid grid-cols-12 gap-6">
         <div className="col-span-8 space-y-8">
-          <div className="bg-surface p-5 card-border">
+          <div className="bg-surface rounded-xl border border-border-light p-5">
             <div className="flex justify-between items-center mb-4">
               <h3 className="text-[10px] text-muted tracking-[0.12em] uppercase font-medium">Price Velocity</h3>
               <div className="flex gap-3 text-[10px] text-muted uppercase tracking-wider">
                 {['1D','1W','1M','1Y','ALL'].map(t => (
                   <button key={t} className={t === '1M' ? 'text-primary border-b border-primary pb-0.5' : 'hover:text-primary transition-colors'}>{t}
-                    {t}
                   </button>
                 ))}
               </div>
@@ -246,7 +245,7 @@ export const StockDetails = () => {
         </div>
 
         <div className="col-span-4 space-y-5">
-          <div className="bg-neutral border border-border-light p-5">
+          <div className="bg-neutral rounded-xl border border-border-light p-5">
             <h3 className="text-[9px] text-muted uppercase tracking-widest font-medium mb-5">Valuation Core</h3>
             <div className="space-y-4 border-b border-border-light pb-5 mb-5">
               {[
