@@ -64,8 +64,8 @@ public class StockCacheService {
         log.info("Assembling complete stock data for: {} ({})", stockRequest.getStockSymbol(), stockRequest.getIsin());
 
         //checking database first.
-        Stock stock = stockRepository.findByIsin(stockRequest.getIsin())
-                .orElseGet(() -> stockDBService.saveStockInDB(stockRequest));
+        Stock stock = stockRepository.findByUpstoxInstrumentKey(stockRequest.getInstrumentKey())
+                .orElseGet(() -> stockDBService.saveAllStockExchanges(stockRequest));
 
         // creating a DTO of the stock.
         StockDetailResponseDTO stockDTO = StockDetailResponseDTO.builder()

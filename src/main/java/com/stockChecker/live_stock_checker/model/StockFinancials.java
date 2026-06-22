@@ -1,6 +1,9 @@
 package com.stockChecker.live_stock_checker.model;
 
-import jakarta.persistence.*;
+import jakarta.persistence.Entity;
+import jakarta.persistence.GeneratedValue;
+import jakarta.persistence.GenerationType;
+import jakarta.persistence.Id;
 import lombok.AllArgsConstructor;
 import lombok.Builder;
 import lombok.Data;
@@ -29,8 +32,4 @@ public class StockFinancials {
 
     private Double roe;
     private Double sectorRoe;
-
-    @OneToOne
-    @JoinColumn(name = "stock_id")
-    private Stock stock;
 }

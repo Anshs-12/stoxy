@@ -21,7 +21,4 @@ public class Company {
     private String description;
     private String sector;
     private String sectorMarketCap; // Sector market cap in INR (crore)
-
-    @OneToOne(mappedBy = "company", cascade = CascadeType.ALL)
-    private Stock stock;
 }

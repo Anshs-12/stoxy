@@ -24,22 +24,23 @@ public class Stock {
     @GeneratedValue(strategy = GenerationType.IDENTITY)
     private Integer serialNumber;
 
-    @Column(unique = true, nullable = false)
+    @Column(nullable = false)
     private String stockSymbol;
-    @Column(unique = true, nullable = false)
+    @Column(nullable = false)
     private String stockName; // using short_name from the api
     private String exchange;
     private String segment;
     private String isin;
+
+    @Column(unique = true, nullable = false)
     private String upstoxInstrumentKey;
 
-    @OneToOne
-    @ToString.Exclude
     @JoinColumn(name = "companyInfo_id")
+    @ManyToOne(fetch = FetchType.EAGER)
     private Company company;
 
-    @ToString.Exclude
-    @OneToOne(mappedBy = "stock", cascade = {CascadeType.PERSIST, CascadeType.MERGE}, fetch = FetchType.EAGER)
+    @JoinColumn(name = "stockFinancials_id")
+    @ManyToOne(fetch = FetchType.EAGER)
     private StockFinancials stockFinancials;
 
 //    @OneToMany(mappedBy = "stock")

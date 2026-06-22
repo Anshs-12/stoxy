@@ -16,6 +16,9 @@ import lombok.extern.slf4j.Slf4j;
 import org.springframework.stereotype.Service;
 import org.springframework.web.client.RestClient;
 
+import java.util.ArrayList;
+import java.util.List;
+
 @Service
 @Slf4j
 @RequiredArgsConstructor
@@ -32,27 +35,38 @@ public class StockDBService {
     private final RestClient restClient;
     private final ObjectMapper objectMapper;
 
-    public Stock saveStockInDB(StockSearchDTO stockRequest) {
+    public Stock saveAllStockExchanges(StockSearchDTO stockRequest) {
 
-        Company company = fetchCompanyProfile(stockRequest);
-        StockFinancials stockFinancials = fetchFinancialMetrics(stockRequest);
+        List<StockSearchDTO> stockSearchList = searchUpstoxEquity(stockRequest.getIsin());
 
-        Stock stock = Stock.builder()
-                .stockName(stockRequest.getStockName())
-                .stockSymbol(stockRequest.getStockSymbol())
-                .exchange(stockRequest.getExchange())
-                .segment("EQ")
-                .isin(stockRequest.getIsin())
-                .upstoxInstrumentKey(stockRequest.getInstrumentKey())
-                .company(company)
-                .build();
-        log.info("Saving new stock to DB - symbol: {}, isin: {}", stockRequest.getStockSymbol(), stockRequest.getIsin());
-        stockRepository.save(stock);
-        stockFinancials.setStock(stock);
-        stockFinancialsRepository.save(stockFinancials);
-        log.info("Stock saved successfully - symbol: {}", stockRequest.getStockSymbol());
-        stock.setStockFinancials(stockFinancials);
-        return stock;
+        Company sharedCompanyProfile = fetchCompanyProfile(stockRequest);
+        StockFinancials sharedStockFinancials = fetchFinancialMetrics(stockRequest);
+
+        Stock requestedStock = null;
+        for (var eachStock : stockSearchList) {
+
+            Stock stock = Stock.builder()
+                    .stockName(eachStock.getStockName())
+                    .stockSymbol(eachStock.getStockSymbol())
+                    .exchange(eachStock.getExchange())
+                    .segment("EQ")
+                    .isin(eachStock.getIsin())
+                    .upstoxInstrumentKey(eachStock.getInstrumentKey())
+                    .company(sharedCompanyProfile)
+                    .stockFinancials(sharedStockFinancials)
+                    .build();
+
+            log.info("Saving new stock to DB - symbol: {}, isin: {}", eachStock.getStockSymbol(), eachStock.getIsin());
+            stockRepository.save(stock);
+            log.info("Stock saved successfully - symbol: {}", eachStock.getStockSymbol());
+            if (eachStock.getInstrumentKey().equals(stockRequest.getInstrumentKey())) {
+                requestedStock = stock;
+            }
+        }
+        if (requestedStock == null) {
+            throw new UpstoxFeedException("Requested stock not found in search results - symbol: " + stockRequest.getStockSymbol());
+        }
+        return requestedStock;
     }
 
     private Company fetchCompanyProfile(StockSearchDTO stockRequest) {
@@ -110,9 +124,42 @@ public class StockDBService {
                     }
                 }
             }
-            return stockFinancials;
+            return stockFinancialsRepository.save(stockFinancials);
         } catch (JsonProcessingException e) {
             throw new UpstoxFeedException("Failed to parse key ratios for: " + stockRequest.getIsin());
+        }
+    }
+
+    private List<StockSearchDTO> searchUpstoxEquity(String isIn) {
+        String upstoxJsonResponse = restClient.get()
+                .uri("/v2/instruments/search?query={isIn}", isIn)
+                .retrieve()
+                .body(String.class);
+        return parseUpstoxSearchResults(upstoxJsonResponse);
+    }
+
+    private List<StockSearchDTO> parseUpstoxSearchResults(String jsonResponse) {
+        try {
+            JsonNode root = objectMapper.readTree(jsonResponse);
+            if (!root.path("status").asText().equals("success")) {
+                throw new UpstoxFeedException("Error in searching via endpoint");
+            }
+            List<StockSearchDTO> upstoxResponseList = new ArrayList<>();
+            for (var eachStockNode : root.path("data")) {
+                if (!eachStockNode.path("isin").asText().startsWith("INE")) continue;
+                StockSearchDTO stockResponse = StockSearchDTO.builder()
+                        .stockSymbol(eachStockNode.path("trading_symbol").asText())
+                        .stockName(eachStockNode.path("short_name").asText())
+                        .companyName(eachStockNode.path("name").asText())
+                        .exchange(eachStockNode.path("exchange").asText())
+                        .instrumentKey(eachStockNode.path("instrument_key").asText())
+                        .isin(eachStockNode.path("isin").asText())
+                        .build();
+                upstoxResponseList.add(stockResponse);
+            }
+            return upstoxResponseList;
+        } catch (JsonProcessingException e) {
+            throw new UpstoxFeedException("Failed to parse Upstox search response");
         }
     }
 }

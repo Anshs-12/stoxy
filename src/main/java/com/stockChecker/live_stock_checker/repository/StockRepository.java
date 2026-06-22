@@ -17,7 +17,5 @@ public interface StockRepository extends JpaRepository<Stock, Integer>, JpaSpeci
     @Query("SELECT s FROM Stock s WHERE LOWER(s.stockName) LIKE LOWER(CONCAT('%', :query, '%')) OR LOWER(s.stockSymbol) LIKE LOWER(CONCAT('%', :query, '%'))")
     List<Stock> searchStocks(@Param("query") String query);
 
-    Optional<Stock> findByIsin(String isin);
-
     Optional<Stock> findByUpstoxInstrumentKey(@NotNull String instrumentKey);
 }
