@@ -20,6 +20,8 @@ public class WatchlistStockRequestDTO {
     @NotBlank
     private String instrumentKey;
     @NotNull
+    private String isin;
+    @NotNull
     @Positive
     private BigDecimal priceAddedAt;
 }

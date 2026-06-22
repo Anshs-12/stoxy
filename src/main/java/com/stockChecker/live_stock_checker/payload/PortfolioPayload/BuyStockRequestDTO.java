@@ -25,4 +25,6 @@ public class BuyStockRequestDTO {
     private BigDecimal buyPrice;
     @NotNull
     private String instrumentKey;
+    @NotNull
+    private String isin;
 }

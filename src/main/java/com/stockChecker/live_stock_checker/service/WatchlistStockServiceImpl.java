@@ -3,7 +3,6 @@ package com.stockChecker.live_stock_checker.service;
 import com.stockChecker.live_stock_checker.config.AuthUtils;
 import com.stockChecker.live_stock_checker.exceptions.ResourceExistsException;
 import com.stockChecker.live_stock_checker.exceptions.ResourceNotFoundException;
-import com.stockChecker.live_stock_checker.exceptions.StockNotFoundException;
 import com.stockChecker.live_stock_checker.mapper.WatchlistResponseMapper;
 import com.stockChecker.live_stock_checker.mapper.WatchlistStockMapper;
 import com.stockChecker.live_stock_checker.mapper.WatchlistSummaryMapper;
@@ -11,6 +10,7 @@ import com.stockChecker.live_stock_checker.model.Stock;
 import com.stockChecker.live_stock_checker.model.User;
 import com.stockChecker.live_stock_checker.model.Watchlist;
 import com.stockChecker.live_stock_checker.model.WatchlistStock;
+import com.stockChecker.live_stock_checker.payload.StockPayload.StockSearchDTO;
 import com.stockChecker.live_stock_checker.payload.WatchlistPayload.*;
 import com.stockChecker.live_stock_checker.repository.StockRepository;
 import com.stockChecker.live_stock_checker.repository.WatchlistRepository;
@@ -36,6 +36,8 @@ public class WatchlistStockServiceImpl implements WatchlistService {
     private final WatchlistStockRepository watchlistStockRepository;
 
     private final AuthUtils authUtils;
+
+    private final StockDBService stockDBService;
 
     // Mappers
     private final WatchlistSummaryMapper watchlistSummaryMapper;
@@ -79,7 +81,19 @@ public class WatchlistStockServiceImpl implements WatchlistService {
     public WatchlistStockResponseDTO addStockToWatchlist(String userEmail, Long watchlistId, WatchlistStockRequestDTO watchlistStockRequestDTO) {
 
         Stock stock = stockRepository.findByUpstoxInstrumentKey(watchlistStockRequestDTO.getInstrumentKey())
-                .orElseThrow(() -> new StockNotFoundException("Stock not found: " + watchlistStockRequestDTO.getInstrumentKey()));
+                .orElseGet(() -> {
+                    StockSearchDTO stockSearchDTO = StockSearchDTO.builder()
+                            .stockName("")
+                            .stockSymbol(watchlistStockRequestDTO.getStockSymbol())
+                            .companyName("")
+                            .exchange("")
+                            .instrumentKey(watchlistStockRequestDTO.getInstrumentKey())
+                            .isin(watchlistStockRequestDTO.getIsin())
+                            .build();
+                    log.info("Watchlist add - stock not found in DB, " +
+                            "saving new stock - instrumentKey: {}", watchlistStockRequestDTO.getInstrumentKey());
+                    return stockDBService.saveAllStockExchanges(stockSearchDTO);
+                });
 
         Watchlist watchlist = watchlistRepository.findByIdAndUser_UserMailId(watchlistId, userEmail)
                 .orElseThrow(() ->

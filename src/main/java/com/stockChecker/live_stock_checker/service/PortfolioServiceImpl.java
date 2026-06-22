@@ -3,11 +3,11 @@ package com.stockChecker.live_stock_checker.service;
 import com.stockChecker.live_stock_checker.config.AuthUtils;
 import com.stockChecker.live_stock_checker.exceptions.InsufficientQuantityException;
 import com.stockChecker.live_stock_checker.exceptions.ResourceNotFoundException;
-import com.stockChecker.live_stock_checker.exceptions.StockNotFoundException;
 import com.stockChecker.live_stock_checker.exceptions.UpstoxFeedException;
 import com.stockChecker.live_stock_checker.mapper.PortfolioTransactionMapper;
 import com.stockChecker.live_stock_checker.model.*;
 import com.stockChecker.live_stock_checker.payload.PortfolioPayload.*;
+import com.stockChecker.live_stock_checker.payload.StockPayload.StockSearchDTO;
 import com.stockChecker.live_stock_checker.payload.WebsocketPayload.LtpcDataDTO;
 import com.stockChecker.live_stock_checker.repository.PortfolioRepository;
 import com.stockChecker.live_stock_checker.repository.PortfolioStockRepository;
@@ -35,6 +35,7 @@ public class PortfolioServiceImpl implements PortfolioService {
     private final PortfolioTransactionRepository portfolioTransactionRepository;
 
     // Services
+    private final StockDBService stockDBService;
     private final PDFService pdfService;
     private final TickerService tickerService;
 
@@ -195,8 +196,19 @@ public class PortfolioServiceImpl implements PortfolioService {
 
         // getting the stock Object to fill in the details!
         Stock stock = stockRepository.findByUpstoxInstrumentKey(buyStockRequestDTO.getInstrumentKey())
-                .orElseThrow(() ->
-                        new StockNotFoundException("Stock does not exist with symbol: " + buyStockRequestDTO.getStockSymbol()));
+                .orElseGet(() -> {
+                    StockSearchDTO stockSearchDTO = StockSearchDTO.builder()
+                            .stockName("")
+                            .stockSymbol(buyStockRequestDTO.getStockSymbol())
+                            .companyName("")
+                            .exchange("")
+                            .instrumentKey(buyStockRequestDTO.getInstrumentKey())
+                            .isin(buyStockRequestDTO.getIsin())
+                            .build();
+                    log.info("Portfolio buy - stock not found in DB, " +
+                            "saving new stock - instrumentKey: {}", buyStockRequestDTO.getInstrumentKey());
+                    return stockDBService.saveAllStockExchanges(stockSearchDTO);
+                });
 
         log.info("Buying stock - user: {}, instrumentKey: {}, quantity: {}, expectedPrice: {}"
                 , userEmail, buyStockRequestDTO.getInstrumentKey(),
