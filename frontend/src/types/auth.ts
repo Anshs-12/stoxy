@@ -1,5 +1,7 @@
+// Backend: UserInfoResponseDTO
 export interface UserInfo {
-  name: string;
-  email: string;
+  userName: string;
+  userEmailId: string;
+  jwtToken: string;
   providerType: string;
 }

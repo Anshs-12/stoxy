@@ -159,13 +159,9 @@ export const StockScreener = () => {
                     <td className="py-3 font-medium">{s.stockSymbol}</td>
                     <td className="py-3 text-muted-heavy">{s.stockName}</td>
                     <td className="py-3 text-muted">{s.companyResponseDTO?.sector || '—'}</td>
-                    <td className="py-3 text-muted">{s.companyResponseDTO?.industry || '—'}</td>
                     <td className="py-3 text-right">{s.stockFinancialsDTO?.pe?.toFixed(2) || '—'}</td>
                     <td className="py-3 text-right text-muted">{s.stockFinancialsDTO?.sectorPe?.toFixed(2) || '—'}</td>
-                    <td className="py-3 text-right">{s.stockFinancialsDTO?.marketCap
-                      ? (Number(s.stockFinancialsDTO.marketCap) / 1e7).toFixed(0)
-                      : '—'}
-                    </td>
+                    <td className="py-3 text-right text-muted">{s.stockFinancialsDTO?.pb?.toFixed(2) || '—'}</td>
                   </tr>
                 ))}
               </tbody>

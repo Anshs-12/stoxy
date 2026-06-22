@@ -1,11 +1,11 @@
 import { useState, useEffect, useCallback } from 'react';
-import { watchlistApi, stocksApi } from '../lib/api';
+import { watchlistApi, stocksApi, tickerApi } from '../lib/api';
 import { WatchlistSummary, WatchlistDetail } from '../types';
 import { useToast } from '../context/ToastContext';
 
 interface LivePrice {
   symbol: string;
-  lastPrice: number;
+  ltp: number;
   pChange: number;
 }
 
@@ -16,7 +16,7 @@ export const useWatchlist = () => {
   const [loading, setLoading] = useState(true);
   const [detailLoading, setDetailLoading] = useState(false);
   const [error, setError] = useState('');
-  const [searchResults, setSearchResults] = useState<{ stockName: string; stockSymbol: string }[]>([]);
+  const [searchResults, setSearchResults] = useState<{ stockName: string; stockSymbol: string; instrumentKey: string; isin: string; exchange: string; companyName: string }[]>([]);
   const [livePrices, setLivePrices] = useState<Record<string, LivePrice>>({});
   const [livePricesLoading, setLivePricesLoading] = useState(false);
   const { addToast } = useToast();
@@ -50,25 +50,32 @@ export const useWatchlist = () => {
       const r = await watchlistApi.getById(id);
       setActiveList(r.data);
 
-      // Fetch live prices for each stock in the watchlist
+      // Fetch live prices for stocks using their instrumentKey
       setLivePricesLoading(true);
-      const symbols = r.data.watchlistStocks.map(s => s.stockSymbol);
-      const priceMap: Record<string, LivePrice> = {};
-      await Promise.allSettled(
-        symbols.map(async (sym) => {
-          try {
-            const res = await stocksApi.getDetails(sym);
-            const p = res.data.stockPriceInfoDTO;
-            priceMap[sym] = {
-              symbol: sym,
-              lastPrice: p?.lastPrice ?? 0,
-              pChange: p?.pChange ?? 0,
-            };
-          } catch (_) { /* skip unavailable symbols */ }
-        })
-      );
-      setLivePrices(priceMap);
-    } catch (err) {
+      const keys = r.data.watchlistStocks.map(s => s.instrumentKey).filter(Boolean);
+      if (keys.length > 0) {
+        try {
+          const t = await tickerApi.getLtpc(keys);
+          const liveData = t.data || {};
+          const priceMap: Record<string, LivePrice> = {};
+          r.data.watchlistStocks.forEach(s => {
+            const live = liveData[s.instrumentKey];
+            if (live) {
+              const ltpVal = Number(live.ltp);
+              const cpVal = Number(live.cp);
+              priceMap[s.stockSymbol] = {
+                symbol: s.stockSymbol,
+                ltp: ltpVal,
+                pChange: cpVal > 0 ? ((ltpVal - cpVal) / cpVal) * 100 : 0,
+              };
+            }
+          });
+          setLivePrices(priceMap);
+        } catch {
+          // non-fatal
+        }
+      }
+    } catch {
       setActiveList(null);
       addToast('Failed to load watchlist details', 'error');
     } finally {
@@ -84,7 +91,7 @@ export const useWatchlist = () => {
       await loadLists();
       addToast('Watchlist created', 'success');
       return true;
-    } catch (err) {
+    } catch {
       addToast('Failed to create watchlist', 'error');
       return false;
     }
@@ -101,18 +108,19 @@ export const useWatchlist = () => {
       await loadLists();
       addToast('Watchlist deleted', 'success');
       return true;
-    } catch (err) {
+    } catch {
       addToast('Failed to delete watchlist', 'error');
       return false;
     }
   };
 
-  const addStock = async (symbol: string) => {
+  // WatchlistStockRequestDTO: { stockSymbol, instrumentKey, priceAddedAt }
+  const addStock = async (stockSymbol: string, instrumentKey: string, priceAddedAt: number) => {
     if (!activeId) return false;
     try {
-      await watchlistApi.addStock(activeId, symbol);
+      await watchlistApi.addStock(activeId, stockSymbol, instrumentKey, priceAddedAt);
       await loadDetail(activeId);
-      addToast(`Added ${symbol} to watchlist`, 'success');
+      addToast(`Added ${stockSymbol} to watchlist`, 'success');
       return true;
     } catch (err: any) {
       addToast(err.response?.data?.message || 'Failed to add stock', 'error');
@@ -120,19 +128,20 @@ export const useWatchlist = () => {
     }
   };
 
-  const removeStock = async (symbol: string) => {
+  const removeStock = async (instrumentKey: string) => {
     if (!activeId) return false;
     try {
-      await watchlistApi.removeStock(activeId, symbol);
+      await watchlistApi.removeStock(activeId, instrumentKey);
       await loadDetail(activeId);
-      addToast(`Removed ${symbol} from watchlist`, 'info');
+      addToast('Removed stock from watchlist', 'info');
       return true;
-    } catch (err) {
+    } catch {
       addToast('Failed to remove stock', 'error');
       return false;
     }
   };
 
+  // Returns full StockSearchResult objects so callers have instrumentKey + isin
   const searchStocks = useCallback(async (query: string) => {
     if (query.length < 2) {
       setSearchResults([]);
@@ -140,9 +149,9 @@ export const useWatchlist = () => {
     }
     try {
       const r = await stocksApi.search(query, 0, 5);
-      setSearchResults(r.data.content || []);
-    } catch (err) {
-      console.error('Failed to search stocks', err);
+      setSearchResults(r.data.content as any);
+    } catch {
+      // non-fatal
     }
   }, []);
 

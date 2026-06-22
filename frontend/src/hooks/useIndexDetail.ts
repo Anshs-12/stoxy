@@ -11,7 +11,7 @@ export const useIndexDetail = (symbol: string | undefined) => {
     if (!symbol) return;
     setLoading(true);
     try {
-      const r = await indexApi.getBySymbol(decodeURIComponent(symbol));
+      const r = await indexApi.getByInstrumentKey(decodeURIComponent(symbol));
       setIndex(r.data);
       setError('');
     } catch (err: any) {

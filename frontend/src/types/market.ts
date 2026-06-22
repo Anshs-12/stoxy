@@ -1,24 +1,31 @@
+// Backend: IndexPriceInfoDTO
 export interface IndexPriceInfo {
-  lastPrice: number;
-  change: number;
-  pChange: number;
+  ffmc: number;
+  indexSymbol: string;
   open: number;
+  lastPrice: number;
+  previousClose: number;
+  totalTradedVolume: number;
+  totalTradedValue: number;
   dayHigh: number;
   dayLow: number;
+  change: number;
+  pChange: number;
   yearHigh: number;
   yearLow: number;
-  totalTradedVolume: number;
-  indexSymbol: string;
+  nearWKH: number;
+  nearWKL: number;
 }
 
+// Backend: IndexAdvanceDTO
 export interface IndexAdvance {
   advances: number;
   declines: number;
   unChanged: number;
 }
 
+// Backend: IndexMetadataDTO
 export interface IndexMetadata {
-  indexIdentifier: string;
   indexPriority: number;
   numberOfConstituents: number;
   launchDate: string;
@@ -28,10 +35,26 @@ export interface IndexMetadata {
   isActive: boolean;
 }
 
+// Backend: IndexDetailResponseDTO
 export interface IndexDetail {
-  name: string;
-  time: string;
-  indexPriceInfoDTO: IndexPriceInfo;
-  indexAdvanceDTO: IndexAdvance;
+  indexName: string;
+  indexSymbol: string;
+  instrumentKey: string;
   indexMetadataDTO: IndexMetadata;
+  indexAdvanceDTO: IndexAdvance | null;
+  indexPriceInfoDTO: IndexPriceInfo | null;
+}
+
+// Backend: IndexSearchDTO (inside IndexSearchResponseDTO.indexSearchDTOList)
+export interface IndexSearchResult {
+  indexName: string;
+  indexSymbol: string;
+  exchange: string;
+  segment: string;
+  instrumentKey: string;
+}
+
+// Backend: IndexSearchResponseDTO
+export interface IndexSearchResponse {
+  indexSearchDTOList: IndexSearchResult[];
 }

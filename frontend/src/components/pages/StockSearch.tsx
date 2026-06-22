@@ -2,17 +2,12 @@ import { useState, useEffect } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { Search, Loader2 } from 'lucide-react';
 import { stocksApi } from '../../lib/api';
-
-interface StockResult { stockName: string; stockSymbol: string; }
-interface SearchResponse {
-  content: StockResult[];
-  pageNumber: number; pageSize: number; totalElements: number; totalPages: number;
-}
+import { StockSearchResponse } from '../../types';
 
 export const StockSearch = () => {
   const navigate = useNavigate();
   const [query, setQuery] = useState('');
-  const [data, setData] = useState<SearchResponse | null>(null);
+  const [data, setData] = useState<StockSearchResponse | null>(null);
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState('');
   const [page, setPage] = useState(0);
@@ -63,31 +58,36 @@ export const StockSearch = () => {
         <div className="bg-surface rounded-xl border border-border-light p-5">
           <div className="flex justify-between items-center mb-4 pb-3 border-b border-border-light">
             <span className="text-[10px] text-muted tracking-widest uppercase font-medium">
-              {data.totalElements} result{data.totalElements !== 1 ? 's' : ''} found
+              {data.content.length} result{data.content.length !== 1 ? 's' : ''} found
             </span>
-            {data.totalPages > 1 && (
-              <div className="flex items-center gap-2 text-[11px]">
-                <button disabled={page === 0} onClick={() => setPage(p => p - 1)}
-                  className="px-2 py-1 bg-neutral disabled:opacity-30">← Prev</button>
-                <span className="text-muted">Page {page + 1} of {data.totalPages}</span>
-                <button disabled={page >= data.totalPages - 1} onClick={() => setPage(p => p + 1)}
-                  className="px-2 py-1 bg-neutral disabled:opacity-30">Next →</button>
-              </div>
-            )}
+            {/* pagination not supported by backend */}
           </div>
           <table className="w-full text-[13px] font-sans">
             <thead>
               <tr className="text-[9px] text-muted tracking-widest uppercase text-left">
                 <th className="pb-3 font-medium">SYMBOL</th>
                 <th className="pb-3 font-medium">NAME</th>
+                <th className="pb-3 font-medium">COMPANY</th>
+                <th className="pb-3 font-medium">EXCHANGE</th>
               </tr>
             </thead>
             <tbody>
               {data.content.map((s) => (
                 <tr key={s.stockSymbol} className="hover:bg-neutral transition-colors cursor-pointer border-t border-border-light"
-                    onClick={() => navigate(`/stocks/${s.stockSymbol}`)}>
-                  <td className="py-3 font-medium text-primary group-hover:text-accent transition-colors">{s.stockSymbol}</td>
+                    onClick={() => navigate(`/stocks/${s.stockSymbol}`, { state: s })}>
+                  <td className="py-3">
+                    <div className="font-medium text-primary">{s.stockSymbol}</div>
+                    <div className="text-[10px] text-muted mt-0.5">{s.isin || ''}</div>
+                  </td>
                   <td className="py-3 text-muted">{s.stockName}</td>
+                  <td className="py-3 text-muted text-[12px]">{s.companyName || '—'}</td>
+                  <td className="py-3">
+                    {s.exchange && (
+                      <span className={`text-[8px] font-bold px-1.5 py-0.5 rounded ${
+                        s.exchange === 'BSE' ? 'bg-amber-500/15 text-amber-500' : 'bg-accent/15 text-accent'
+                      }`}>{s.exchange}</span>
+                    )}
+                  </td>
                 </tr>
               ))}
             </tbody>

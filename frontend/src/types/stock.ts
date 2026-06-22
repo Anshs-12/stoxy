@@ -1,62 +1,53 @@
+// ── Stock Search ──
+// Backend: StockSearchDTO (used both as request and in search response)
+export interface StockSearchResult {
+  stockName: string;
+  stockSymbol: string;
+  companyName: string;
+  exchange: string;
+  instrumentKey: string;
+  isin: string;
+}
+
+// Backend: StockSearchResponseDTO
+export interface StockSearchResponse {
+  content: StockSearchResult[];
+}
+
+// ── Stock Detail ──
+// Backend: CompanyResponseDTO
 export interface CompanyInfo {
   companyName: string;
-  aboutCompany: string;
-  isIN: string;
-  subIndustry: string;
-  industry: string;
+  description: string;
   sector: string;
-  listingDate: string;
+  sectorMarketCap: string;
 }
 
-export interface StockPriceInfo {
-  lastPrice: number;
-  change: number;
-  pChange: number;
-  previousClose: number;
-  open: number;
-  close: number;
-  dayHigh: number;
-  dayLow: number;
-  weekHigh: number;
-  weekLow: number;
-  weekHighDate: string;
-  weekLowDate: string;
-  lowerCP: number;
-  upperCP: number;
-  basePrice: number;
-}
-
+// Backend: StockFinancialsDTO
 export interface StockFinancials {
   pe: number;
   sectorPe: number;
-  faceValue: number;
-  issuedSize: number;
-  marketCap: number;
+  pb: number;
+  sectorPb: number;
+  roa: number;
+  sectorRoa: number;
+  roe: number;
+  sectorRoe: number;
 }
 
+// Backend: StockDetailResponseDTO
 export interface StockDetail {
   stockName: string;
   stockSymbol: string;
-  listedExchangeName: string;
-  stockWebsite: string;
-  stockPriceInfoDTO: StockPriceInfo;
+  exchange: string;
+  isin: string;
+  instrumentKey: string;
   stockFinancialsDTO: StockFinancials;
   companyResponseDTO: CompanyInfo;
 }
 
-export interface StockSearchResult {
-  stockName: string;
-  stockSymbol: string;
-}
-
-export interface StockSearchResponse {
-  content: StockSearchResult[];
-  pageNumber: number;
-  pageSize: number;
-  totalElements: number;
-  totalPages: number;
-}
-
+// ── Screener ──
+// Backend: StockScreenerResponseDTO
 export interface ScreenerStockResult {
   stockName: string;
   stockSymbol: string;
@@ -64,10 +55,46 @@ export interface ScreenerStockResult {
   stockFinancialsDTO: StockFinancials;
 }
 
+// Backend: StockScreenerDTO
 export interface ScreenerResponse {
   content: ScreenerStockResult[];
   pageNumber: number;
   pageSize: number;
   totalElements: number;
   totalPages: number;
+  isFirst: boolean;
+  isLast: boolean;
+}
+
+// ── Ticker ──
+// Backend: LtpcDataDTO
+export interface LtpcData {
+  instrumentKey: string;
+  ltp: number;
+  ltt: number;
+  cp: number;
+}
+
+// Backend: FullFeedDataDTO (QuoteDTO market levels)
+export interface QuoteLevel {
+  bidQ: number;
+  bidP: number;
+  askQ: number;
+  askP: number;
+}
+
+export interface FullFeedData {
+  instrumentKey: string;
+  ltp: number;
+  ltt: number;
+  cp: number;
+  marketLevel: QuoteLevel[];
+  atp: number;
+  vtt: number;
+  oi: number | null;
+  iv: number | null;
+  tbq: number;
+  tsq: number;
+  upper_circuit: number;
+  lower_circuit: number;
 }

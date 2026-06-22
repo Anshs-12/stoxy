@@ -4,7 +4,14 @@ import { Search, Bell, User, ChevronDown, LogOut, Menu, Moon, Sun } from 'lucide
 import { stocksApi } from '../../lib/api';
 import { useAuth } from '../../context/AuthContext';
 import { useTheme } from '../../context/ThemeContext';
-interface SearchResult { stockName: string; stockSymbol: string; }
+interface SearchResult {
+  stockName: string;
+  stockSymbol: string;
+  exchange: string;
+  companyName: string;
+  instrumentKey: string;
+  isin: string;
+}
 
 export const Header = ({ onMenuClick }: { onMenuClick?: () => void }) => {
   const [query, setQuery] = useState('');
@@ -40,9 +47,9 @@ export const Header = ({ onMenuClick }: { onMenuClick?: () => void }) => {
     return () => document.removeEventListener('mousedown', handler);
   }, []);
 
-  const selectStock = (symbol: string) => {
+  const selectStock = (stock: SearchResult) => {
     setQuery(''); setShowDropdown(false);
-    navigate(`/stocks/${symbol}`);
+    navigate(`/stocks/${stock.stockSymbol}`, { state: stock });
   };
 
   const handleLogout = () => {
@@ -89,10 +96,20 @@ export const Header = ({ onMenuClick }: { onMenuClick?: () => void }) => {
           {showDropdown && results.length > 0 && (
             <div className="absolute top-full left-0 right-0 mt-1 bg-surface border border-border rounded-md z-50 max-h-80 overflow-y-auto shadow-ambient">
               {results.map((r) => (
-                <button key={r.stockSymbol} onClick={() => selectStock(r.stockSymbol)}
-                  className="w-full text-left px-4 py-2.5 hover:bg-neutral transition-colors flex justify-between items-center group">
-                  <span className="text-[13px] font-medium text-primary">{r.stockName}</span>
-                  <span className="text-[11px] text-muted font-mono tracking-wider">{r.stockSymbol}</span>
+                <button key={r.stockSymbol} onClick={() => selectStock(r)}
+                  className="w-full text-left px-4 py-2.5 hover:bg-neutral transition-colors flex justify-between items-center gap-2">
+                  <div className="min-w-0">
+                    <div className="text-[13px] font-medium text-primary truncate">{r.stockName}</div>
+                    <div className="text-[10px] text-muted">{r.companyName || r.stockName}</div>
+                  </div>
+                  <div className="flex items-center gap-1.5 flex-shrink-0">
+                    <span className="text-[10px] font-mono text-muted tracking-wider">{r.stockSymbol}</span>
+                    {r.exchange && (
+                      <span className={`text-[8px] font-bold px-1.5 py-0.5 rounded ${
+                        r.exchange === 'BSE' ? 'bg-amber-500/15 text-amber-500' : 'bg-accent/15 text-accent'
+                      }`}>{r.exchange}</span>
+                    )}
+                  </div>
                 </button>
               ))}
             </div>

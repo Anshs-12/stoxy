@@ -36,7 +36,6 @@ const MiniChart = ({ data, color }: { data: { v: number }[]; color: string }) =>
   );
 };
 
-const INDEX_SYMBOLS = ['NIFTY 50', 'NIFTY BANK', 'NIFTY NEXT 50'];
 
 export const Dashboard = () => {
   const navigate = useNavigate();
@@ -122,10 +121,10 @@ export const Dashboard = () => {
         {indices.map((idx, i) => {
           const p = idx.indexPriceInfoDTO;
           const isUp = (p?.change ?? 0) >= 0;
-          const chart = dayRangeChart(p?.dayLow, p?.dayHigh, p?.lastPrice);
+          const chart = dayRangeChart(p?.dayLow ?? 0, p?.dayHigh ?? 0, p?.lastPrice ?? 0);
           const changeColor = isUp ? (isDark ? '#5ab870' : '#2e7d32') : (isDark ? '#e06060' : '#c62828');
           return (
-            <Link to={`/index/${encodeURIComponent(INDEX_SYMBOLS[i])}`} key={idx.name}
+            <Link to={`/index/${encodeURIComponent(idx.instrumentKey)}`} key={idx.indexName}
               className={`group bg-surface card-border rounded-xl p-6 transition-all duration-300 cursor-pointer fade-in-up`}
               style={{ animationDelay: `${i * 0.12 + 0.2}s`, opacity: 0 }}>
               <div className="flex items-start justify-between mb-1">
@@ -133,7 +132,7 @@ export const Dashboard = () => {
                   <div className={`h-6 w-6 rounded-md flex items-center justify-center ${isUp ? 'bg-positive/10' : 'bg-negative/10'}`}>
                     {isUp ? <TrendingUp className="h-3.5 w-3.5 text-positive" /> : <TrendingDown className="h-3.5 w-3.5 text-negative" />}
                   </div>
-                  <span className="text-[10px] font-mono text-muted tracking-wider uppercase">{idx.name}</span>
+                  <span className="text-[10px] font-mono text-muted tracking-wider uppercase">{idx.indexName}</span>
                 </div>
                 <ArrowUpRight className="h-4 w-4 text-muted opacity-0 group-hover:opacity-100 transition-opacity" />
               </div>
@@ -199,14 +198,14 @@ export const Dashboard = () => {
                 </tr>
               </thead>
               <tbody>
-                {indices.map((idx, i) => {
+                {indices.map((idx) => {
                   const p = idx.indexPriceInfoDTO;
                   const pChg = p?.pChange;
                   const isUp = (pChg ?? 0) >= 0;
                   return (
-                    <tr key={idx.name} onClick={() => navigate(`/index/${encodeURIComponent(INDEX_SYMBOLS[i])}`)}
+                    <tr key={idx.indexName} onClick={() => navigate(`/index/${encodeURIComponent(idx.instrumentKey)}`)}
                       className="hover:bg-neutral transition-colors cursor-pointer group border-t border-border-light">
-                      <td className="py-3.5 font-medium group-hover:text-accent transition-colors">{idx.name}</td>
+                      <td className="py-3.5 font-medium group-hover:text-accent transition-colors">{idx.indexName}</td>
                       <td className="py-3.5 text-right text-muted-heavy">{fmt(p?.lastPrice)}</td>
                       <td className="py-3.5 text-right text-muted">{fmt(p?.open)}</td>
                       <td className="py-3.5 text-right text-muted">{fmt(p?.dayHigh)}</td>

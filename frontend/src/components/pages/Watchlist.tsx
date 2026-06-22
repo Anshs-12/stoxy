@@ -41,8 +41,10 @@ export const Watchlist = () => {
     if (success) setDeleteConfirmId(null);
   };
 
-  const handleAddStock = async (symbol: string) => {
-    const success = await addStock(symbol);
+  const handleAddStock = async (s: { stockSymbol: string; instrumentKey: string }) => {
+    // WatchlistStockRequestDTO needs stockSymbol, instrumentKey, priceAddedAt
+    // priceAddedAt=0 means we don't have a live price at add time — acceptable
+    const success = await addStock(s.stockSymbol, s.instrumentKey, 0);
     if (success) setAddSymbol('');
   };
 
@@ -171,7 +173,7 @@ export const Watchlist = () => {
                   {searchResults.length > 0 && (
                     <div className="absolute top-full right-0 mt-1 bg-surface card-border border border-border-light rounded z-50 w-64 max-h-48 overflow-y-auto">
                       {searchResults.map((s) => (
-                        <button key={s.stockSymbol} onClick={() => handleAddStock(s.stockSymbol)}
+                        <button key={s.stockSymbol} onClick={() => handleAddStock(s as any)}
                           className="w-full text-left px-3 py-2 hover:bg-neutral transition-colors flex justify-between">
                           <span className="text-[12px]">{s.stockName}</span>
                           <span className="text-[10px] text-muted">{s.stockSymbol}</span>
@@ -212,7 +214,7 @@ export const Watchlist = () => {
                             ₹{fmt(s.priceAddedAt)}
                           </td>
                           <td className="py-3 text-right font-medium">
-                            {live ? `₹${fmt(live.lastPrice)}` : (
+                            {live ? `₹${fmt(live.ltp)}` : (
                               <span className="text-muted text-[11px]">—</span>
                             )}
                           </td>
@@ -230,7 +232,7 @@ export const Watchlist = () => {
                             )}
                           </td>
                           <td className="py-3 text-right">
-                            <button onClick={() => removeStock(s.stockSymbol)}
+                            <button onClick={() => removeStock(s.instrumentKey)}
                               className="text-muted hover:text-negative transition-colors opacity-0 group-hover:opacity-100">
                               <Trash2 className="h-3.5 w-3.5" />
                             </button>

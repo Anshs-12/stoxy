@@ -37,7 +37,7 @@ export const NSEIndexDetail = () => {
   const m = index.indexMetadataDTO;
   const adv = index.indexAdvanceDTO;
   const isUp = (p?.change ?? 0) >= 0;
-  const chart = dayChart(p?.dayLow, p?.dayHigh, p?.lastPrice);
+  const chart = dayChart(p?.dayLow ?? 0, p?.dayHigh ?? 0, p?.lastPrice ?? 0);
   const totalAD = (adv?.advances ?? 0) + (adv?.declines ?? 0);
   const advPct = totalAD > 0 ? Math.round((adv!.advances / totalAD) * 100) : 50;
 
@@ -50,7 +50,7 @@ export const NSEIndexDetail = () => {
       <div className="flex justify-between items-start gap-8">
         <div className="flex-1">
           <p className="text-[9px] text-muted tracking-[0.12em] uppercase mb-3 font-medium">NSE India · Benchmark Index</p>
-          <h1 className="text-3xl font-heading font-light tracking-tight leading-tight">{index.name}</h1>
+          <h1 className="text-3xl font-heading font-light tracking-tight leading-tight">{index.indexName}</h1>
           <p className="text-sm text-muted font-sans mt-2">
             {m?.numberOfConstituents} constituents · Base: {m?.baseDate}
           </p>
@@ -60,7 +60,7 @@ export const NSEIndexDetail = () => {
           <div className={`text-[13px] font-medium mt-1 ${getChangeColor(p?.change)}`}>
             {isUp ? '↗' : '↘'} {isUp ? '+' : ''}{fmt(p?.change)} ({isUp ? '+' : ''}{fmt(p?.pChange)}%)
           </div>
-          <div className="text-[11px] text-muted mt-1">as of {index.time}</div>
+          <div className="text-[11px] text-muted mt-1">{index.instrumentKey}</div>
         </div>
       </div>
 
@@ -179,7 +179,7 @@ export const NSEIndexDetail = () => {
                   { l: 'Constituents', v: m.numberOfConstituents },
                   { l: 'Launch Date', v: m.launchDate },
                   { l: 'Base Date', v: m.baseDate },
-                  { l: 'Identifier', v: m.indexIdentifier },
+                  { l: 'Methodology', v: m.methodology },
                 ].map(item => (
                   <div key={item.l} className="flex justify-between">
                     <span className="text-muted">{item.l}</span>

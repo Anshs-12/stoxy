@@ -9,18 +9,15 @@ interface TickerItem {
   change: number;
 }
 
-const FALLBACK_ITEMS: TickerItem[] = [
-  { id: 'nifty', symbol: 'NIFTY 50', price: '—', change: 0 },
-  { id: 'bank', symbol: 'NIFTY BANK', price: '—', change: 0 },
-  { id: 'next50', symbol: 'NIFTY NEXT 50', price: '—', change: 0 },
+const INDEX_INSTRUMENTS = [
+  { id: 'sensex', symbol: 'SENSEX', key: 'BSE_INDEX|SENSEX' },
+  { id: 'sensex50', symbol: 'SENSEX 50', key: 'BSE_INDEX|SENSEX50' },
+  { id: 'nifty', symbol: 'NIFTY 50', key: 'NSE_INDEX|Nifty 50' }
 ];
 
-const INDEX_SYMBOLS = ['NIFTY 50', 'NIFTY BANK', 'NIFTY NEXT 50'];
-const MAP_KEY: Record<string, string> = {
-  'NIFTY 50': 'nifty',
-  'NIFTY BANK': 'bank',
-  'NIFTY NEXT 50': 'next50',
-};
+const FALLBACK_ITEMS: TickerItem[] = INDEX_INSTRUMENTS.map(i => ({
+  id: i.id, symbol: i.symbol, price: '—', change: 0
+}));
 
 export const MarketTicker = () => {
   const [items, setItems] = useState<TickerItem[]>([]);
@@ -29,20 +26,29 @@ export const MarketTicker = () => {
     let cancelled = false;
     const fetchIndices = async () => {
       try {
-        const results = await Promise.all(
-          INDEX_SYMBOLS.map(s => indexApi.getBySymbol(s))
+        const results = await Promise.allSettled(
+          INDEX_INSTRUMENTS.map(item => indexApi.getByInstrumentKey(item.key))
         );
         if (cancelled) return;
-        const live: TickerItem[] = results.map(r => {
-          const p = r.data.indexPriceInfoDTO;
-          return {
-            id: MAP_KEY[r.data.name] || r.data.name,
-            symbol: r.data.name,
-            price: p?.lastPrice ? fmt(p.lastPrice) : '—',
-            change: p?.change ?? 0,
-          };
-        });
-        setItems(live);
+        
+        const live: TickerItem[] = results
+          .filter((r): r is PromiseFulfilledResult<any> => r.status === 'fulfilled')
+          .map((r, idx) => {
+            const data = r.value.data;
+            const p = data.indexPriceInfoDTO;
+            return {
+              id: INDEX_INSTRUMENTS[idx].id,
+              symbol: data.indexName || INDEX_INSTRUMENTS[idx].symbol,
+              price: p?.lastPrice ? fmt(p.lastPrice) : '—',
+              change: p?.pChange ?? 0,
+            };
+          });
+          
+        if (live.length > 0) {
+          setItems(live);
+        } else {
+          setItems(FALLBACK_ITEMS);
+        }
       } catch {
         if (!cancelled) setItems(FALLBACK_ITEMS);
       }
@@ -54,13 +60,14 @@ export const MarketTicker = () => {
 
   if (items.length === 0) return null;
 
-  const repeated = [...items, ...items];
+  // We create enough repetitions so the marquee can scroll seamlessly.
+  const repeated = Array(10).fill(items).flat();
 
   return (
-    <div className="w-full bg-neutral/80 border-b border-border-light overflow-hidden">
-      <div className="ticker-animate flex items-center gap-8 py-2 px-4 whitespace-nowrap">
+    <div className="w-full bg-neutral/80 border-b border-border-light overflow-hidden flex">
+      <div className="ticker-animate flex items-center w-max whitespace-nowrap">
         {repeated.map((item, i) => (
-          <div key={`${item.id}-${i}`} className="flex items-center gap-2.5 text-[12px] font-mono flex-shrink-0">
+          <div key={`${item.id}-${i}`} className="flex items-center gap-2.5 text-[12px] font-mono flex-shrink-0 px-4">
             <span className="text-muted-heavy font-medium tracking-wide">{item.symbol}</span>
             <span className="text-primary font-medium">{item.price}</span>
             <span className={`font-semibold ${getChangeColor(item.change)}`}>

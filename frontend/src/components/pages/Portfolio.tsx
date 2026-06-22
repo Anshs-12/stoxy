@@ -1,7 +1,6 @@
 import { useEffect, useState, useRef } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { Loader2, Plus, Minus, ChevronDown, List, RefreshCw, Download, X } from 'lucide-react';
-import { stocksApi } from '../../lib/api';
 import { PortfolioStock } from '../../types';
 import { usePortfolio } from '../../hooks/usePortfolio';
 import { fmt, fmtCr, getChangeColor } from '../../lib/utils';
@@ -19,7 +18,7 @@ const TradeModal = ({ type, stock, onClose, onConfirm, loadingLTP }: TradeModalP
   if (!stock) return null;
 
   const qty = Math.max(1, parseInt(qtyStr, 10) || 1);
-  const total = qty * (stock.LTP || 0);
+  const total = qty * (stock.ltp || 0);
   const overSell = type === 'sell' && qty > stock.totalQuantity;
 
   const handleQtyChange = (val: string) => {
@@ -78,7 +77,7 @@ const TradeModal = ({ type, stock, onClose, onConfirm, loadingLTP }: TradeModalP
                   <Loader2 className="h-3 w-3 animate-spin" /> fetching...
                 </span>
               ) : (
-                <span className="font-medium text-primary">₹{fmt(stock.LTP)}</span>
+                <span className="font-medium text-primary">₹{fmt(stock.ltp)}</span>
               )}
             </div>
             <div className="flex justify-between text-[13px]">
@@ -146,38 +145,26 @@ export const Portfolio = () => {
     return () => clearTimeout(buyTimerRef.current);
   }, [buySearch, searchStocks]);
 
-  const openBuyModal = (symbol: string, stockName: string, existingLTP?: number) => {
+  const openBuyModal = (stockSymbol: string, stockName: string, existingLtp?: number) => {
     const skeleton: PortfolioStock = {
-      stockSymbol: symbol, stockName, LTP: existingLTP || 0,
+      stockSymbol, stockName, ltp: existingLtp || 0,
       totalQuantity: 0, avgBuyingPrice: 0, currentValue: 0,
+      instrumentKey: '',
       investedAmount: 0, unrealizedPnL: 0, unrealizedPnLPercent: 0,
       dayPnL: 0, dayPnLPercent: 0
     };
-
     setTradeModal({ type: 'buy', stock: skeleton });
-
-    if (!existingLTP || existingLTP <= 0) {
-      setLoadingLTP(true);
-      stocksApi.getDetails(symbol)
-        .then(r => {
-          const ltp = r.data.stockPriceInfoDTO?.lastPrice ?? 0;
-          setTradeModal(prev => prev ? { ...prev, stock: { ...skeleton, LTP: ltp } } : null);
-        })
-        .catch(() => {
-          setTradeModal(prev => prev ? { ...prev, stock: { ...skeleton, LTP: 0 } } : null);
-        })
-        .finally(() => setLoadingLTP(false));
-    }
   };
 
   const handleTrade = async (symbol: string, quantity: number) => {
+    const stock = tradeModal?.stock;
+    if (!stock) return;
+    const price = stock.ltp || 0;
+    const instrumentKey = stock.instrumentKey || '';
     const success = tradeModal?.type === 'buy'
-      ? await buyStock(symbol, quantity)
-      : await sellStock(symbol, quantity);
-
-    if (success) {
-      setTradeModal(null);
-    }
+      ? await buyStock(symbol, quantity, price, instrumentKey)
+      : await sellStock(symbol, quantity, price, instrumentKey);
+    if (success) setTradeModal(null);
   };
 
   const toggleTx = () => {
@@ -361,7 +348,7 @@ export const Portfolio = () => {
                     </td>
                     <td className="py-3 text-right text-primary">{s.totalQuantity}</td>
                     <td className="py-3 text-right text-muted">₹{fmt(s.avgBuyingPrice)}</td>
-                    <td className="py-3 text-right font-medium text-primary">₹{fmt(s.LTP)}</td>
+                    <td className="py-3 text-right font-medium text-primary">₹{fmt(s.ltp)}</td>
                     <td className="py-3 text-right text-muted">₹{fmt(s.investedAmount)}</td>
                     <td className="py-3 text-right text-primary">₹{fmt(s.currentValue)}</td>
                     <td className={`py-3 text-right font-medium ${getChangeColor(s.unrealizedPnL)}`}>
@@ -453,15 +440,15 @@ export const Portfolio = () => {
               </thead>
               <tbody>
                 {txHistory.map((tx, i) => (
-                  <tr key={`${tx.stockSymbol}-${tx.transactionDate}-${i}`} className="hover:bg-neutral transition-colors border-t border-border-light">
+                  <tr key={`${tx.stockSymbol}-${tx.transactionAt}-${i}`} className="hover:bg-neutral transition-colors border-t border-border-light">
                     <td className="py-2.5 font-medium text-primary">{tx.stockSymbol}</td>
-                    <td className={`py-2.5 font-semibold text-[12px] ${tx.transactionType === 'BUY' ? 'text-positive' : 'text-negative'}`}>
-                      {tx.transactionType}
+                    <td className={`py-2.5 font-semibold text-[12px] ${tx.type === 'BUY' ? 'text-positive' : 'text-negative'}`}>
+                      {tx.type}
                     </td>
                     <td className="py-2.5 text-right text-primary">{tx.quantity}</td>
                     <td className="py-2.5 text-right text-muted-heavy">₹{fmt(tx.price)}</td>
                     <td className="py-2.5 text-right text-muted text-[11px]">
-                      {new Date(tx.transactionDate).toLocaleDateString('en-IN', { day: 'numeric', month: 'short', year: 'numeric' })}
+                      {new Date(tx.transactionAt).toLocaleDateString('en-IN', { day: 'numeric', month: 'short', year: 'numeric' })}
                     </td>
                   </tr>
                 ))}

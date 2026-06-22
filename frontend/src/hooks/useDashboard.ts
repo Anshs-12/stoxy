@@ -2,7 +2,11 @@ import { useState, useEffect, useCallback } from 'react';
 import { indexApi } from '../lib/api';
 import { IndexDetail } from '../types';
 
-const INDEX_SYMBOLS = ['NIFTY 50', 'NIFTY BANK', 'NIFTY NEXT 50'];
+export const INDEX_INSTRUMENTS = [
+  { symbol: 'SENSEX', key: 'BSE_INDEX|SENSEX' },
+  { symbol: 'SENSEX 50', key: 'BSE_INDEX|SENSEX50' },
+  { symbol: 'NIFTY 50', key: 'NSE_INDEX|Nifty 50' }
+];
 
 export const useDashboard = () => {
   const [indices, setIndices] = useState<IndexDetail[]>([]);
@@ -13,8 +17,13 @@ export const useDashboard = () => {
     setLoading(true);
     setError('');
     try {
-      const results = await Promise.all(INDEX_SYMBOLS.map(s => indexApi.getBySymbol(s)));
-      setIndices(results.map(r => r.data));
+      const results = await Promise.allSettled(
+        INDEX_INSTRUMENTS.map(i => indexApi.getByInstrumentKey(i.key))
+      );
+      const successfulIndices = results
+        .filter((r): r is PromiseFulfilledResult<any> => r.status === 'fulfilled')
+        .map(r => r.value.data);
+      setIndices(successfulIndices);
     } catch (err: any) {
       const status = err.response?.status;
       if (!status) {
