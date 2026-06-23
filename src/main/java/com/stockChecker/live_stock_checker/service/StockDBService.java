@@ -11,6 +11,7 @@ import com.stockChecker.live_stock_checker.payload.StockPayload.StockSearchDTO;
 import com.stockChecker.live_stock_checker.repository.CompanyRepository;
 import com.stockChecker.live_stock_checker.repository.StockFinancialsRepository;
 import com.stockChecker.live_stock_checker.repository.StockRepository;
+import jakarta.transaction.Transactional;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.stereotype.Service;
@@ -35,6 +36,7 @@ public class StockDBService {
     private final RestClient restClient;
     private final ObjectMapper objectMapper;
 
+    @Transactional
     public Stock saveAllStockExchanges(StockSearchDTO stockRequest) {
 
         List<StockSearchDTO> stockSearchList = searchUpstoxEquity(stockRequest.getIsin());
@@ -44,6 +46,9 @@ public class StockDBService {
 
         Stock requestedStock = null;
         for (var eachStock : stockSearchList) {
+
+            if (stockRepository.findByUpstoxInstrumentKey(eachStock.getInstrumentKey()).isPresent())
+                continue;
 
             Stock stock = Stock.builder()
                     .stockName(eachStock.getStockName())
