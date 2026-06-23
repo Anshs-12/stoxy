@@ -17,14 +17,14 @@ COPY src /stoxyFinance/src
 RUN mvn clean -DskipTests package
 
 # STAGE 2: Running the application
-FROM eclipse-temurin:21-jre AS app
+FROM eclipse-temurin:21-jre-alpine AS app
 
 WORKDIR /stoxyFinance
 
 COPY --from=builder /stoxyFinance/target/stoxy-backend.jar app/stoxy_backend.jar
 
 
-ENTRYPOINT ["java", "-jar", "/stoxyFinance/app/stoxy_backend.jar"]
+ENTRYPOINT ["java","-XX:MaxRAMPercentage=75.0", "-jar", "/stoxyFinance/app/stoxy_backend.jar"]
 
 
 # Notes:
