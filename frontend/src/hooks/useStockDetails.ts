@@ -1,4 +1,4 @@
-import { useState, useEffect, useCallback } from 'react';
+import { useState, useEffect, useCallback, useRef } from 'react';
 import { stocksApi, portfolioApi, watchlistApi, tickerApi } from '../lib/api';
 import { StockDetail, WatchlistSummary } from '../types';
 import { useToast } from '../context/ToastContext';
@@ -10,6 +10,10 @@ export const useStockDetails = (symbol: string | undefined, preloadedState?: any
   const [watchlists, setWatchlists] = useState<WatchlistSummary[]>([]);
   const [wlLoading, setWlLoading] = useState(false);
   const [ltp, setLtp] = useState<number | null>(null);
+  const [ltt, setLtt] = useState<number | null>(null);   // last traded timestamp (ms)
+  const [cp, setCp] = useState<number | null>(null);     // previous close
+  const instrumentKeyRef = useRef<string | null>(null);
+  const intervalRef = useRef<ReturnType<typeof setInterval> | null>(null);
   const { addToast } = useToast();
 
   const loadStock = useCallback(async () => {
@@ -17,10 +21,12 @@ export const useStockDetails = (symbol: string | undefined, preloadedState?: any
     setLoading(true);
     setError('');
     try {
-      let payload: { stockName?: string; stockSymbol: string; companyName?: string; exchange?: string; instrumentKey?: string; isin?: string; };
+      let payload: {
+        stockName?: string; stockSymbol: string; companyName?: string;
+        exchange?: string; instrumentKey?: string; isin?: string;
+      };
 
       if (preloadedState?.isin) {
-        // Full DTO from header search — send everything
         payload = {
           stockName: preloadedState.stockName,
           stockSymbol: preloadedState.stockSymbol,
@@ -30,8 +36,6 @@ export const useStockDetails = (symbol: string | undefined, preloadedState?: any
           isin: preloadedState.isin,
         };
       } else {
-        // No isin — must search first to get the full StockSearchDTO.
-        // This covers navigation from watchlist/portfolio where isin is absent.
         const searchRes = await stocksApi.search(symbol, 0, 1);
         const found = searchRes.data.content?.[0];
         if (!found) {
@@ -52,19 +56,25 @@ export const useStockDetails = (symbol: string | undefined, preloadedState?: any
       const r = await stocksApi.getDetails(payload);
       setStock(r.data);
 
-      // Fetch live price via ticker endpoint
       const key = r.data.instrumentKey;
+      instrumentKeyRef.current = key || null;
+
+      // Initial live price fetch
       if (key) {
         try {
           const t = await tickerApi.getLtpc([key]);
-          const live = t.data[key];
-          if (live?.ltp) setLtp(Number(live.ltp));
+          const live = t.data?.[key];
+          if (live?.ltp != null) {
+            setLtp(Number(live.ltp));
+            setLtt(live.ltt ? Number(live.ltt) : null);
+            setCp(live.cp != null ? Number(live.cp) : null);
+          }
         } catch {
           // non-fatal — market may be closed
         }
       }
     } catch (err: any) {
-      const status = err.response?.status;
+      const status = err?.response?.status;
       if (status === 404) {
         setError(`Stock "${symbol}" not found.`);
       } else {
@@ -80,7 +90,7 @@ export const useStockDetails = (symbol: string | undefined, preloadedState?: any
       const r = await watchlistApi.getAll();
       setWatchlists(r.data);
     } catch {
-      // non-fatal
+      // non-fatal — user may not be logged in
     }
   }, []);
 
@@ -88,6 +98,30 @@ export const useStockDetails = (symbol: string | undefined, preloadedState?: any
     loadStock();
     loadWatchlists();
   }, [loadStock, loadWatchlists]);
+
+  // ── Live price polling every 2 seconds ──
+  useEffect(() => {
+    const poll = async () => {
+      const key = instrumentKeyRef.current;
+      if (!key) return;
+      try {
+        const t = await tickerApi.getLtpc([key]);
+        const live = t.data?.[key];
+        if (live?.ltp != null) {
+          setLtp(Number(live.ltp));
+          setLtt(live.ltt ? Number(live.ltt) : null);
+          setCp(live.cp != null ? Number(live.cp) : null);
+        }
+      } catch {
+        // silent — keep showing last known price
+      }
+    };
+
+    intervalRef.current = setInterval(poll, 2000);
+    return () => {
+      if (intervalRef.current) clearInterval(intervalRef.current);
+    };
+  }, []);   // only runs once on mount; reads instrumentKeyRef dynamically
 
   const addToWatchlist = async (wlId: number, wlName: string) => {
     if (!symbol || !stock) return false;
@@ -134,6 +168,8 @@ export const useStockDetails = (symbol: string | undefined, preloadedState?: any
     loading,
     error,
     ltp,
+    ltt,
+    cp,
     watchlists,
     wlLoading,
     addToWatchlist,

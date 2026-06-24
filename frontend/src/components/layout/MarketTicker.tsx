@@ -105,7 +105,7 @@ export const MarketTicker = () => {
       <div
         className="flex items-center w-max whitespace-nowrap"
         style={{
-          animation: `ticker-scroll 80s linear infinite`,
+          animation: `ticker-scroll 100s linear infinite`,
           animationPlayState: paused ? 'paused' : 'running',
         }}
       >

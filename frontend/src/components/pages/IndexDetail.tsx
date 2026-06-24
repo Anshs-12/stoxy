@@ -210,7 +210,7 @@ export const NSEIndexDetail = () => {
                   { l: 'Base Date', v: m.baseDate },
                   { l: 'Methodology', v: m.methodology },
                   { l: 'Status', v: m.isActive ? '✓ Active' : 'Inactive' },
-                ].filter(([, v]) => v != null && v !== '').map(item => (
+                ].filter(item => item.v != null && String(item.v) !== '').map(item => (
                   <div key={String(item.l)} className="flex justify-between items-start gap-2">
                     <span className="text-muted flex-shrink-0">{item.l}</span>
                     <span className={`font-medium text-right ${String(item.v).startsWith('✓') ? 'text-positive' : 'text-primary'}`}>

@@ -43,21 +43,13 @@ export const Dashboard = () => {
   const { isDark } = useTheme();
   const [mounted, setMounted] = useState(false);
 
-  const now = new Date();
-  const hours = now.getHours();
-  const mins = now.getMinutes();
-  const marketOpen = (hours > 9 || (hours === 9 && mins >= 15)) && (hours < 15 || (hours === 15 && mins <= 30));
+  const [marketOpen] = useState(() => {
+    const now = new Date();
+    const h = now.getHours(), m = now.getMinutes();
+    return (h > 9 || (h === 9 && m >= 15)) && (h < 15 || (h === 15 && m <= 30));
+  });
 
-  const [currentTime, setCurrentTime] = useState(
-    now.toLocaleTimeString('en-IN', { hour: '2-digit', minute: '2-digit', second: '2-digit' })
-  );
-  useEffect(() => {
-    setMounted(true);
-    const t = setInterval(() => {
-      setCurrentTime(new Date().toLocaleTimeString('en-IN', { hour: '2-digit', minute: '2-digit', second: '2-digit' }));
-    }, 1000);
-    return () => clearInterval(t);
-  }, []);
+  useEffect(() => { setMounted(true); }, []);
 
   const handleRefresh = () => refreshDashboard();
 
@@ -103,7 +95,6 @@ export const Dashboard = () => {
           <span className="text-[10px] font-mono uppercase tracking-widest text-muted">
             {marketOpen ? 'Market Open' : 'Market Closed'}
           </span>
-          <span className="text-[10px] font-mono text-muted ml-auto">{currentTime}</span>
         </div>
         <div className="flex items-end justify-between">
           <div>

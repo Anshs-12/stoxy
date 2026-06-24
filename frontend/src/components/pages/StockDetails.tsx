@@ -1,8 +1,8 @@
 import { useState } from 'react';
 import { useLocation, useParams, Link } from 'react-router-dom';
-import { ShoppingCart, Loader2, ArrowLeft, X, ListPlus, TrendingUp, BarChart3 } from 'lucide-react';
+import { ShoppingCart, Loader2, ArrowLeft, X, ListPlus, TrendingUp, TrendingDown, BarChart3 } from 'lucide-react';
 import { useStockDetails } from '../../hooks/useStockDetails';
-import { fmt } from '../../lib/utils';
+import { fmt, getChangeColor } from '../../lib/utils';
 
 export const StockDetails = () => {
   const { symbol } = useParams<{ symbol: string }>();
@@ -12,6 +12,8 @@ export const StockDetails = () => {
     loading,
     error,
     ltp,
+    ltt,
+    cp,
     watchlists,
     wlLoading,
     addToWatchlist,
@@ -45,6 +47,12 @@ export const StockDetails = () => {
   const f = stock.stockFinancialsDTO;
   const c = stock.companyResponseDTO;
   const ltpDisplay = ltp != null ? `₹${fmt(ltp)}` : '—';
+  const change = ltp != null && cp != null ? ltp - cp : null;
+  const pChange = change != null && cp != null && cp > 0 ? (change / cp) * 100 : null;
+  const isUp = (change ?? 0) >= 0;
+  const lttDisplay = ltt
+    ? new Date(ltt).toLocaleTimeString('en-IN', { hour: '2-digit', minute: '2-digit', second: '2-digit' })
+    : null;
 
   const handleBuy = async () => {
     setBuyLoading(true);
@@ -90,7 +98,13 @@ export const StockDetails = () => {
         </div>
         <div className="text-right flex-shrink-0">
           <div className="text-3xl font-sans font-medium tracking-tight text-primary">{ltpDisplay}</div>
-          <div className="text-[11px] text-muted mt-1 mb-4">Last Traded Price</div>
+          {change != null && (
+            <div className={`flex items-center gap-1 text-[13px] font-medium mt-0.5 ${getChangeColor(change)}`}>
+              {isUp ? <TrendingUp className="h-3.5 w-3.5" /> : <TrendingDown className="h-3.5 w-3.5" />}
+              {isUp ? '+' : ''}{fmt(change)} ({isUp ? '+' : ''}{pChange?.toFixed(2)}%)
+            </div>
+          )}
+          <div className="text-[11px] text-muted mt-1 mb-4">vs prev close</div>
 
           <div className="flex gap-2 relative justify-end">
             {/* Watchlist */}
@@ -237,10 +251,28 @@ export const StockDetails = () => {
 
           {/* Live Price Card */}
           <div className="bg-neutral rounded-xl border border-border-light p-5">
-            <h3 className="text-[9px] text-muted uppercase tracking-widest font-medium mb-3 flex items-center gap-2">
-              <TrendingUp className="h-3 w-3" /> Live Price
-            </h3>
+            <div className="flex items-center justify-between mb-3">
+              <h3 className="text-[9px] text-muted uppercase tracking-widest font-medium flex items-center gap-2">
+                <TrendingUp className="h-3 w-3" /> Live Price
+              </h3>
+              {/* Live pulse dot */}
+              <div className="flex items-center gap-1.5">
+                <div className={`h-1.5 w-1.5 rounded-full ${ltp != null ? 'bg-positive animate-pulse' : 'bg-muted'}`} />
+                <span className="text-[9px] font-mono text-muted uppercase tracking-widest">
+                  {ltp != null ? 'Live' : 'Offline'}
+                </span>
+              </div>
+            </div>
             <div className="text-4xl font-heading font-light text-primary">{ltpDisplay}</div>
+            {change != null && (
+              <div className={`flex items-center gap-1 text-[12px] font-medium mt-1 ${getChangeColor(change)}`}>
+                {isUp ? <TrendingUp className="h-3 w-3" /> : <TrendingDown className="h-3 w-3" />}
+                {isUp ? '+' : ''}{fmt(change)} ({isUp ? '+' : ''}{pChange?.toFixed(2)}%)
+              </div>
+            )}
+            {lttDisplay && (
+              <p className="text-[10px] text-muted mt-2 font-mono">LTT: {lttDisplay}</p>
+            )}
             {ltp == null && (
               <p className="text-[10px] text-muted mt-2">Market may be closed</p>
             )}
@@ -250,15 +282,15 @@ export const StockDetails = () => {
           <div className="bg-neutral rounded-xl border border-border-light p-5">
             <h3 className="text-[9px] text-muted uppercase tracking-widest font-medium mb-4">Stock Info</h3>
             <div className="space-y-3.5">
-              {[
+              {([
                 ['Company', c?.companyName],
                 ['Symbol', stock.stockSymbol],
                 ['Exchange', stock.exchange],
                 ['ISIN', stock.isin],
                 ['Sector', c?.sector],
                 ['Sector MCap', c?.sectorMarketCap],
-              ].filter(([, v]) => v).map(([k, v]) => (
-                <div key={k as string} className="flex justify-between items-start gap-2">
+              ] as [string, string | undefined][]).filter(([, v]) => v).map(([k, v]) => (
+                <div key={k} className="flex justify-between items-start gap-2">
                   <span className="text-[11px] text-muted font-light flex-shrink-0">{k}</span>
                   <span className="text-[11px] font-medium text-primary text-right break-all">{v}</span>
                 </div>
