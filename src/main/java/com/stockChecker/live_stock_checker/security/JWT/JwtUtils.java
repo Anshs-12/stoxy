@@ -61,7 +61,7 @@ public class JwtUtils {
                 .path("/api/v2")
                 .maxAge(259200) // 3-day total cookie expirationTime
                 .httpOnly(true)
-                .sameSite("Lax")
+                .sameSite("None")
                 .secure(true)
                 .build();
     }

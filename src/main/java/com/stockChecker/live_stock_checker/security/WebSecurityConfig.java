@@ -6,6 +6,7 @@ import com.stockChecker.live_stock_checker.security.JWT.JwtUtils;
 import com.stockChecker.live_stock_checker.security.oAuth2.OAuth2SuccessHandler;
 import com.stockChecker.live_stock_checker.service.RateLimitService;
 import lombok.RequiredArgsConstructor;
+import org.springframework.beans.factory.annotation.Value;
 import org.springframework.context.annotation.Bean;
 import org.springframework.context.annotation.Configuration;
 import org.springframework.security.config.annotation.method.configuration.EnableMethodSecurity;
@@ -14,6 +15,8 @@ import org.springframework.security.config.annotation.web.configuration.EnableWe
 import org.springframework.security.config.http.SessionCreationPolicy;
 import org.springframework.security.web.SecurityFilterChain;
 import org.springframework.security.web.authentication.UsernamePasswordAuthenticationFilter;
+
+import java.util.List;
 
 @Configuration
 @EnableWebSecurity
@@ -24,6 +27,9 @@ public class WebSecurityConfig {
     private final AuthEntryPoint authEntryPointJwt;
     private final JwtUtils jwtUtils;
     private final OAuth2SuccessHandler oAuth2SuccessHandler;
+
+    @Value("${app.frontend.url}")
+    private String frontendUrl;
 
     @Bean
     public AuthTokenFilter authTokenFilter() {
@@ -52,6 +58,15 @@ public class WebSecurityConfig {
                 .requestMatchers("/v3/api-docs/**").permitAll()
                 .anyRequest().authenticated()
         );
+
+        http.cors(cors -> cors.configurationSource(request -> {
+            var config = new org.springframework.web.cors.CorsConfiguration();
+            config.setAllowedOrigins(List.of(frontendUrl));
+            config.setAllowedMethods(List.of("GET", "POST", "PUT", "DELETE", "OPTIONS"));
+            config.setAllowedHeaders(List.of("*"));
+            config.setAllowCredentials(true);
+            return config;
+        }));
 
         http.sessionManagement(eachSession -> eachSession
                 .sessionCreationPolicy(SessionCreationPolicy.STATELESS));

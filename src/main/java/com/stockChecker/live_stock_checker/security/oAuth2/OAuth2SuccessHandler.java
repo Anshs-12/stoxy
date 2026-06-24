@@ -54,8 +54,7 @@ public class OAuth2SuccessHandler implements AuthenticationSuccessHandler {
         response.setStatus(HttpServletResponse.SC_OK);
         response.addHeader("Set-Cookie", jwtTokenCookie.toString());
         response.addHeader("Authorization", "Bearer " + jwtToken);
-        response.sendRedirect("/api/v1/swagger-ui/index.html");
-        response.sendRedirect("http://localhost:5173/");
+        response.sendRedirect("https://stoxy-finance.vercel.app/");
     }
 
     private User saveUserInDB(OAuth2User oAuth2User, String provider) {
