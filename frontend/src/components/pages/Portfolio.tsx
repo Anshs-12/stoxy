@@ -242,7 +242,7 @@ export const Portfolio = () => {
                            className="bg-neutral text-[13px] px-4 py-2.5 w-72 outline-none font-sans rounded-lg border border-border focus:border-accent transition-colors text-primary"/>
                     {buyResults.length > 0 && (
                         <div
-                            className="absolute top-full left-0 right-0 bg-surface border border-border rounded-lg z-10 text-left shadow-ambient mt-1">
+                            className="absolute top-full left-0 right-0 bg-neutral border border-border rounded-lg z-10 text-left shadow-ambient mt-1">
                             {buyResults.map((s) => (
                                 <button key={s.stockSymbol} onClick={() => {
                                     setBuySearch('');
@@ -291,7 +291,7 @@ export const Portfolio = () => {
                                className="bg-surface border border-border text-[12px] px-4 py-2 w-52 outline-none font-sans rounded-lg focus:border-accent transition-colors text-primary"/>
                         {buyResults.length > 0 && (
                             <div
-                                className="absolute top-full right-0 w-64 bg-surface border border-border rounded-lg z-10 shadow-ambient mt-1">
+                                className="absolute top-full right-0 w-64 bg-neutral border border-border rounded-lg z-10 shadow-ambient mt-1">
                                 {buyResults.map((s) => (
                                     <button key={s.stockSymbol} onClick={() => {
                                         setBuySearch('');

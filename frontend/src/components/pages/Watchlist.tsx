@@ -209,11 +209,11 @@ export const Watchlist = () => {
                                            className="bg-neutral text-[12px] px-3 py-1.5 rounded w-44 border-none outline-none focus:bg-neutral placeholder:text-muted font-sans"/>
                                     {searchResults.length > 0 && (
                                         <div
-                                            className="absolute top-full right-0 mt-1 bg-surface card-border border border-border-light rounded z-50 w-64 max-h-48 overflow-y-auto">
+                                            className="absolute top-full right-0 mt-1 bg-neutral card-border border border-border-light rounded z-50 w-64 max-h-48 overflow-y-auto">
                                             {searchResults.map((s) => (
                                                 <button key={s.stockSymbol} onClick={() => handleAddStock(s as any)}
                                                         className="w-full text-left px-3 py-2 hover:bg-neutral transition-colors flex justify-between">
-                                                    <span className="text-[12px]">{s.stockName}</span>
+                                                    <span className="text-[12px] text-primary">{s.stockName}</span>
                                                     <span className="text-[10px] text-muted">{s.stockSymbol}</span>
                                                 </button>
                                             ))}
