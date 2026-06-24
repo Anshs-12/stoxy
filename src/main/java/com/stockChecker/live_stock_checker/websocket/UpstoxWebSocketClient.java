@@ -6,10 +6,11 @@ import com.fasterxml.jackson.databind.ObjectMapper;
 import com.stockChecker.live_stock_checker.exceptions.UpstoxFeedException;
 import com.stockChecker.live_stock_checker.payload.UpstoxPayload.UpstoxSubscribeData;
 import com.stockChecker.live_stock_checker.payload.UpstoxPayload.UpstoxSubscribeRequest;
-import jakarta.annotation.PostConstruct;
+import com.stockChecker.live_stock_checker.service.MarketStatusService;
 import jakarta.annotation.PreDestroy;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
+import org.springframework.scheduling.annotation.Scheduled;
 import org.springframework.stereotype.Service;
 import org.springframework.web.client.RestClient;
 
@@ -30,14 +31,29 @@ public class UpstoxWebSocketClient {
     private final RestClient restClient;
     private final ObjectMapper objectMapper;
     private final MarketDataHandler marketDataHandler;
+    private final MarketStatusService marketStatusService;
 
     private WebSocket activeWebSocketObject;
 
-    // runs initially when the application starts
-    @PostConstruct
-    public void init() {
-        log.info("Initializing Upstox WebSocket connection on startup...");
-        connectWebsocketToUpstox();
+//    runs initially when the application starts
+//    @PostConstruct
+//    public void init() {
+//        log.info("Initializing Upstox WebSocket connection on startup...");
+//        connectWebsocketToUpstox();
+//    }
+
+    @Scheduled(fixedDelay = 60000)
+    public void maintainConnection() {
+        if (activeWebSocketObject != null && !activeWebSocketObject.isOutputClosed()) {
+            return;
+        }
+        if (!marketStatusService.isMarketOpen().getIsOpen()) {
+            return;
+        }
+        try {
+            connectWebsocketToUpstox();
+        } catch (Exception ignored) {
+        }
     }
 
     public void connectWebsocketToUpstox() {
