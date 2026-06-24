@@ -58,7 +58,7 @@ public class JwtUtils {
     public ResponseCookie generateJwtCookieFromEmail(String email) {
         String jwtToken = generateJwtTokenFromEmail(email);
         return ResponseCookie.from(jwtCookieName, jwtToken)
-                .path("/api/v2")
+                .path("/")
                 .maxAge(259200) // 3-day total cookie expirationTime
                 .httpOnly(true)
                 .sameSite("None")
@@ -92,7 +92,11 @@ public class JwtUtils {
     public ResponseCookie generateCleanJwtCookie() {
         return ResponseCookie
                 .from(jwtCookieName, "")
-                .path("/api/v2")
+                .path("/") // VERY IMPORTANT: This must match the path of the original login cookie exactly!
+                .maxAge(0) // This is the kill switch. It tells Chrome "delete this immediately".
+                .httpOnly(true)
+                .secure(true) // Required because Vercel and Render are different domains (HTTPS)
+                .sameSite("None") // Allows the cross-origin deletion to happen
                 .build();
     }
 
