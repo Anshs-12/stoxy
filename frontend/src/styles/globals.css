@@ -1,0 +1,164 @@
+@tailwind base;
+@tailwind components;
+@tailwind utilities;
+
+@layer base {
+  :root {
+    /* ── Light Mode: Warm Almond / Deep Charcoal ── */
+    --color-bg-base: #EEE5DA;
+    --color-bg-surface: #FDFAF5;
+    --color-bg-neutral: rgba(38, 36, 36, 0.05);
+
+    --color-text-primary: #262424;
+    --color-text-muted: #7a7167;
+    --color-text-muted-heavy: #4a4640;
+    --color-border: rgba(38, 36, 36, 0.12);
+    --color-border-light: rgba(38, 36, 36, 0.06);
+
+    --color-positive: #2e7d32;
+    --color-negative: #c62828;
+    --color-accent: #ff4f00;
+
+    --grid-color: rgba(38, 36, 36, 0.025);
+  }
+
+  .dark {
+    /* ── Dark Mode: Deep Charcoal / Warm Almond text ── */
+    --color-bg-base: #0f0e0d;
+    --color-bg-surface: #1a1917;
+    --color-bg-neutral: rgba(238, 229, 218, 0.06);
+
+    --color-text-primary: #ece6d4;
+    --color-text-muted: #a09880;
+    --color-text-muted-heavy: #c8bfab;
+    --color-border: rgba(238, 229, 218, 0.10);
+    --color-border-light: rgba(238, 229, 218, 0.05);
+
+    --color-positive: #5ab870;
+    --color-negative: #e06060;
+    --color-accent: #ff4f00;
+
+    --grid-color: rgba(238, 229, 218, 0.02);
+  }
+
+  html {
+    scroll-behavior: smooth;
+  }
+
+  body {
+    @apply bg-base text-primary font-sans antialiased;
+    -webkit-font-smoothing: antialiased;
+    -moz-osx-font-smoothing: grayscale;
+  }
+
+  h1, h2, h3, h4, h5, h6 {
+    @apply font-heading font-medium tracking-tight;
+  }
+}
+
+@layer utilities {
+  .card-border {
+    border: 1px solid var(--color-border);
+    background-color: var(--color-bg-surface);
+    transition: border-color 0.2s ease, transform 0.2s ease, box-shadow 0.2s ease;
+  }
+  .card-border:hover {
+    border-color: rgba(38, 36, 36, 0.2);
+    transform: translateY(-1px);
+    box-shadow: 0 4px 16px rgba(38, 36, 36, 0.08);
+  }
+  .dark .card-border:hover {
+    border-color: rgba(238, 229, 218, 0.15);
+    box-shadow: 0 4px 16px rgba(0, 0, 0, 0.3);
+  }
+
+  .check-light-grid {
+    background-image: linear-gradient(var(--grid-color) 1px, transparent 1px),
+                      linear-gradient(90deg, var(--grid-color) 1px, transparent 1px);
+    background-size: 24px 24px;
+  }
+
+  /* ── Animations ── */
+  .fade-in {
+    animation: fadeIn 0.5s ease-out forwards;
+  }
+  .fade-in-up {
+    animation: fadeInUp 0.5s ease-out forwards;
+  }
+  @keyframes fadeIn {
+    from { opacity: 0; }
+    to { opacity: 1; }
+  }
+  @keyframes fadeInUp {
+    from { opacity: 0; transform: translateY(12px); }
+    to { opacity: 1; transform: translateY(0); }
+  }
+
+  /* ── Ticker ── */
+  @keyframes ticker-scroll {
+    0% { transform: translateX(0); }
+    100% { transform: translateX(-50%); }
+  }
+  .ticker-animate {
+    animation: ticker-scroll 40s linear infinite;
+  }
+  .ticker-animate:hover {
+    animation-play-state: paused;
+  }
+
+  /* ── Shadows ── */
+  .shadow-ambient {
+    box-shadow: 0 1px 4px rgba(38, 36, 36, 0.06), 0 1px 2px rgba(38, 36, 36, 0.04);
+  }
+  .dark .shadow-ambient {
+    box-shadow: 0 1px 4px rgba(0, 0, 0, 0.3), 0 1px 2px rgba(0, 0, 0, 0.2);
+  }
+
+  /* ── Skeleton ── */
+  .skeleton {
+    background: var(--color-bg-neutral);
+    border-radius: 4px;
+    position: relative;
+    overflow: hidden;
+  }
+  .animate-shimmer::after {
+    content: '';
+    position: absolute;
+    inset: 0;
+    background: linear-gradient(90deg, transparent, rgba(255,255,255,0.06), transparent);
+    animation: shimmer 1.5s infinite;
+  }
+  @keyframes shimmer {
+    0% { transform: translateX(-100%); }
+    100% { transform: translateX(100%); }
+  }
+
+  /* ── Accent Button ── */
+  .btn-accent {
+    background-color: var(--color-accent);
+    color: #FDFAF5;
+    border-radius: 8px;
+    font-weight: 500;
+    transition: opacity 0.15s ease, transform 0.15s ease;
+  }
+  .btn-accent:hover {
+    opacity: 0.9;
+    transform: translateY(-1px);
+  }
+
+  /* ── Scrollbar ── */
+  ::-webkit-scrollbar {
+    width: 5px;
+    height: 5px;
+  }
+  ::-webkit-scrollbar-track {
+    background: transparent;
+  }
+  ::-webkit-scrollbar-thumb {
+    background: var(--color-border);
+    border-radius: 3px;
+  }
+  ::-webkit-scrollbar-thumb:hover {
+    background: var(--color-text-muted);
+  }
+}

@@ -34,3 +34,19 @@ build/
 
 ### VS Code ###
 .vscode/
+frontend/node_modules/
+frontend/dist/
+
+# Vite
+.vite/
+
+# Backup files
+*.bak
+
+# Session files
+session*.json
+
+# Notes / personal docs
+gitHistory.md
+summary*.md
+websockets.md
