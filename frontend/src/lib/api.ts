@@ -36,21 +36,15 @@ export function parseApiError(err: unknown): string {
   return 'Request failed';
 }
 
-// ── Global 401 interceptor ──
+// ── No global 401 redirect ──
+// Route protection is handled by <AuthGate> at the router level.
+// A global redirect here would incorrectly send users to /login when public
+// pages (StockDetails, Dashboard) make background calls to auth-required
+// endpoints (e.g. /watchlist/ to fetch the "Add to watchlist" dropdown).
+// Individual hooks already catch errors silently via try/catch.
 api.interceptors.response.use(
   (res) => res,
-  (err: any) => {
-    if (err.response?.status === 401) {
-      const apiUrl: string = err.config?.url ?? '';
-      // Don't redirect for public endpoints or the auth check itself
-      const isPublic = apiUrl.includes('/stocks/') || apiUrl.includes('/index/') || apiUrl.includes('/ticker/');
-      const isAuthCheck = apiUrl.includes('/auth/');
-      if (!isAuthCheck && !isPublic) {
-        window.location.href = '/login';
-      }
-    }
-    return Promise.reject(err);
-  }
+  (err: any) => Promise.reject(err)
 );
 
 // ── Index Endpoints ──
