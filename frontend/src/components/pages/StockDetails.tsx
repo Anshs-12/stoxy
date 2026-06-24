@@ -53,8 +53,13 @@ export const StockDetails = () => {
   const pChange = change != null && cp != null && cp > 0 ? (change / cp) * 100 : null;
   const showChange = change != null && Math.abs(change) >= 0.01;
   const isUp = (change ?? 0) >= 0;
-  const lttDisplay = ltt
-    ? new Date(ltt).toLocaleTimeString('en-IN', { hour: '2-digit', minute: '2-digit', second: '2-digit' })
+  const lttDate = ltt ? new Date(ltt) : null;
+  const lttDisplay = lttDate
+    ? lttDate.toLocaleString('en-IN', {
+        day: '2-digit', month: 'short', year: 'numeric',
+        hour: '2-digit', minute: '2-digit', second: '2-digit',
+        hour12: false,
+      }).replace(',', '')
     : null;
 
   const handleBuy = async () => {
@@ -297,7 +302,8 @@ export const StockDetails = () => {
                 ['ISIN', stock.isin],
                 ['Sector', c?.sector],
                 ['Sector MCap', c?.sectorMarketCap],
-              ] as [string, string | undefined][]).filter(([, v]) => v).map(([k, v]) => (
+                lttDisplay ? ['Last Traded', lttDisplay] : null,
+              ].filter(Boolean) as [string, string][]).filter(([, v]) => v).map(([k, v]) => (
                 <div key={k} className="flex justify-between items-start gap-2">
                   <span className="text-[11px] text-muted font-light flex-shrink-0">{k}</span>
                   <span className="text-[11px] font-medium text-primary text-right break-all">{v}</span>

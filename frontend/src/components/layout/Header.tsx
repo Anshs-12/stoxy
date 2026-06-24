@@ -27,14 +27,19 @@ export const Header = ({ onMenuClick }: { onMenuClick?: () => void }) => {
   const { theme, setTheme, isDark } = useTheme();
 
   // ── Live clock + market status ──
-  const [clockTime, setClockTime] = useState(() =>
-    new Date().toLocaleTimeString('en-IN', { hour: '2-digit', minute: '2-digit', second: '2-digit', hour12: false })
-  );
+  const formatTime = () =>
+    new Date().toLocaleTimeString('en-IN', { hour: '2-digit', minute: '2-digit', second: '2-digit', hour12: false });
+  const formatDate = () =>
+    new Date().toLocaleDateString('en-IN', { weekday: 'short', day: '2-digit', month: 'short' });
+
+  const [clockTime, setClockTime] = useState(formatTime);
+  const [clockDate, setClockDate] = useState(formatDate);
   const [isMarketCurrentlyOpen, setIsMarketCurrentlyOpen] = useState(isMarketOpen);
 
   useEffect(() => {
     const t = setInterval(() => {
-      setClockTime(new Date().toLocaleTimeString('en-IN', { hour: '2-digit', minute: '2-digit', second: '2-digit', hour12: false }));
+      setClockTime(formatTime());
+      setClockDate(formatDate());
       setIsMarketCurrentlyOpen(isMarketOpen());
     }, 1000);
     return () => clearInterval(t);
@@ -137,11 +142,19 @@ export const Header = ({ onMenuClick }: { onMenuClick?: () => void }) => {
         </div>
 
         {/* ── Clock + Market Status ── */}
-        <div className="hidden lg:flex items-center gap-2 border border-border-light rounded-md px-3 py-1.5 bg-surface">
-          <div className={`h-1.5 w-1.5 rounded-full flex-shrink-0 ${isMarketCurrentlyOpen ? 'bg-positive animate-pulse' : 'bg-muted'}`} />
-          <span className="text-[10px] font-mono text-muted tracking-wider">
-            {isMarketCurrentlyOpen ? 'NSE Open' : 'Market Closed'}
-          </span>
+        <div className="hidden lg:flex items-center gap-2.5 border border-border-light rounded-md px-3 py-1.5 bg-surface">
+          {/* Date */}
+          <span className="text-[10px] font-mono text-muted tracking-wide">{clockDate}</span>
+          <span className="text-border-light text-[10px]">|</span>
+          {/* Market dot + status */}
+          <div className="flex items-center gap-1.5">
+            <div className={`h-1.5 w-1.5 rounded-full flex-shrink-0 ${isMarketCurrentlyOpen ? 'bg-positive animate-pulse' : 'bg-muted'}`} />
+            <span className="text-[10px] font-mono text-muted tracking-wider">
+              {isMarketCurrentlyOpen ? 'NSE Open' : 'Closed'}
+            </span>
+          </div>
+          <span className="text-border-light text-[10px]">|</span>
+          {/* Live time */}
           <span className="text-[10px] font-mono text-primary font-semibold tracking-widest">{clockTime}</span>
         </div>
 
