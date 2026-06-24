@@ -2,7 +2,7 @@ import { useParams, Link } from 'react-router-dom';
 import { Loader2, ArrowLeft, RefreshCw, TrendingUp, TrendingDown } from 'lucide-react';
 import { useIndexDetail } from '../../hooks/useIndexDetail';
 import { useTheme } from '../../context/ThemeContext';
-import { fmt, getChangeColor } from '../../lib/utils';
+import { fmt, getChangeColor, isMarketOpen } from '../../lib/utils';
 
 export const NSEIndexDetail = () => {
   const { symbol } = useParams<{ symbol: string }>();
@@ -31,6 +31,7 @@ export const NSEIndexDetail = () => {
   }
 
   const m = index.indexMetadataDTO;
+  const marketOpen = isMarketOpen();
   const ltp = index.liveLtp;
   const change = index.liveChange;
   const pChange = index.livePChange;
@@ -94,9 +95,9 @@ export const NSEIndexDetail = () => {
           )}
           {/* Live indicator */}
           <div className="flex items-center justify-end gap-1.5 mt-2">
-            <div className={`h-1.5 w-1.5 rounded-full ${ltp != null ? 'bg-positive animate-pulse' : 'bg-muted'}`} />
+            <div className={`h-1.5 w-1.5 rounded-full ${marketOpen ? 'bg-positive animate-pulse' : 'bg-muted'}`} />
             <span className="text-[9px] font-mono text-muted uppercase tracking-widest">
-              {ltp != null ? 'Live' : 'Offline'}
+              {marketOpen ? 'Live' : 'Closed'}
             </span>
           </div>
         </div>

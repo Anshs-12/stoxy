@@ -2,7 +2,7 @@ import { useState } from 'react';
 import { useLocation, useParams, Link } from 'react-router-dom';
 import { ShoppingCart, Loader2, ArrowLeft, X, ListPlus, TrendingUp, TrendingDown, BarChart3 } from 'lucide-react';
 import { useStockDetails } from '../../hooks/useStockDetails';
-import { fmt, getChangeColor } from '../../lib/utils';
+import { fmt, getChangeColor, isMarketOpen } from '../../lib/utils';
 
 export const StockDetails = () => {
   const { symbol } = useParams<{ symbol: string }>();
@@ -46,9 +46,12 @@ export const StockDetails = () => {
 
   const f = stock.stockFinancialsDTO;
   const c = stock.companyResponseDTO;
+  const marketOpen = isMarketOpen();
   const ltpDisplay = ltp != null ? `₹${fmt(ltp)}` : '—';
-  const change = ltp != null && cp != null ? ltp - cp : null;
+  // Only show change if market is open and the change is meaningful (not 0.00)
+  const change = marketOpen && ltp != null && cp != null ? ltp - cp : null;
   const pChange = change != null && cp != null && cp > 0 ? (change / cp) * 100 : null;
+  const showChange = change != null && Math.abs(change) >= 0.01;
   const isUp = (change ?? 0) >= 0;
   const lttDisplay = ltt
     ? new Date(ltt).toLocaleTimeString('en-IN', { hour: '2-digit', minute: '2-digit', second: '2-digit' })
@@ -98,13 +101,15 @@ export const StockDetails = () => {
         </div>
         <div className="text-right flex-shrink-0">
           <div className="text-3xl font-sans font-medium tracking-tight text-primary">{ltpDisplay}</div>
-          {change != null && (
+          {showChange && (
             <div className={`flex items-center gap-1 text-[13px] font-medium mt-0.5 ${getChangeColor(change)}`}>
               {isUp ? <TrendingUp className="h-3.5 w-3.5" /> : <TrendingDown className="h-3.5 w-3.5" />}
               {isUp ? '+' : ''}{fmt(change)} ({isUp ? '+' : ''}{pChange?.toFixed(2)}%)
             </div>
           )}
-          <div className="text-[11px] text-muted mt-1 mb-4">vs prev close</div>
+          <div className="text-[11px] text-muted mt-1 mb-4">
+            {marketOpen ? 'vs prev close' : 'Last closing price'}
+          </div>
 
           <div className="flex gap-2 relative justify-end">
             {/* Watchlist */}
@@ -255,23 +260,26 @@ export const StockDetails = () => {
               <h3 className="text-[9px] text-muted uppercase tracking-widest font-medium flex items-center gap-2">
                 <TrendingUp className="h-3 w-3" /> Live Price
               </h3>
-              {/* Live pulse dot */}
+              {/* Market status dot */}
               <div className="flex items-center gap-1.5">
-                <div className={`h-1.5 w-1.5 rounded-full ${ltp != null ? 'bg-positive animate-pulse' : 'bg-muted'}`} />
+                <div className={`h-1.5 w-1.5 rounded-full ${marketOpen ? 'bg-positive animate-pulse' : 'bg-muted'}`} />
                 <span className="text-[9px] font-mono text-muted uppercase tracking-widest">
-                  {ltp != null ? 'Live' : 'Offline'}
+                  {marketOpen ? 'Live' : 'Closed'}
                 </span>
               </div>
             </div>
             <div className="text-4xl font-heading font-light text-primary">{ltpDisplay}</div>
-            {change != null && (
+            {showChange && (
               <div className={`flex items-center gap-1 text-[12px] font-medium mt-1 ${getChangeColor(change)}`}>
                 {isUp ? <TrendingUp className="h-3 w-3" /> : <TrendingDown className="h-3 w-3" />}
                 {isUp ? '+' : ''}{fmt(change)} ({isUp ? '+' : ''}{pChange?.toFixed(2)}%)
               </div>
             )}
-            {lttDisplay && (
+            {marketOpen && lttDisplay && (
               <p className="text-[10px] text-muted mt-2 font-mono">LTT: {lttDisplay}</p>
+            )}
+            {!marketOpen && ltp != null && (
+              <p className="text-[10px] text-muted mt-2">As of market close</p>
             )}
             {ltp == null && (
               <p className="text-[10px] text-muted mt-2">Market may be closed</p>

@@ -1,7 +1,7 @@
 import { useEffect, useState, useRef } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { indexApi, tickerApi } from '../../lib/api';
-import { fmt, getChangeColor } from '../../lib/utils';
+import { fmt, getChangeColor, isMarketOpen } from '../../lib/utils';
 import type { IndexSearchResult } from '../../types';
 
 interface TickerItem {
@@ -93,6 +93,7 @@ export const MarketTicker = () => {
 
   if (items.length === 0) return null;
 
+  const marketOpen = isMarketOpen();
   // Repeat enough copies for seamless infinite scroll
   const repeated: TickerItem[] = Array(16).fill(items).flat();
 
@@ -105,7 +106,7 @@ export const MarketTicker = () => {
       <div
         className="flex items-center w-max whitespace-nowrap"
         style={{
-          animation: `ticker-scroll 100s linear infinite`,
+          animation: `ticker-scroll 150s linear infinite`,
           animationPlayState: paused ? 'paused' : 'running',
         }}
       >
@@ -119,8 +120,12 @@ export const MarketTicker = () => {
               className="flex items-center gap-2 text-[11.5px] font-mono flex-shrink-0 px-5 py-1.5 hover:bg-border-light transition-colors rounded-sm group"
               title={`View ${item.symbol} details`}
             >
-              {/* Colored dot */}
-              <span className={`h-1.5 w-1.5 rounded-full flex-shrink-0 ${isUp ? 'bg-positive' : 'bg-negative'}`} />
+              {/* Colored dot — grey when market closed */}
+              <span className={`h-1.5 w-1.5 rounded-full flex-shrink-0 ${
+                marketOpen
+                  ? (isUp ? 'bg-positive' : 'bg-negative')
+                  : 'bg-muted'
+              }`} />
 
               <span className="text-muted-heavy font-semibold tracking-wide group-hover:text-primary transition-colors">
                 {item.symbol}

@@ -21,3 +21,20 @@ export const getChangeColor = (change: number | undefined | null) => {
   if (change == null) return 'text-muted';
   return change >= 0 ? 'text-positive' : 'text-negative';
 };
+
+/**
+ * Returns true if NSE/BSE markets are currently open.
+ * Hours: Mon–Fri 09:15–15:30 IST (UTC+5:30).
+ * NOTE: does not account for exchange holidays.
+ */
+export const isMarketOpen = (): boolean => {
+  const now = new Date();
+  // Convert to IST
+  const ist = new Date(now.toLocaleString('en-US', { timeZone: 'Asia/Kolkata' }));
+  const day = ist.getDay(); // 0=Sun, 6=Sat
+  if (day === 0 || day === 6) return false;
+  const h = ist.getHours();
+  const m = ist.getMinutes();
+  const totalMin = h * 60 + m;
+  return totalMin >= 9 * 60 + 15 && totalMin <= 15 * 60 + 30;
+};

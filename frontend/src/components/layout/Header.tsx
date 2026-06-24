@@ -4,6 +4,7 @@ import { Search, Bell, User, ChevronDown, LogOut, Menu, Moon, Sun } from 'lucide
 import { stocksApi } from '../../lib/api';
 import { useAuth } from '../../context/AuthContext';
 import { useTheme } from '../../context/ThemeContext';
+import { isMarketOpen } from '../../lib/utils';
 interface SearchResult {
   stockName: string;
   stockSymbol: string;
@@ -29,18 +30,12 @@ export const Header = ({ onMenuClick }: { onMenuClick?: () => void }) => {
   const [clockTime, setClockTime] = useState(() =>
     new Date().toLocaleTimeString('en-IN', { hour: '2-digit', minute: '2-digit', second: '2-digit', hour12: false })
   );
-  const [isMarketOpen, setIsMarketOpen] = useState(() => {
-    const now = new Date();
-    const h = now.getHours(), m = now.getMinutes();
-    return (h > 9 || (h === 9 && m >= 15)) && (h < 15 || (h === 15 && m <= 30));
-  });
+  const [isMarketCurrentlyOpen, setIsMarketCurrentlyOpen] = useState(isMarketOpen);
 
   useEffect(() => {
     const t = setInterval(() => {
-      const now = new Date();
-      setClockTime(now.toLocaleTimeString('en-IN', { hour: '2-digit', minute: '2-digit', second: '2-digit', hour12: false }));
-      const h = now.getHours(), m = now.getMinutes();
-      setIsMarketOpen((h > 9 || (h === 9 && m >= 15)) && (h < 15 || (h === 15 && m <= 30)));
+      setClockTime(new Date().toLocaleTimeString('en-IN', { hour: '2-digit', minute: '2-digit', second: '2-digit', hour12: false }));
+      setIsMarketCurrentlyOpen(isMarketOpen());
     }, 1000);
     return () => clearInterval(t);
   }, []);
@@ -143,9 +138,9 @@ export const Header = ({ onMenuClick }: { onMenuClick?: () => void }) => {
 
         {/* ── Clock + Market Status ── */}
         <div className="hidden lg:flex items-center gap-2 border border-border-light rounded-md px-3 py-1.5 bg-surface">
-          <div className={`h-1.5 w-1.5 rounded-full flex-shrink-0 ${isMarketOpen ? 'bg-positive animate-pulse' : 'bg-muted'}`} />
+          <div className={`h-1.5 w-1.5 rounded-full flex-shrink-0 ${isMarketCurrentlyOpen ? 'bg-positive animate-pulse' : 'bg-muted'}`} />
           <span className="text-[10px] font-mono text-muted tracking-wider">
-            {isMarketOpen ? 'NSE Open' : 'Market Closed'}
+            {isMarketCurrentlyOpen ? 'NSE Open' : 'Market Closed'}
           </span>
           <span className="text-[10px] font-mono text-primary font-semibold tracking-widest">{clockTime}</span>
         </div>
