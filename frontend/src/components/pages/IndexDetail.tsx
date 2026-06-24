@@ -1,189 +1,221 @@
 import { useParams, Link } from 'react-router-dom';
-import { AreaChart, Area, ResponsiveContainer } from 'recharts';
-import { Loader2, ArrowLeft } from 'lucide-react';
+import { Loader2, ArrowLeft, RefreshCw, TrendingUp, TrendingDown } from 'lucide-react';
 import { useIndexDetail } from '../../hooks/useIndexDetail';
 import { useTheme } from '../../context/ThemeContext';
 import { fmt, getChangeColor } from '../../lib/utils';
 
-const dayChart = (low: number, high: number, last: number) => {
-  if (!low || !high || low === high) return [];
-  const steps = 12;
-  return Array.from({ length: steps }, (_, i) => ({
-    v: i === steps - 1 ? last : low + ((high - low) * i) / (steps - 1),
-  }));
-};
-
 export const NSEIndexDetail = () => {
   const { symbol } = useParams<{ symbol: string }>();
-  const { index, loading, error } = useIndexDetail(symbol);
+  const { index, loading, error, refreshIndex } = useIndexDetail(symbol);
   const { isDark } = useTheme();
 
-  if (loading) return (
-    <div className="flex items-center justify-center h-64 text-muted">
-      <Loader2 className="h-5 w-5 animate-spin mr-2" />
-      <span className="text-sm font-sans">Loading index...</span>
-    </div>
-  );
+  /* ── Loading ── */
+  if (loading) {
+    return (
+      <div className="flex items-center justify-center h-64 text-muted">
+        <Loader2 className="h-5 w-5 animate-spin mr-2 text-accent" />
+        <span className="text-sm font-sans">Loading index data…</span>
+      </div>
+    );
+  }
 
-  if (error || !index) return (
-    <div className="text-center py-20">
-      <p className="text-sm text-negative font-sans mb-2">⚠ Error</p>
-      <p className="text-[13px] text-muted max-w-md mx-auto mb-4">{error}</p>
-      <Link to="/" className="text-[12px] text-primary border-b border-primary pb-px">← Back to Dashboard</Link>
-    </div>
-  );
+  /* ── Error ── */
+  if (error || !index) {
+    return (
+      <div className="text-center py-20">
+        <p className="text-sm text-negative font-sans mb-2">⚠ Error</p>
+        <p className="text-[13px] text-muted max-w-md mx-auto mb-4">{error || 'Index not found.'}</p>
+        <Link to="/" className="text-[12px] text-primary border-b border-primary pb-px">← Back to Dashboard</Link>
+      </div>
+    );
+  }
 
-  const p = index.indexPriceInfoDTO;
   const m = index.indexMetadataDTO;
-  const adv = index.indexAdvanceDTO;
-  const isUp = (p?.change ?? 0) >= 0;
-  const chart = dayChart(p?.dayLow ?? 0, p?.dayHigh ?? 0, p?.lastPrice ?? 0);
-  const totalAD = (adv?.advances ?? 0) + (adv?.declines ?? 0);
-  const advPct = totalAD > 0 ? Math.round((adv!.advances / totalAD) * 100) : 50;
+  const ltp = index.liveLtp;
+  const change = index.liveChange;
+  const pChange = index.livePChange;
+  const isUp = (change ?? 0) >= 0;
+  const positiveColor = isDark ? '#5ab870' : '#2e7d32';
+  const negativeColor = isDark ? '#e06060' : '#c62828';
+  const lineColor = isUp ? positiveColor : negativeColor;
 
   return (
-    <div className="pb-12 space-y-8">
-      <Link to="/" className="flex items-center gap-1.5 text-[11px] text-muted hover:text-primary transition-colors">
-        <ArrowLeft className="h-3 w-3" /> Back to Dashboard
-      </Link>
+    <div className="pb-12 space-y-6">
+      {/* Back */}
+      <div className="flex items-center justify-between">
+        <Link to="/" className="flex items-center gap-1.5 text-[11px] text-muted hover:text-primary transition-colors">
+          <ArrowLeft className="h-3 w-3" /> Back to Dashboard
+        </Link>
+        <button
+          onClick={refreshIndex}
+          className="flex items-center gap-1.5 text-[11px] text-muted hover:text-primary transition-colors p-1.5 rounded-md hover:bg-neutral"
+        >
+          <RefreshCw className="h-3 w-3" /> Refresh
+        </button>
+      </div>
 
+      {/* Header */}
       <div className="flex justify-between items-start gap-8">
         <div className="flex-1">
-          <p className="text-[9px] text-muted tracking-[0.12em] uppercase mb-3 font-medium">NSE India · Benchmark Index</p>
-          <h1 className="text-3xl font-heading font-light tracking-tight leading-tight">{index.indexName}</h1>
-          <p className="text-sm text-muted font-sans mt-2">
-            {m?.numberOfConstituents} constituents · Base: {m?.baseDate}
+          <p className="text-[9px] text-muted tracking-[0.12em] uppercase mb-3 font-medium">
+            {index.instrumentKey}
           </p>
+          <h1 className="text-3xl font-heading font-light tracking-tight leading-tight text-primary">
+            {index.indexName}
+          </h1>
+          {m && (
+            <p className="text-sm text-muted font-sans mt-2">
+              {m.numberOfConstituents ? `${m.numberOfConstituents} constituents` : ''}
+              {m.numberOfConstituents && m.baseDate ? ' · ' : ''}
+              {m.baseDate ? `Base: ${m.baseDate}` : ''}
+            </p>
+          )}
         </div>
         <div className="text-right flex-shrink-0">
-          <div className="text-3xl font-sans font-medium tracking-tight">₹{fmt(p?.lastPrice)}</div>
-          <div className={`text-[13px] font-medium mt-1 ${getChangeColor(p?.change)}`}>
-            {isUp ? '↗' : '↘'} {isUp ? '+' : ''}{fmt(p?.change)} ({isUp ? '+' : ''}{fmt(p?.pChange)}%)
+          {ltp != null ? (
+            <>
+              <div className="text-4xl font-mono font-semibold tracking-tight text-primary">
+                {fmt(ltp)}
+              </div>
+              <div className={`flex items-center justify-end gap-1.5 text-[14px] font-medium mt-1.5 ${getChangeColor(change)}`}>
+                {isUp
+                  ? <TrendingUp className="h-4 w-4" />
+                  : <TrendingDown className="h-4 w-4" />
+                }
+                <span>{isUp ? '+' : ''}{fmt(change)}</span>
+                <span className="text-muted">({isUp ? '+' : ''}{pChange?.toFixed(2)}%)</span>
+              </div>
+            </>
+          ) : (
+            <div className="text-muted text-[13px] font-sans">
+              Live price unavailable
+              <p className="text-[11px] mt-1 opacity-60">Market may be closed</p>
+            </div>
+          )}
+          {/* Live indicator */}
+          <div className="flex items-center justify-end gap-1.5 mt-2">
+            <div className={`h-1.5 w-1.5 rounded-full ${ltp != null ? 'bg-positive animate-pulse' : 'bg-muted'}`} />
+            <span className="text-[9px] font-mono text-muted uppercase tracking-widest">
+              {ltp != null ? 'Live' : 'Offline'}
+            </span>
           </div>
-          <div className="text-[11px] text-muted mt-1">{index.instrumentKey}</div>
         </div>
       </div>
 
+      {/* Main Grid */}
       <div className="grid grid-cols-12 gap-6">
-        <div className="col-span-8 space-y-6">
-          {/* Chart */}
-          <div className="bg-surface p-5 card-border">
+        {/* Left Column */}
+        <div className="col-span-8 space-y-5">
+
+          {/* Trend Visual */}
+          <div className="bg-surface p-6 card-border rounded-xl">
             <div className="flex justify-between items-center mb-4">
-              <h3 className="text-[10px] text-muted tracking-[0.12em] uppercase font-medium">Day Range</h3>
-              <span className="text-[10px] text-muted">Intraday low → high</span>
+              <h3 className="text-[10px] text-muted tracking-[0.12em] uppercase font-medium">Price Trend</h3>
+              <span className="text-[10px] text-muted font-mono">
+                {ltp != null ? `Last: ${fmt(ltp)}` : 'No live data'}
+              </span>
             </div>
-            {chart.length > 0 ? (
-              <div className="h-40 w-full">
-                <ResponsiveContainer width="100%" height="100%">
-                  <AreaChart data={chart} margin={{ top: 5, right: 0, left: 0, bottom: 0 }}>
-                    <defs>
-                      <linearGradient id="ig" x1="0" y1="0" x2="0" y2="1">
-                        <stop offset="5%" stopColor={isUp ? (isDark ? '#6bd6b4' : '#2E7D32') : (isDark ? '#ff6b6b' : '#DC2626')} stopOpacity={0.25} />
-                        <stop offset="95%" stopColor={isUp ? (isDark ? '#6bd6b4' : '#2E7D32') : (isDark ? '#ff6b6b' : '#DC2626')} stopOpacity={0} />
-                      </linearGradient>
-                    </defs>
-                    <Area type="monotone" dataKey="v" stroke={isUp ? (isDark ? '#6bd6b4' : '#2E7D32') : (isDark ? '#ff6b6b' : '#DC2626')}
-                      strokeWidth={1.5} fillOpacity={1} fill="url(#ig)" isAnimationActive={false} />
-                  </AreaChart>
-                </ResponsiveContainer>
+            {ltp != null ? (
+              <div className="relative h-36 w-full">
+                <svg viewBox="0 0 300 80" className="w-full h-full" preserveAspectRatio="none">
+                  <defs>
+                    <linearGradient id="trend-grad" x1="0" y1="0" x2="0" y2="1">
+                      <stop offset="5%" stopColor={lineColor} stopOpacity="0.25" />
+                      <stop offset="95%" stopColor={lineColor} stopOpacity="0" />
+                    </linearGradient>
+                  </defs>
+                  {/* Decorative trend line based on direction */}
+                  <polyline
+                    points={isUp
+                      ? '0,70 50,58 100,48 150,36 200,24 250,14 300,6'
+                      : '0,6 50,14 100,24 150,36 200,48 250,58 300,70'}
+                    fill="none"
+                    stroke={lineColor}
+                    strokeWidth="2"
+                    strokeLinecap="round"
+                    strokeLinejoin="round"
+                  />
+                  <polygon
+                    points={isUp
+                      ? '0,70 50,58 100,48 150,36 200,24 250,14 300,6 300,80 0,80'
+                      : '0,6 50,14 100,24 150,36 200,48 250,58 300,70 300,80 0,80'}
+                    fill="url(#trend-grad)"
+                  />
+                </svg>
               </div>
             ) : (
-              <div className="h-40 flex items-center justify-center text-muted text-[13px]">
-                Chart data unavailable (market may be closed)
-              </div>
-            )}
-          </div>
-
-          {/* Price Data */}
-          <div className="bg-surface p-5 card-border">
-            <h3 className="text-[10px] text-muted tracking-[0.12em] uppercase font-medium mb-5">Price Data</h3>
-            <div className="grid grid-cols-3 gap-x-6 gap-y-5">
-              {[
-                { l: 'Open', v: fmt(p?.open) },
-                { l: 'Day High', v: fmt(p?.dayHigh) },
-                { l: 'Day Low', v: fmt(p?.dayLow) },
-                { l: '52W High', v: fmt(p?.yearHigh) },
-                { l: '52W Low', v: fmt(p?.yearLow) },
-                { l: 'Volume', v: p?.totalTradedVolume?.toLocaleString('en-IN') ?? '—' },
-              ].map(item => (
-                <div key={item.l}>
-                  <p className="text-[9px] text-muted uppercase tracking-widest mb-1">{item.l}</p>
-                  <p className="text-base font-sans font-light">{item.v}</p>
-                </div>
-              ))}
-            </div>
-            {p?.yearHigh && p?.yearLow && (
-              <div className="mt-6">
-                <p className="text-[9px] text-muted uppercase tracking-widest mb-2">52-Week Range</p>
-                <div className="relative h-1.5 w-full bg-neutral rounded-full">
-                  <div className="absolute h-full bg-primary/20 rounded-full"
-                    style={{
-                      left: `${((p.dayLow - p.yearLow) / (p.yearHigh - p.yearLow)) * 100}%`,
-                      width: `${Math.max(0.5, ((p.dayHigh - p.dayLow) / (p.yearHigh - p.yearLow)) * 100)}%`,
-                    }} />
-                  <div className="absolute h-3 w-3 bg-primary rounded-full top-1/2 -translate-y-1/2 -translate-x-1/2"
-                    style={{ left: `${((p.lastPrice - p.yearLow) / (p.yearHigh - p.yearLow)) * 100}%` }} />
-                </div>
-                <div className="flex justify-between text-[10px] text-muted mt-1.5">
-                  <span>₹{fmt(p.yearLow)}</span><span>₹{fmt(p.yearHigh)}</span>
-                </div>
+              <div className="h-36 flex items-center justify-center text-muted text-[13px] font-sans">
+                Live chart data unavailable — market may be closed
               </div>
             )}
           </div>
 
           {/* About */}
           {m?.description && (
-            <div className="bg-surface p-5 card-border">
+            <div className="bg-surface p-6 card-border rounded-xl">
               <h3 className="text-[10px] text-muted tracking-[0.12em] uppercase font-medium mb-4">About this Index</h3>
-              <p className="text-[13px] text-muted font-sans leading-relaxed mb-4">{m.description}</p>
-              <div className="text-[12px] text-muted space-y-1.5">
-                <p>Launch Date: <span className="text-primary">{m.launchDate}</span></p>
-                {m.methodology && <p>Methodology: <span className="text-primary">{m.methodology}</span></p>}
+              <p className="text-[13px] text-muted font-sans leading-relaxed">{m.description}</p>
+              <div className="mt-4 grid grid-cols-2 gap-4 text-[12px]">
+                {m.launchDate && (
+                  <div>
+                    <span className="text-muted">Launch Date </span>
+                    <span className="text-primary font-medium">{m.launchDate}</span>
+                  </div>
+                )}
+                {m.methodology && (
+                  <div>
+                    <span className="text-muted">Methodology </span>
+                    <span className="text-primary font-medium">{m.methodology}</span>
+                  </div>
+                )}
               </div>
             </div>
           )}
         </div>
 
+        {/* Right Column */}
         <div className="col-span-4 space-y-5">
-          {/* Market Breadth */}
-          {adv && (
-            <div className="bg-neutral p-5">
-              <h3 className="text-[10px] text-muted tracking-[0.12em] uppercase font-medium mb-5">Market Breadth</h3>
-              <div className="space-y-4">
-                {[
-                  { label: 'Advances', val: adv.advances, color: 'text-positive' },
-                  { label: 'Declines', val: adv.declines, color: 'text-negative' },
-                  { label: 'Unchanged', val: adv.unChanged, color: 'text-muted' },
-                ].map(({ label, val, color }) => (
-                  <div key={label} className="flex justify-between items-center">
-                    <span className="text-[11px] text-muted">{label}</span>
-                    <span className={`text-[20px] font-sans font-light ${color}`}>{val}</span>
-                  </div>
-                ))}
-              </div>
-              <div className="mt-5 h-1 w-full bg-black/10 dark:bg-white/10 rounded-full overflow-hidden">
-                <div className="h-full bg-positive rounded-full" style={{ width: `${advPct}%` }} />
-              </div>
-              <div className="flex justify-between text-[9px] text-muted mt-1.5 uppercase tracking-wider">
-                <span>{advPct}% positive</span><span>{100 - advPct}% negative</span>
-              </div>
+
+          {/* Live Price Card */}
+          <div className="bg-neutral rounded-xl border border-border-light p-5">
+            <h3 className="text-[9px] text-muted uppercase tracking-widest font-medium mb-3 flex items-center gap-2">
+              {isUp
+                ? <TrendingUp className="h-3 w-3 text-positive" />
+                : <TrendingDown className="h-3 w-3 text-negative" />
+              }
+              Live Price
+            </h3>
+            <div className="text-3xl font-mono font-semibold text-primary">
+              {ltp != null ? fmt(ltp) : '—'}
             </div>
-          )}
+            {change != null && (
+              <div className={`text-[12px] font-medium mt-1 ${getChangeColor(change)}`}>
+                {isUp ? '+' : ''}{fmt(change)} ({isUp ? '+' : ''}{pChange?.toFixed(2)}%)
+              </div>
+            )}
+            {ltp == null && (
+              <p className="text-[10px] text-muted mt-2">Market may be closed</p>
+            )}
+          </div>
 
           {/* Index Info */}
           {m && (
-            <div className="bg-surface p-5 card-border">
-              <h3 className="text-[10px] text-muted tracking-[0.12em] uppercase font-medium mb-4">Index Info</h3>
+            <div className="bg-surface rounded-xl border border-border-light p-5">
+              <h3 className="text-[9px] text-muted uppercase tracking-widest font-medium mb-4">Index Info</h3>
               <div className="space-y-3 text-[13px]">
                 {[
+                  { l: 'Symbol', v: index.indexSymbol },
                   { l: 'Constituents', v: m.numberOfConstituents },
                   { l: 'Launch Date', v: m.launchDate },
                   { l: 'Base Date', v: m.baseDate },
                   { l: 'Methodology', v: m.methodology },
-                ].map(item => (
-                  <div key={item.l} className="flex justify-between">
-                    <span className="text-muted">{item.l}</span>
-                    <span className="font-medium text-right">{item.v ?? '—'}</span>
+                  { l: 'Status', v: m.isActive ? '✓ Active' : 'Inactive' },
+                ].filter(([, v]) => v != null && v !== '').map(item => (
+                  <div key={String(item.l)} className="flex justify-between items-start gap-2">
+                    <span className="text-muted flex-shrink-0">{item.l}</span>
+                    <span className={`font-medium text-right ${String(item.v).startsWith('✓') ? 'text-positive' : 'text-primary'}`}>
+                      {String(item.v)}
+                    </span>
                   </div>
                 ))}
               </div>

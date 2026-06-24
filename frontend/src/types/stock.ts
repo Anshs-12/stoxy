@@ -62,8 +62,11 @@ export interface ScreenerResponse {
   pageSize: number;
   totalElements: number;
   totalPages: number;
-  isFirst: boolean;
-  isLast: boolean;
+  first: boolean;   // backend field is 'first'
+  last: boolean;    // backend field is 'last'
+  // Keep compatibility aliases
+  isFirst?: boolean;
+  isLast?: boolean;
 }
 
 // ── Ticker ──

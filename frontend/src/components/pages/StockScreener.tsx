@@ -148,7 +148,7 @@ export const StockScreener = () => {
                   <th className="pb-3 font-medium">INDUSTRY</th>
                   <th className="pb-3 font-medium text-right">P/E</th>
                   <th className="pb-3 font-medium text-right">SECTOR P/E</th>
-                  <th className="pb-3 font-medium text-right">MARKET CAP (CR)</th>
+                  <th className="pb-3 font-medium text-right">P/B</th>
                 </tr>
               </thead>
               <tbody>
@@ -156,9 +156,10 @@ export const StockScreener = () => {
                   <tr key={s.stockSymbol}
                     className="hover:bg-neutral transition-colors cursor-pointer group border-t border-border-light"
                     onClick={() => navigate(`/stocks/${s.stockSymbol}`)}>
-                    <td className="py-3 font-medium">{s.stockSymbol}</td>
+                    <td className="py-3 font-medium group-hover:text-accent transition-colors">{s.stockSymbol}</td>
                     <td className="py-3 text-muted-heavy">{s.stockName}</td>
                     <td className="py-3 text-muted">{s.companyResponseDTO?.sector || '—'}</td>
+                    <td className="py-3 text-muted">{s.companyResponseDTO?.sectorMarketCap || '—'}</td>
                     <td className="py-3 text-right">{s.stockFinancialsDTO?.pe?.toFixed(2) || '—'}</td>
                     <td className="py-3 text-right text-muted">{s.stockFinancialsDTO?.sectorPe?.toFixed(2) || '—'}</td>
                     <td className="py-3 text-right text-muted">{s.stockFinancialsDTO?.pb?.toFixed(2) || '—'}</td>

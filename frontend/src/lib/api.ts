@@ -1,5 +1,5 @@
 import axios from 'axios';
-import {
+import type {
   IndexDetail,
   IndexSearchResponse,
   StockSearchResponse,
@@ -14,13 +14,27 @@ import {
   FullFeedData,
 } from '../types';
 
+// ── Base URL ──
+// In dev, Vite proxies /api/v2 → stoxy-finance.onrender.com
+// In prod, the deployed frontend should be served from the same origin or point to the live URL
 const BASE_URL = import.meta.env.VITE_API_URL ?? '/api/v2';
 
-const api = axios.create({
+export const api = axios.create({
   baseURL: BASE_URL,
-  withCredentials: true,
+  withCredentials: true,          // sends the HttpOnly JWT cookie automatically
   headers: { 'Content-Type': 'application/json' },
+  timeout: 30000,                 // 30s — Render free tier can be slow on cold start
 });
+
+// ── Error Utilities ──
+export function parseApiError(err: unknown): string {
+  if (!err) return 'An unknown error occurred';
+  const e = err as any;
+  if (e?.response?.data?.message) return String(e.response.data.message);
+  if (e?.response?.data && typeof e.response.data === 'string') return e.response.data;
+  if (e?.message) return String(e.message);
+  return 'Request failed';
+}
 
 // ── Global 401 interceptor ──
 api.interceptors.response.use(
@@ -28,7 +42,8 @@ api.interceptors.response.use(
   (err: any) => {
     if (err.response?.status === 401) {
       const apiUrl: string = err.config?.url ?? '';
-      const isPublic = apiUrl.includes('/stocks/') || apiUrl.includes('/index/');
+      // Don't redirect for public endpoints or the auth check itself
+      const isPublic = apiUrl.includes('/stocks/') || apiUrl.includes('/index/') || apiUrl.includes('/ticker/');
       const isAuthCheck = apiUrl.includes('/auth/');
       if (!isAuthCheck && !isPublic) {
         window.location.href = '/login';
@@ -39,7 +54,7 @@ api.interceptors.response.use(
 );
 
 // ── Index Endpoints ──
-// GET /index/search?query=SENSEX → { indexSearchDTOList: [...] }
+// GET /index/search?query=SENSEX  → { indexSearchDTOList: [...] }
 // GET /index/search/{instrumentKey} → IndexDetailResponseDTO
 export const indexApi = {
   search: (query: string) =>
@@ -85,7 +100,7 @@ export const stocksApi = {
 // GET  /watchlist/ → WatchlistSummaryDTO[]
 // GET  /watchlist/{id} → WatchlistResponseDTO
 // DELETE /watchlist/{id}
-// POST /watchlist/{id}/stocks body: { stockSymbol, instrumentKey, priceAddedAt }
+// POST /watchlist/{id}/stocks body: { stockSymbol, instrumentKey, isin, priceAddedAt }
 // DELETE /watchlist/{id}/stocks?stockInstrumentKey=...
 export const watchlistApi = {
   getAll: () => api.get<WatchlistSummary[]>('/watchlist/'),
@@ -93,30 +108,65 @@ export const watchlistApi = {
   create: (watchlistName: string) =>
     api.post<WatchlistDetail>('/watchlist/create', { watchlistName }),
   delete: (id: number) => api.delete(`/watchlist/${id}`),
-  addStock: (watchlistId: number, stockSymbol: string, instrumentKey: string, priceAddedAt: number) =>
-    api.post(`/watchlist/${watchlistId}/stocks`, { stockSymbol, instrumentKey, priceAddedAt }),
+
+  // WatchlistStockRequestDTO: { stockSymbol, instrumentKey, isin, priceAddedAt }
+  addStock: (
+    watchlistId: number,
+    stockSymbol: string,
+    instrumentKey: string,
+    priceAddedAt: number,
+    isin?: string
+  ) =>
+    api.post(`/watchlist/${watchlistId}/stocks`, {
+      stockSymbol,
+      instrumentKey,
+      isin: isin ?? '',
+      priceAddedAt,
+    }),
+
   removeStock: (watchlistId: number, stockInstrumentKey: string) =>
-    api.delete(`/watchlist/${watchlistId}/stocks`, { params: { stockInstrumentKey } }),
+    api.delete(`/watchlist/${watchlistId}/stocks`, {
+      params: { stockInstrumentKey },
+    }),
 };
 
 // ── Ticker Endpoints ──
-// GET /ticker/live/ltpc?instrumentKeyList=KEY1,KEY2,...
-// GET /ticker/live/fullFeed?instrumentKeyList=KEY1,KEY2,...
-// NOTE: Spring receives @RequestParam List<String> — comma-separated works
+// GET /ticker/live/ltpc?instrumentKeyList=KEY1&instrumentKeyList=KEY2...
+// GET /ticker/live/fullFeed?instrumentKeyList=KEY1&instrumentKeyList=KEY2...
+//
+// Spring @RequestParam List<String> works with repeated query params:
+//   ?instrumentKeyList=NSE_EQ|INE002A01018&instrumentKeyList=NSE_EQ|INE009A01021
+// Axios serializes arrays as repeated params by default.
 export const tickerApi = {
   getLtpc: (instrumentKeys: string[]) =>
     api.get<Record<string, LtpcData>>('/ticker/live/ltpc', {
-      params: { instrumentKeyList: instrumentKeys.join(',') },
+      params: { instrumentKeyList: instrumentKeys },
+      // Serialize as repeated params: instrumentKeyList=K1&instrumentKeyList=K2
+      paramsSerializer: (params) => {
+        const parts: string[] = [];
+        for (const key of params.instrumentKeyList as string[]) {
+          parts.push(`instrumentKeyList=${encodeURIComponent(key)}`);
+        }
+        return parts.join('&');
+      },
     }),
+
   getFullFeed: (instrumentKeys: string[]) =>
     api.get<Record<string, FullFeedData>>('/ticker/live/fullFeed', {
-      params: { instrumentKeyList: instrumentKeys.join(',') },
+      params: { instrumentKeyList: instrumentKeys },
+      paramsSerializer: (params) => {
+        const parts: string[] = [];
+        for (const key of params.instrumentKeyList as string[]) {
+          parts.push(`instrumentKeyList=${encodeURIComponent(key)}`);
+        }
+        return parts.join('&');
+      },
     }),
 };
 
 // ── Portfolio Endpoints ──
 // GET  /portfolio/ → PortfolioResponseDTO
-// POST /portfolio/buyStock body: { stockSymbol, quantity, buyPrice, instrumentKey }
+// POST /portfolio/buyStock body: { stockSymbol, quantity, buyPrice, instrumentKey, isin }
 // POST /portfolio/sellStock body: { stockSymbol, quantity, instrumentKey, sellingPrice }
 // GET  /portfolio/transaction/{stockSymbol} → TransactionResponseDTO[]
 // GET  /portfolio/transactions → TransactionResponseDTO[]
@@ -124,14 +174,38 @@ export const tickerApi = {
 export const portfolioApi = {
   getPortfolio: () => api.get<PortfolioResponse>('/portfolio/'),
 
-  buyStock: (stockSymbol: string, quantity: number, buyPrice: number, instrumentKey: string) =>
-    api.post('/portfolio/buyStock', { stockSymbol, quantity, buyPrice, instrumentKey }),
+  // BuyStockRequestDTO: { stockSymbol, quantity, buyPrice, instrumentKey, isin }
+  buyStock: (
+    stockSymbol: string,
+    quantity: number,
+    buyPrice: number,
+    instrumentKey: string,
+    isin?: string
+  ) =>
+    api.post('/portfolio/buyStock', {
+      stockSymbol,
+      quantity,
+      buyPrice,
+      instrumentKey,
+      isin: isin ?? '',
+    }),
 
-  sellStock: (stockSymbol: string, quantity: number, sellingPrice: number, instrumentKey: string) =>
-    api.post('/portfolio/sellStock', { stockSymbol, quantity, sellingPrice, instrumentKey }),
+  // SellStockRequestDTO: { stockSymbol, quantity, instrumentKey, sellingPrice }
+  sellStock: (
+    stockSymbol: string,
+    quantity: number,
+    sellingPrice: number,
+    instrumentKey: string
+  ) =>
+    api.post('/portfolio/sellStock', {
+      stockSymbol,
+      quantity,
+      sellingPrice,
+      instrumentKey,
+    }),
 
   getTransactionsByStock: (stockSymbol: string) =>
-    api.get<TransactionResponse[]>(`/portfolio/transaction/${stockSymbol}`),
+    api.get<TransactionResponse[]>(`/portfolio/transaction/${encodeURIComponent(stockSymbol)}`),
 
   getTransactionHistory: () =>
     api.get<TransactionResponse[]>('/portfolio/transactions'),
@@ -142,7 +216,7 @@ export const portfolioApi = {
 
 // ── Auth Endpoints ──
 // GET /auth/userInfo → UserInfoResponseDTO { userName, userEmailId, jwtToken, providerType }
-// GET /auth/logout → clears JWT cookie
+// GET /auth/logout → clears JWT cookie, returns string
 export const authApi = {
   getUserInfo: () => api.get<UserInfo>('/auth/userInfo'),
   logout: () => api.get('/auth/logout'),
