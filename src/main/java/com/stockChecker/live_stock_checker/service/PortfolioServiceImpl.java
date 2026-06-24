@@ -38,6 +38,7 @@ public class PortfolioServiceImpl implements PortfolioService {
     private final StockDBService stockDBService;
     private final PDFService pdfService;
     private final TickerService tickerService;
+    private final MarketStatusService marketStatusService;
 
     // Mapper & Utils
     private final PortfolioTransactionMapper transactionMapper;
@@ -183,7 +184,9 @@ public class PortfolioServiceImpl implements PortfolioService {
     @Override
     @Transactional
     public BuyStockResponseDTO buyStock(String userEmail, BuyStockRequestDTO buyStockRequestDTO) {
-
+        if (!marketStatusService.isMarketOpen().getIsOpen()) {
+            throw new IllegalStateException("Market is currently closed. Trading is only allowed during market hours.");
+        }
         // getting the user first to get the related portfolio
         User user = authUtils.getloggedInUser(userEmail);
 
@@ -282,7 +285,9 @@ public class PortfolioServiceImpl implements PortfolioService {
     @Override
     @Transactional
     public SellStockResponseDTO sellStock(String userEmail, SellStockRequestDTO sellStockRequestDTO) {
-
+        if (!marketStatusService.isMarketOpen().getIsOpen()) {
+            throw new IllegalStateException("Market is currently closed. Trading is only allowed during market hours.");
+        }
         User user = authUtils.getloggedInUser(userEmail);
         // checking if the portfolio exists!
         Portfolio portfolio = portfolioRepository.findByUser(user)
