@@ -18,7 +18,8 @@ public class MarketStatusResponse {
     Boolean isOpen;
     LocalTime nextOpeningTime;
     String nextOpeningDay;
+    String nextOpeningDate;
     LocalTime lastClosingTime;
     String lastClosingDay;
-
+    String lastClosingDate;
 }

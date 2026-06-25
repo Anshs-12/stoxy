@@ -55,16 +55,14 @@ public class MarketStatusService {
                 && !isHoliday(todayDate.toString())
                 && getMarketStatus(todayDate.toString(), currentTimeMillis);
 
-        String lastClosingDay = String.valueOf(getLastClosingDay(todayDate, currentTime));
-        String nextOpeningDay = String.valueOf(getNextOpeningDay(todayDate, currentTime));
-
-
         return MarketStatusResponse.builder()
                 .isOpen(isMarketOpen)
-                .lastClosingDay(lastClosingDay)
-                .lastClosingTime(marketClose)
-                .nextOpeningDay(nextOpeningDay)
                 .nextOpeningTime(marketOpen)
+                .nextOpeningDay(getNextOpeningDate(todayDate, currentTime).getDayOfWeek().toString())
+                .nextOpeningDate(getNextOpeningDate(todayDate, currentTime).toString())
+                .lastClosingTime(marketClose)
+                .lastClosingDay(getLastClosingDate(todayDate, currentTime).getDayOfWeek().toString())
+                .lastClosingDate(getLastClosingDate(todayDate, currentTime).toString())
                 .build();
     }
 
@@ -133,7 +131,7 @@ public class MarketStatusService {
         }
     }
 
-    private DayOfWeek getLastClosingDay(LocalDate todayDate, LocalTime currentTime) {
+    private LocalDate getLastClosingDate(LocalDate todayDate, LocalTime currentTime) {
         LocalDate targetDate = todayDate;
         if (currentTime.isBefore(marketClose)) {
             targetDate = targetDate.minusDays(1);
@@ -141,10 +139,10 @@ public class MarketStatusService {
         while (isWeekend(targetDate.getDayOfWeek()) || isHoliday(targetDate.toString())) {
             targetDate = targetDate.minusDays(1);
         }
-        return targetDate.getDayOfWeek();
+        return targetDate;
     }
 
-    private DayOfWeek getNextOpeningDay(LocalDate todayDate, LocalTime currentTime) {
+    private LocalDate getNextOpeningDate(LocalDate todayDate, LocalTime currentTime) {
         LocalDate targetDate = todayDate;
         if (!currentTime.isBefore(marketOpen)) {
             targetDate = targetDate.plusDays(1);
@@ -152,6 +150,6 @@ public class MarketStatusService {
         while (isWeekend(targetDate.getDayOfWeek()) || isHoliday(targetDate.toString())) {
             targetDate = targetDate.plusDays(1);
         }
-        return targetDate.getDayOfWeek();
+        return targetDate;
     }
 }
