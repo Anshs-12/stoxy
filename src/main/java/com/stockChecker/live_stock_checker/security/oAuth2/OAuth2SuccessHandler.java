@@ -9,6 +9,7 @@ import jakarta.servlet.http.HttpServletRequest;
 import jakarta.servlet.http.HttpServletResponse;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
+import org.springframework.beans.factory.annotation.Value;
 import org.springframework.http.ResponseCookie;
 import org.springframework.security.core.Authentication;
 import org.springframework.security.oauth2.client.authentication.OAuth2AuthenticationToken;
@@ -25,6 +26,9 @@ public class OAuth2SuccessHandler implements AuthenticationSuccessHandler {
 
     private final UserRepository userRepository;
     private final JwtUtils jwtUtils;
+
+    @Value("${app.frontend.url}")
+    private String frontendUrl;
 
     @Override
     public void onAuthenticationSuccess(HttpServletRequest request,
@@ -54,7 +58,7 @@ public class OAuth2SuccessHandler implements AuthenticationSuccessHandler {
         response.setStatus(HttpServletResponse.SC_OK);
         response.addHeader("Set-Cookie", jwtTokenCookie.toString());
         response.addHeader("Authorization", "Bearer " + jwtToken);
-        response.sendRedirect("https://stoxy-finance.vercel.app/");
+        response.sendRedirect(frontendUrl);
     }
 
     private User saveUserInDB(OAuth2User oAuth2User, String provider) {
