@@ -149,7 +149,6 @@ export const Dashboard = () => {
                     <span>{isUp ? '+' : ''}{fmt(idx.change)}</span>
                     <span className="text-muted">({isUp ? '+' : ''}{idx.pChange?.toFixed(2)}%)</span>
                   </div>
-                  <MiniChart pChange={idx.pChange} color={changeColor} />
                 </>
               ) : (
                 <div className="mt-3">
