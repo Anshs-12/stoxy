@@ -213,7 +213,7 @@ export const portfolioApi = {
 // GET /auth/logout → clears JWT cookie, returns string
 export const authApi = {
     getUserInfo: () => api.get<UserInfo>('/auth/userInfo'),
-    logout: () => api.get('/auth/logout'),
+    logout: () => api.get('/auth/logout', { withCredentials: true }),
 };
 
 // ?? Chart Types ??
