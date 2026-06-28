@@ -3,6 +3,7 @@ import { Loader2, ArrowLeft, RefreshCw, TrendingUp, TrendingDown } from 'lucide-
 import { useIndexDetail } from '../../hooks/useIndexDetail';
 import { useTheme } from '../../context/ThemeContext';
 import { fmt, getChangeColor, isMarketOpen } from '../../lib/utils';
+import { StockChart } from '../ui/StockChart';
 
 export const NSEIndexDetail = () => {
   const { symbol } = useParams<{ symbol: string }>();
@@ -108,47 +109,9 @@ export const NSEIndexDetail = () => {
         {/* Left Column */}
         <div className="col-span-8 space-y-5">
 
-          {/* Trend Visual */}
+          {/*// Trend Visual*/}
           <div className="bg-surface p-6 card-border rounded-xl">
-            <div className="flex justify-between items-center mb-4">
-              <h3 className="text-[10px] text-muted tracking-[0.12em] uppercase font-medium">Price Trend</h3>
-              <span className="text-[10px] text-muted font-mono">
-                {ltp != null ? `Last: ${fmt(ltp)}` : 'No live data'}
-              </span>
-            </div>
-            {ltp != null ? (
-              <div className="relative h-36 w-full">
-                <svg viewBox="0 0 300 80" className="w-full h-full" preserveAspectRatio="none">
-                  <defs>
-                    <linearGradient id="trend-grad" x1="0" y1="0" x2="0" y2="1">
-                      <stop offset="5%" stopColor={lineColor} stopOpacity="0.25" />
-                      <stop offset="95%" stopColor={lineColor} stopOpacity="0" />
-                    </linearGradient>
-                  </defs>
-                  {/* Decorative trend line based on direction */}
-                  <polyline
-                    points={isUp
-                      ? '0,70 50,58 100,48 150,36 200,24 250,14 300,6'
-                      : '0,6 50,14 100,24 150,36 200,48 250,58 300,70'}
-                    fill="none"
-                    stroke={lineColor}
-                    strokeWidth="2"
-                    strokeLinecap="round"
-                    strokeLinejoin="round"
-                  />
-                  <polygon
-                    points={isUp
-                      ? '0,70 50,58 100,48 150,36 200,24 250,14 300,6 300,80 0,80'
-                      : '0,6 50,14 100,24 150,36 200,48 250,58 300,70 300,80 0,80'}
-                    fill="url(#trend-grad)"
-                  />
-                </svg>
-              </div>
-            ) : (
-              <div className="h-36 flex items-center justify-center text-muted text-[13px] font-sans">
-                Live chart data unavailable — market may be closed
-              </div>
-            )}
+            <StockChart instrumentKey={index.instrumentKey} />
           </div>
 
           {/* About */}

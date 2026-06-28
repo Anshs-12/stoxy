@@ -1,8 +1,9 @@
 import { useState } from 'react';
 import { useLocation, useParams, Link } from 'react-router-dom';
-import { ShoppingCart, Loader2, ArrowLeft, X, ListPlus, TrendingUp, TrendingDown, BarChart3 } from 'lucide-react';
+import { ShoppingCart, Loader2, ArrowLeft, X, ListPlus, TrendingUp, TrendingDown } from 'lucide-react';
 import { useStockDetails } from '../../hooks/useStockDetails';
 import { fmt, getChangeColor, isMarketOpen } from '../../lib/utils';
+import { StockChart } from '../ui/StockChart';
 
 export const StockDetails = () => {
   const { symbol } = useParams<{ symbol: string }>();
@@ -219,9 +220,8 @@ export const StockDetails = () => {
         <div className="col-span-8 space-y-6">
 
           {/* Chart Placeholder — upcoming feature */}
-          <div className="bg-surface rounded-xl border border-border-light p-5 min-h-[220px] flex flex-col items-center justify-center gap-3">
-            <BarChart3 className="h-8 w-8 text-muted/40" />
-            <p className="text-[12px] text-muted font-sans">Price chart — coming soon</p>
+          <div className="bg-surface rounded-xl border border-border-light p-5">
+            <StockChart instrumentKey={stock.instrumentKey} />
           </div>
 
           {/* ── FINANCIALS ── */}

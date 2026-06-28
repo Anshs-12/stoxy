@@ -51,6 +51,7 @@ public class WebSecurityConfig {
                 .requestMatchers("/stocks/**").permitAll()
                 .requestMatchers("/index/**").permitAll()
                 .requestMatchers("/ticker/live/**").permitAll()
+                .requestMatchers("/charts/**").permitAll()
                 .requestMatchers("/auth/userInfo").authenticated()
                 .requestMatchers("/auth/**").permitAll()
                 .requestMatchers("/login/**").permitAll()
