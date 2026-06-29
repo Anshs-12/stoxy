@@ -49,16 +49,17 @@ public class ChartServiceImpl implements ChartService {
 
     @Override
     public List<CandleDataDTO> getIntradayData(String instrumentKey, String unit, String interval) {
-        JsonNode candles;
-        MarketStatusResponse status = marketStatusService.isMarketOpen();
-        if (status.getIsOpen()) {
-            candles = getIntradayDataFromUpstox(instrumentKey, unit, interval);
-        } else {
-            String fromDate = status.getLastClosingDate();
-            String toDate = LocalDate.now().toString();
-            candles = getHistoricalDataFromUpstox(instrumentKey, unit, interval, fromDate, toDate);
+        JsonNode candles = getIntradayDataFromUpstox(instrumentKey, unit, interval);
+
+        if (!candles.isEmpty()) {
+            return parseCandles(candles);
         }
-        return parseCandles(candles);
+
+        // Intraday empty — fall back to historical (overnight dead window or holiday/weekend)
+        MarketStatusResponse status = marketStatusService.isMarketOpen();
+        String fromDate = status.getLastClosingDate();
+        String toDate = LocalDate.now().toString();
+        return parseCandles(getHistoricalDataFromUpstox(instrumentKey, unit, interval, fromDate, toDate));
     }
 
     private List<CandleDataDTO> parseCandles(JsonNode candles) {
