@@ -15,10 +15,11 @@ Handles live market feeds, OAuth2 user authentication, rate limiting, and invest
 ![Maven](https://img.shields.io/badge/Maven-3.8+-C71A36?style=for-the-badge&logo=apachemaven&logoColor=white)
 ![Swagger](https://img.shields.io/badge/Swagger-UI-85EA2D?style=for-the-badge&logo=swagger&logoColor=black)
 
-### Live API Documentation
+### Live Demo
+**[https://stoxy-finance.vercel.app](https://stoxy-finance.vercel.app)**
 
-**[http://localhost:8080/api/v2/swagger-ui/index.html](http://localhost:8080/api/v2/swagger-ui/index.html)**
-
+### API Documentation
+**[https://stoxy-finance.onrender.com/api/v2/swagger-ui/index.html](https://stoxy-finance.onrender.com/api/v2/swagger-ui/index.html)**
 </div>
 
 ---
@@ -28,20 +29,20 @@ Handles live market feeds, OAuth2 user authentication, rate limiting, and invest
 ```text
 live-stock-checker/
 ├── src/main/java/com/stockChecker/live_stock_checker/
-│   ├── config/             ◄── Rate limiting, Redis, and Auth configs
-│   ├── controller/         ◄── REST Endpoints (Auth, Portfolio, Ticker, etc.)
-│   ├── exceptions/         ◄── Custom global exception handling
-│   ├── mapper/             ◄── MapStruct DTO mappings
-│   ├── model/              ◄── Database Entities (User, Stock, Portfolio, etc.)
-│   ├── payload/            ◄── DTOs for requests and responses
-│   ├── repository/         ◄── Spring Data JPA Repositories
-│   ├── security/           ◄── JWT, Google OAuth2 & WebSecurityConfig
-│   ├── service/            ◄── Core business logic layer
-│   ├── startup/            ◄── App initialization (StockDataSeeder)
-│   └── websocket/          ◄── Live Upstox WSS market data handlers
-└── src/main/resources/
-    └── application.yaml    ◄── Environment variables & app properties
-├── pom.xml                         ◄── Maven dependencies
+│   ├── config/             — Rate limiting, Redis, and Auth configs
+│   ├── controller/         — REST Endpoints (Auth, Portfolio, Ticker, Chart, Market, etc.)
+│   ├── exceptions/         — Custom global exception handling
+│   ├── mapper/             — MapStruct DTO mappings
+│   ├── model/               — Database Entities (User, Stock, Portfolio, etc.)
+│   ├── payload/             — DTOs for requests and responses
+│   ├── repository/         — Spring Data JPA Repositories
+│   ├── security/            — JWT, Google OAuth2 & WebSecurityConfig
+│   ├── service/              — Core business logic layer
+│   ├── startup/              — App initialization (StockDataSeeder)
+│   └── websocket/            — Live Upstox WSS market data handlers + browser broadcast layer
+├── src/main/resources/
+│   └── application.yaml    — Environment variables & app properties
+├── pom.xml                         — Maven dependencies
 └── README.md
 ```
 
@@ -52,43 +53,43 @@ live-stock-checker/
 Every request goes through these layers in order:
 
 ```text
-┌─────────────────────────────────────────────────────────────────┐
-│                        CLIENT (Browser)                         │
-│                  Cookie: JWT (HttpOnly)                         │
-└────────────────────────────┬────────────────────────────────────┘
+┌───────────────────────────────────────────────────────────────────┐
+│                        CLIENT (Browser)                           │
+│                  Cookie: JWT (HttpOnly)                           │
+└───────────────────────────────────────────────────────────────────┘
                              │ HTTPS / WSS
-                             ▼
-┌─────────────────────────────────────────────────────────────────┐
-│                     SECURITY & ROUTING                          │
-│     RateLimitFilter ──► AuthTokenFilter ──► WebSecurityConfig   │
-│     (Bucket4j/Redis)        (JWT)              (OAuth2/CORS)    │
-└────────────────────────────┬────────────────────────────────────┘
                              │
-                             ▼
-┌─────────────────────────────────────────────────────────────────┐
-│                    CONTROLLER LAYER                             │
-│     Auth    │    Stock    │  Portfolio  │   Ticker              │
-│    Index    │  Watchlist  │             │   (Live Data)         │
-└────────────────────────────┬────────────────────────────────────┘
+┌───────────────────────────────────────────────────────────────────┐
+│                     SECURITY & ROUTING                            │
+│     RateLimitFilter → AuthTokenFilter → WebSecurityConfig         │
+│     (Bucket4j/Redis)        (JWT)              (OAuth2/CORS)      │
+└───────────────────────────────────────────────────────────────────┘
                              │
-                             ▼
-┌─────────────────────────────────────────────────────────────────┐
-│                     SERVICE LAYER                               │
-│      Where all the core business logic and caching lives        │
-└────────────────────────────┬────────────────────────┬───────────┘
+                             │
+┌───────────────────────────────────────────────────────────────────┐
+│                    CONTROLLER LAYER                               │
+│     Auth    │    Stock    │  Portfolio  │   Ticker                │
+│    Index    │  Watchlist  │    Chart    │   Market Status         │
+└───────────────────────────────────────────────────────────────────┘
+                             │
+                             │
+┌───────────────────────────────────────────────────────────────────┐
+│                     SERVICE LAYER                                 │
+│      Where all the core business logic and caching lives          │
+└───────────────────────────────────────────────────────────────────┘
                              │                        │
-                             ▼                        ▼
-┌──────────────────────────────────────┐    ┌─────────────────────┐
-│          REPOSITORY LAYER            │    │   EXTERNAL APIS     │
-│             (Spring Data JPA)        │    │    Upstox API       │
-└────────────────────────────┬─────────┘    └─────────┬───────────┘
                              │                        │
-             ┌───────────────┴───────────────┐        │
-             ▼                               ▼        ▼
-┌────────────────────────┐       ┌────────────────────────┐
-│      PostgreSQL        │       │         Redis          │
-│   (Persistent Data)    │       │ (Caching/Rate Limiting)│
-└────────────────────────┘       └────────────────────────┘
+┌────────────────────────────────────────┐    ┌───────────────────────┐
+│          REPOSITORY LAYER              │    │   EXTERNAL APIS       │
+│             (Spring Data JPA)          │    │    Upstox API         │
+└────────────────────────────────────────┘    └───────────────────────┘
+                             │                        │
+             ┌─────────────────────────────────┐      │
+             │                                 │      │
+┌──────────────────────────┐       ┌──────────────────────────┐
+│      PostgreSQL          │       │         Redis            │
+│   (Persistent Data)      │       │ (Caching/Rate Limiting)  │
+└──────────────────────────┘       └──────────────────────────┘
 ```
 
 ---
@@ -100,20 +101,20 @@ When you log in, Spring handles the Google OAuth2 flow and returns a JWT stored 
 ```text
 You                             Server                                Google
  │                                │                                      │
- │── GET /oauth2/authorization ──►│                                      │
- │                                │── Redirects to Google Login ────────►│
+ ├── GET /oauth2/authorization ────                                      │
+ │                                ├── Redirects to Google Login ──────────
  │                                │                                      │
- │                                │◄── Returns Auth Code ────────────────│
+ │                                ├─── Returns Auth Code ─────────────────
  │                                │                                      │
- │                                │── Exchanges Code for User Info       │
- │                                │── Saves User to Database             │
- │                                │── Generates JWT Token                │
- │◄── Redirect to Dashboard ───── │                                      │
+ │                                ├── Exchanges Code for User Info       │
+ │                                ├── Saves User to Database             │
+ │                                ├── Generates JWT Token                │
+ ├─── Redirect to Dashboard ───── │                                      │
  │    Set-Cookie: jwtCookie       │                                      │
  │                                │                                      │
- │── GET /api/v2/portfolio ──────►│                                      │
- │   (cookie sent automatically)  │── Validates JWT & Rate Limit         │
- │◄── 200 OK ──────────────────── │── Sends back portfolio data          │
+ ├── GET /api/v2/portfolio ────────                                      │
+ │   (cookie sent automatically)  ├── Validates JWT & Rate Limit         │
+ ├─── 200 OK ──────────────────── ├── Sends back portfolio data          │
 ```
 
 ---
@@ -124,9 +125,11 @@ You                             Server                                Google
                     ┌─────────────┐
                     │   PUBLIC    │──── Search Stocks & Indices
                     │ (No Login)  │──── View Live Market Data (LTPC/Full Feed)
-                    └──────┬──────┘     Access Swagger UI
+                    │             │──── View Chart Data & Market Status
+                    │             │──── Access Swagger UI
+                    └─────────────┘
                            │
-                    ┌──────▼──────┐
+                    ┌─────────────┐
                     │    USER     │──── Create/Manage Watchlists
                     │ (Logged in) │──── Buy/Sell Stocks in Portfolio
                     │             │──── View Transaction History & Export PDF
@@ -138,23 +141,23 @@ You                             Server                                Google
 ## Database Structure
 
 ```text
-┌─────────────────┐       ┌─────────────────┐       ┌──────────────────┐
-│      users      │       │     stocks      │       │  stock_financials│
-├─────────────────┤       ├─────────────────┤       ├──────────────────┤
-│ userId       PK │       │ serialNumber PK │──────►│ stock_id      FK │
-│ name            │       │ stockSymbol     │       │ (financial data) │
-│ userMailId      │       │ stockName       │       └──────────────────┘
+┌─────────────────┐       ┌─────────────────┐       ┌────────────────────┐
+│      users      │       │     stocks      │       │  stock_financials  │
+├─────────────────┤       ├─────────────────┤       ├────────────────────┤
+│ userId       PK │       │ serialNumber PK │───────── stock_id      FK  │
+│ name            │       │ stockSymbol     │       │ (financial data)   │
+│ userMailId      │       │ stockName       │       └────────────────────┘
 │ authProvider    │       │ exchange        │
-└────────┬────────┘       │ segment         │       ┌──────────────────┐
-         │                │ isin            │       │     company      │
-         │                │ upstoxInstrmKey │       ├──────────────────┤
-         │                └────────┬────────┘◄──────│ companyInfo_id PK│
-         │                         │                │ (company details)│
-         ▼                         ▼                └──────────────────┘
+└─────────────────┘       │ segment         │       ┌────────────────────┐
+         │                │ isin            │       │     company        │
+         │                │ upstoxInstrmKey │       └────────────────────┘
+         │                └────────────────────────── companyInfo_id PK  │
+         │                         │                │ (company details)  │
+         │                         │                └────────────────────┘
 ┌─────────────────┐       ┌─────────────────┐
 │  portfolio      │       │ portfolio_stock │
 ├─────────────────┤       ├─────────────────┤
-│ id           PK │──────►│ id           PK │
+│ id           PK │────────── id         PK │
 │ user_id      FK │       │ portfolio_id FK │
 │ createdAt       │       │ stock_id     FK │
 └─────────────────┘       │ quantity        │
@@ -164,7 +167,7 @@ You                             Server                                Google
 ┌─────────────────┐       ┌─────────────────┐
 │ watchlist_table │       │ watchlist_stock │
 ├─────────────────┤       ├─────────────────┤
-│ id           PK │──────►│ id           PK │
+│ id           PK │────────── id         PK │
 │ name            │       │ watchlist_id FK │
 │ createdAt       │       │ stock_id     FK │
 │ user_id      FK │       └─────────────────┘
@@ -197,6 +200,19 @@ You                             Server                                Google
 | `GET` | `/ticker/live/ltpc` | Public | Get live LTPC data |
 | `GET` | `/ticker/live/fullFeed` | Public | Get live Full Feed data |
 
+### Charts
+| Method | Endpoint | Who | Description |
+|---|---|---|---|
+| `GET` | `/charts/{instrumentKey}/intraday` | Public | Get intraday candle data for a stock/index |
+| `GET` | `/charts/{instrumentKey}/history` | Public | Get historical candle data for a stock/index |
+
+> The 1D chart view tries the intraday endpoint first and falls back to the historical endpoint when intraday data is empty (e.g. right after market rollover at midnight IST).
+
+### Market
+| Method | Endpoint | Who | Description |
+|---|---|---|---|
+| `GET` | `/market/status` | Public | Get current market open/closed status, last closing date, and next opening date |
+
 ### Portfolio
 | Method | Endpoint | Who | Description |
 |---|---|---|---|
@@ -218,11 +234,27 @@ You                             Server                                Google
 | `DELETE` | `/watchlist/{watchlistId}/stocks` | User | Remove a stock from a watchlist |
 
 ### WebSocket Streams
-Live market data is pushed to clients over WebSocket connections backing the live tick engines.
+Live market data is pushed directly to browser clients over a dedicated WebSocket layer (`BroadcastHandler`), replacing REST polling on the frontend. Clients subscribe to specific instrument keys and only receive ticks for instruments they've subscribed to (with marquee indices always broadcast regardless of subscription state). The market must be open for a connection to be accepted.
 
-**Endpoint:** `ws://localhost:8080/api/v2/ws/market-data`
+**Endpoint:** `ws://localhost:8080/api/v2/wss/market`
 
-**Live Tick Payload Example (`LtpcDataDTO`):**
+**Subscribe message (client → server):**
+```json
+{
+  "guid": "some-client-guid",
+  "method": "sub",
+  "data": {
+    "mode": "ltpc",
+    "instrumentKeys": ["NSE_EQ|INE002A01018"]
+  }
+}
+```
+* **`mode`**: `"ltpc"` for last-traded-price data, or `"fullFeed"` for the full market depth feed
+* **`instrumentKeys`**: list of instrument keys to subscribe to
+
+**Unsubscribe message (client → server):** same shape with `"method": "unsub"`. Marquee indices can't be unsubscribed from.
+
+**Live Tick Payload Example (`LtpcDataDTO`, server → client):**
 ```json
 {
   "instrumentKey": "NSE_EQ|INE002A01018",
@@ -324,9 +356,9 @@ mvn test                              # run all unit and integration tests
 ## Contributing
 
 1. Fork this repo and clone it locally
-2. Create a branch — `git checkout -b feature/awesome-new-feature`
+2. Create a branch → `git checkout -b feature/awesome-new-feature`
 3. Ensure you follow the existing MVC structure and formatting
-4. Commit with a clear descriptive message — `git commit -m "feat: added live ticker tracking"`
+4. Commit with a clear descriptive message → `git commit -m "feat: added live ticker tracking"`
 5. Push and open a Pull Request against `main`
 
 Feel free to open an issue first if you're unsure about a structural change.
