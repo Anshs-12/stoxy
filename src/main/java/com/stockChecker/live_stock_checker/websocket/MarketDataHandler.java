@@ -37,6 +37,8 @@ public class MarketDataHandler implements WebSocket.Listener {
     private final ObjectMapper objectMapper;
     private final WebSocketManager webSocketManager;
 
+    private final BroadcastHandler broadcastHandler;
+
     private final RedisTemplate<String, Object> redisTemplate;
 
     private final ScheduledExecutorService scheduler = Executors.newSingleThreadScheduledExecutor();
@@ -97,13 +99,26 @@ public class MarketDataHandler implements WebSocket.Listener {
                     MarketDataFeedV3.Feed stockData = responseFeedsMap.get(instrumentKey);
                     if (stockData.hasLtpc()) {
                         LtpcDataDTO ltpcPayload = generateLtpcDTO(instrumentKey, stockData.getLtpc());
-                        redisTemplate.opsForValue().set("LTPC:" + instrumentKey, ltpcPayload, Duration.ofMinutes(3));
+                        try {
+                            redisTemplate.opsForValue().set("LTPC:" + instrumentKey, ltpcPayload, Duration.ofMinutes(3));
+                        } catch (Exception e) {
+                            log.debug("Redis write skipped during shutdown: {}", e.getMessage());
+                        }
+                        broadcastHandler.broadcastTick(instrumentKey, ltpcPayload, null);
                     } else if (stockData.hasFullFeed()) {
                         LtpcDataDTO ltpcPayload = generateLtpcDTO(instrumentKey, stockData.getFullFeed().getMarketFF().getLtpc());
-                        redisTemplate.opsForValue().set("LTPC:" + instrumentKey, ltpcPayload, Duration.ofMinutes(3));
-
+                        try {
+                            redisTemplate.opsForValue().set("LTPC:" + instrumentKey, ltpcPayload, Duration.ofMinutes(3));
+                        } catch (Exception e) {
+                            log.debug("Redis write skipped during shutdown: {}", e.getMessage());
+                        }
                         FullFeedDataDTO fullFeedPayload = generateFullFeedDTO(instrumentKey, stockData);
-                        redisTemplate.opsForValue().set("FULL:" + instrumentKey, fullFeedPayload, Duration.ofMinutes(3));
+                        try {
+                            redisTemplate.opsForValue().set("FULL:" + instrumentKey, fullFeedPayload, Duration.ofMinutes(3));
+                        } catch (Exception e) {
+                            log.debug("Redis write skipped during shutdown: {}", e.getMessage());
+                        }
+                        broadcastHandler.broadcastTick(instrumentKey, ltpcPayload, fullFeedPayload);
                     }
                 }
             }

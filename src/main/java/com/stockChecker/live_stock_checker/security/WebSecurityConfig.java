@@ -52,6 +52,8 @@ public class WebSecurityConfig {
                 .requestMatchers("/index/**").permitAll()
                 .requestMatchers("/ticker/live/**").permitAll()
                 .requestMatchers("/charts/**").permitAll()
+                .requestMatchers("/market/**").permitAll()
+                .requestMatchers("/wss/**").permitAll()
                 .requestMatchers("/auth/userInfo").authenticated()
                 .requestMatchers("/auth/**").permitAll()
                 .requestMatchers("/login/**").permitAll()
@@ -63,7 +65,7 @@ public class WebSecurityConfig {
         http.cors(cors -> cors.configurationSource(request -> {
             var config = new org.springframework.web.cors.CorsConfiguration();
             config.setAllowedOrigins(List.of(frontendUrl));
-            config.setAllowedMethods(List.of("GET", "POST", "PUT", "DELETE", "OPTIONS"));
+            config.setAllowedMethods(List.of("GET", "POST", "PUT", "DELETE", "OPTIONS", "HEAD"));
             config.setAllowedHeaders(List.of("*"));
             config.setAllowCredentials(true);
             return config;
