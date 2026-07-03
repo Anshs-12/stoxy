@@ -495,3 +495,78 @@ that is upstox server sender here
      2. We do NOT call triggerReconnectLogic() here to prevent the infinite loop trap.
         The Java WebSocket engine will automatically fire onClose(1006) immediately after this,
         and our onClose method will handle the safe 5-second redial.
+
+
+    Full flow, start to end: (Both Websockets exists, Client and Server side)
+
+    1. Upstox connection lifecycle (already existed, robust)
+    `UpstoxWebSocketClient.maintainConnection()` runs every 60 seconds (`@Scheduled`).
+        It checks:
+        - Is there already an active connection?
+          - If yes, do nothing.
+        - If not, is the market open (`marketStatusService.isMarketOpen()`)?
+
+          - If the market is closed, do nothing.
+          - If the market is open, call `connectWebsocketToUpstox()`.
+
+        `connectWebsocketToUpstox()` fetches a fresh WebSocket (WSS) URL from Upstox, establishes the connection, and
+        registers `marketDataHandler` as the listener for all incoming WebSocket frames.
+
+        So, market-status checking already exists. It happens only while maintaining the Upstox connection,
+        not for every incoming tick.
+
+    2. Subscribing instruments to Upstox
+        There are two ways instruments get subscribed:
+        - When the WebSocket connection is first established (`onOpen`), `MarketDataHandler` automatically subscribes to the marquee indices.
+        - Later, when `tickerService.getLiveLtpcData()` or `tickerService.getLiveFullFeedData()` is called, the service checks whether those instruments are already subscribed. If not, it internally calls `onSubscribe()` to subscribe them.
+
+    3. Upstox → Backend (data ingestion)
+        Once subscribed, Upstox continuously sends binary WebSocket frames.
+        `MarketDataHandler.onBinary()`:
+        - Parses the protobuf message.
+        - Extracts LTPC or FullFeed data for each instrument.
+        - Stores the latest data in Redis with a TTL of 3 minutes.
+        - Calls `broadcastHandler.broadcastTick(...)`.
+
+    4. Backend → Browsers (broadcast layer)
+        `BroadcastHandler` maintains `browserSessionList`, which contains every browser currently connected to `/wss/market`.
+        Whenever `broadcastTick(...)` is called:
+        - The tick is serialized into JSON.
+        - Wrapped inside a `TextMessage`.
+        - Sent to every open browser session in `browserSessionList`.
+
+    5. Browser → Backend (subscription requests)
+        The browser connects to `/wss/market`, and its session is added to `browserSessionList`.
+        The browser then sends a JSON message such as:
+            {
+              "instrumentKeys": ["NSE_INDEX|Nifty 50"],
+              "mode": "ltpc"
+            }
+
+    `handleTextMessage()`:
+        - Parses the JSON.
+        - Calls the appropriate `tickerService` method.
+        - The service ensures those instruments are subscribed with Upstox.
+        - Redis begins receiving live updates for those instruments.
+
+    From that point onward, every new tick follows this path:
+    Upstox → `MarketDataHandler` → Redis → `BroadcastHandler` → Every connected browser.
+    The current implementation broadcasts to every connected browser, not only the browser that originally requested the subscription.
+
+    6. REST fallback
+        `TickerController` provides HTTP endpoints for reading the latest cached data from Redis:
+            - `/ticker/live/ltpc`
+            - `/ticker/live/fullFeed`
+
+        These endpoints are useful for:
+        - Fetching the initial snapshot when a page first loads.
+        - Any scenario where live WebSocket updates are not required.
+
+    Complete flow:
+        1. `maintainConnection()` ensures an active Upstox WebSocket connection only when the market is open.
+        2. Instruments are subscribed either automatically during `onOpen()` or on demand through `TickerService`.
+        3. Upstox sends live binary data.
+        4. `MarketDataHandler` parses the data, stores it in Redis, and forwards it to `BroadcastHandler`.
+        5. `BroadcastHandler` broadcasts every tick to all connected browser sessions.
+        6. Browsers can request subscriptions through `/wss/market`.
+        7. REST endpoints provide snapshot data directly from Redis when needed.
