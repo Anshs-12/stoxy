@@ -17,6 +17,7 @@ import org.springframework.web.client.RestClient;
 import java.net.URI;
 import java.net.http.HttpClient;
 import java.net.http.WebSocket;
+import java.net.http.WebSocketHandshakeException;
 import java.nio.ByteBuffer;
 import java.util.List;
 import java.util.UUID;
@@ -65,6 +66,10 @@ public class UpstoxWebSocketClient {
             activeWebSocketObject = webSocketConnectionObject.join();
             log.info("Upstox WebSocket connection established successfully.");
         } catch (Exception e) {
+            if (e.getCause() instanceof WebSocketHandshakeException wshe) {
+                log.warn("Handshake failed. Status: {}, Response: {}",
+                        wshe.getResponse().statusCode(), wshe.getResponse().body());
+            }
             log.warn("Failed to establish Websocket connection: {}", e.getMessage());
             throw new UpstoxFeedException("Failed to establish WebSocket connection: " + e.getMessage());
         }
