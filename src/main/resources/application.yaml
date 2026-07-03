@@ -22,7 +22,7 @@ spring:
 
 
   app:
-    jwtExpirationsMS: 86400000
+    jwtExpirationsMS: ${jwtExpirationsMS}
     jwtSecretKey: ${jwtSecretKey}
     jwtCookieName: ${jwtCookieName}
 

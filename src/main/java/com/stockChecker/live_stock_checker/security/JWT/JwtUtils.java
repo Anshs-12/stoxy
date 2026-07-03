@@ -26,7 +26,7 @@ import java.util.Date;
 public class JwtUtils {
 
     @Value("${spring.app.jwtExpirationsMS}")
-    private Integer jwtExpirations;
+    private long jwtExpirations;
 
     @Value("${spring.app.jwtSecretKey}")
     private String jwtSecretKey;
