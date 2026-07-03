@@ -2,6 +2,7 @@ import { useState, useEffect, useCallback, useRef } from 'react';
 import { stocksApi, portfolioApi, watchlistApi, tickerApi } from '../lib/api';
 import { StockDetail, WatchlistSummary } from '../types';
 import { useToast } from '../context/ToastContext';
+import { marketSocket } from '../lib/marketSocket';
 
 export const useStockDetails = (symbol: string | undefined, preloadedState?: any) => {
   const [stock, setStock] = useState<StockDetail | null>(null);
@@ -13,7 +14,6 @@ export const useStockDetails = (symbol: string | undefined, preloadedState?: any
   const [ltt, setLtt] = useState<number | null>(null);   // last traded timestamp (ms)
   const [cp, setCp] = useState<number | null>(null);     // previous close
   const instrumentKeyRef = useRef<string | null>(null);
-  const intervalRef = useRef<ReturnType<typeof setInterval> | null>(null);
   const { addToast } = useToast();
 
   const loadStock = useCallback(async () => {
@@ -59,7 +59,7 @@ export const useStockDetails = (symbol: string | undefined, preloadedState?: any
       const key = r.data.instrumentKey;
       instrumentKeyRef.current = key || null;
 
-      // Initial live price fetch
+      // ── Initial REST snapshot (before WebSocket ticks start arriving) ──
       if (key) {
         try {
           const t = await tickerApi.getLtpc([key]);
@@ -99,29 +99,32 @@ export const useStockDetails = (symbol: string | undefined, preloadedState?: any
     loadWatchlists();
   }, [loadStock, loadWatchlists]);
 
-  // ── Live price polling every 2 seconds ──
+  // ── Live price updates via WebSocket ──
+  // Subscribe to fullFeed for the stock detail page (OHLC + depth).
+  // Falls back gracefully: if market is closed (code 4000) the WebSocket is
+  // not retried and we keep displaying the REST snapshot loaded above.
   useEffect(() => {
-    const poll = async () => {
-      const key = instrumentKeyRef.current;
-      if (!key) return;
-      try {
-        const t = await tickerApi.getLtpc([key]);
-        const live = t.data?.[key];
-        if (live?.ltp != null) {
-          setLtp(Number(live.ltp));
-          setLtt(live.ltt ? Number(live.ltt) : null);
-          setCp(live.cp != null ? Number(live.cp) : null);
-        }
-      } catch {
-        // silent — keep showing last known price
-      }
-    };
+    const key = instrumentKeyRef.current;
+    if (!key) return;
 
-    intervalRef.current = setInterval(poll, 2000);
+    // Subscribe returns an unsubscribe function
+    const wsUnsub = marketSocket.subscribe([key], 'fullFeed');
+
+    // Listen for incoming tick messages for this key
+    const tickUnsub = marketSocket.addTickListener(msg => {
+      if (msg.instrumentKey !== key) return;
+      if (msg.ltp != null) setLtp(Number(msg.ltp));
+      if (msg.ltt != null) setLtt(Number(msg.ltt));
+      if (msg.cp != null) setCp(Number(msg.cp));
+    });
+
     return () => {
-      if (intervalRef.current) clearInterval(intervalRef.current);
+      wsUnsub();
+      tickUnsub();
     };
-  }, []);   // only runs once on mount; reads instrumentKeyRef dynamically
+  // Re-run when instrumentKey is resolved (stock loads asynchronously)
+  // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [stock?.instrumentKey]);
 
   const addToWatchlist = async (wlId: number, wlName: string) => {
     if (!symbol || !stock) return false;

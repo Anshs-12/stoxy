@@ -1,5 +1,6 @@
-import { useState, useEffect, useCallback, useRef } from 'react';
+import { useState, useEffect, useCallback } from 'react';
 import { indexApi, tickerApi } from '../lib/api';
+import { marketSocket } from '../lib/marketSocket';
 import type { IndexDetail, LtpcData } from '../types';
 
 export interface IndexDetailWithLive extends IndexDetail {
@@ -13,25 +14,10 @@ export const useIndexDetail = (rawSymbol: string | undefined) => {
   const [index, setIndex] = useState<IndexDetailWithLive | null>(null);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState('');
-  const intervalRef = useRef<ReturnType<typeof setInterval> | null>(null);
 
   // React Router v7 already URL-decodes params, so rawSymbol is the decoded key
   // e.g. "NSE_INDEX|Nifty 50" (NOT "NSE_INDEX%7CNifty%2050")
   const instrumentKey = rawSymbol ? decodeURIComponent(rawSymbol) : undefined;
-
-  const fetchLivePrice = useCallback(
-    async (key: string): Promise<{ ltp: number; cp: number } | null> => {
-      try {
-        const t = await tickerApi.getLtpc([key]);
-        const live: LtpcData | null = t.data?.[key] ?? null;
-        if (live?.ltp != null) return { ltp: live.ltp, cp: live.cp ?? live.ltp };
-      } catch {
-        // non-fatal — market may be closed
-      }
-      return null;
-    },
-    []
-  );
 
   const loadIndex = useCallback(async () => {
     if (!instrumentKey) return;
@@ -41,10 +27,20 @@ export const useIndexDetail = (rawSymbol: string | undefined) => {
       const r = await indexApi.getByInstrumentKey(instrumentKey);
       const data = r.data;
 
-      // Fetch live LTPC — indexPriceInfoDTO is null at REST level
-      const live = await fetchLivePrice(instrumentKey);
-      const ltp = live?.ltp ?? null;
-      const cp = live?.cp ?? null;
+      // ── Initial REST snapshot (before WebSocket ticks start arriving) ──
+      let ltp: number | null = null;
+      let cp: number | null = null;
+      try {
+        const t = await tickerApi.getLtpc([instrumentKey]);
+        const live: LtpcData | null = t.data?.[instrumentKey] ?? null;
+        if (live?.ltp != null) {
+          ltp = live.ltp;
+          cp = live.cp ?? live.ltp;
+        }
+      } catch {
+        // non-fatal — market may be closed
+      }
+
       const change = ltp != null && cp != null ? ltp - cp : null;
       const pChange =
         cp != null && cp > 0 && change != null ? (change / cp) * 100 : null;
@@ -58,41 +54,46 @@ export const useIndexDetail = (rawSymbol: string | undefined) => {
       });
     } catch (err: any) {
       const status = err?.response?.status;
-      setError(
-        status === 404 ? `Index not found.` : 'Failed to load index data.'
-      );
+      setError(status === 404 ? `Index not found.` : 'Failed to load index data.');
     } finally {
       setLoading(false);
     }
-  }, [instrumentKey, fetchLivePrice]);
+  }, [instrumentKey]);
 
   // Initial load
   useEffect(() => {
     loadIndex();
   }, [loadIndex]);
 
-  // Poll live prices every 5 seconds
+  // ── Live price updates via WebSocket (ltpc mode for indices) ──
+  // No polling interval — ticks pushed from backend.
+  // If market is closed (code 4000) the socket won't reconnect; we keep
+  // showing the REST snapshot data loaded above.
   useEffect(() => {
     if (!instrumentKey) return;
 
-    const poll = async () => {
-      const live = await fetchLivePrice(instrumentKey);
-      if (!live) return;
-      const { ltp, cp } = live;
-      const change = ltp - cp;
-      const pChange = cp > 0 ? (change / cp) * 100 : 0;
+    const wsUnsub = marketSocket.subscribe([instrumentKey], 'ltpc');
+
+    const tickUnsub = marketSocket.addTickListener(msg => {
+      if (msg.instrumentKey !== instrumentKey) return;
+      const ltp = msg.ltp;
+      const cp = msg.cp;
+      if (ltp == null) return;
+      const cpVal = cp ?? ltp;
+      const change = ltp - cpVal;
+      const pChange = cpVal > 0 ? (change / cpVal) * 100 : 0;
       setIndex(prev =>
         prev
-          ? { ...prev, liveLtp: ltp, liveCp: cp, liveChange: change, livePChange: pChange }
+          ? { ...prev, liveLtp: ltp, liveCp: cpVal, liveChange: change, livePChange: pChange }
           : prev
       );
-    };
+    });
 
-    intervalRef.current = setInterval(poll, 5000);
     return () => {
-      if (intervalRef.current) clearInterval(intervalRef.current);
+      wsUnsub();
+      tickUnsub();
     };
-  }, [instrumentKey, fetchLivePrice]);
+  }, [instrumentKey]);
 
   return {
     index,

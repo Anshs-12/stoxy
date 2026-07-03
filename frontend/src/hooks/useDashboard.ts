@@ -1,9 +1,11 @@
 import { useState, useEffect, useCallback } from 'react';
 import { indexApi, tickerApi } from '../lib/api';
+import { marketSocket } from '../lib/marketSocket';
 import type { IndexSearchResult, LtpcData } from '../types';
 
 // Queries to bootstrap the dashboard indices — use the search endpoint
-// to discover instrument keys dynamically, then poll ticker for live prices.
+// to discover instrument keys dynamically, then fetch an initial REST
+// snapshot and subscribe to WebSocket ltpc updates.
 const INDEX_QUERIES = ['NIFTY 50', 'NIFTY BANK', 'SENSEX'];
 
 export interface DashboardIndex {
@@ -46,7 +48,7 @@ export const useDashboard = () => {
     return found;
   }, []);
 
-  // Step 2: fetch live prices for the discovered instrument keys
+  // Step 2: fetch initial REST snapshot for discovered instrument keys
   const fetchLivePrices = useCallback(
     async (keys: string[]): Promise<Record<string, LtpcData>> => {
       if (keys.length === 0) return {};
@@ -105,9 +107,44 @@ export const useDashboard = () => {
     }
   }, [discoverIndices, fetchLivePrices]);
 
+  // Initial load
   useEffect(() => {
     loadData();
   }, [loadData]);
+
+  // ── WebSocket live updates for dashboard index cards ──
+  // Subscribes once indices are loaded; unsubscribes on unmount.
+  // If market is closed (code 4000) no retry occurs — REST snapshot remains.
+  useEffect(() => {
+    if (indices.length === 0) return;
+
+    const keys = indices.map(i => i.instrumentKey);
+    const wsUnsub = marketSocket.subscribe(keys, 'ltpc');
+
+    const tickUnsub = marketSocket.addTickListener(msg => {
+      const key = msg.instrumentKey;
+      if (!key) return;
+      const ltp = msg.ltp;
+      const cp = msg.cp;
+      if (ltp == null) return;
+      const cpVal = cp ?? ltp;
+      const change = ltp - cpVal;
+      const pChange = cpVal > 0 ? (change / cpVal) * 100 : 0;
+
+      setIndices(prev =>
+        prev.map(idx =>
+          idx.instrumentKey === key
+            ? { ...idx, ltp, cp: cpVal, change, pChange }
+            : idx
+        )
+      );
+    });
+
+    return () => {
+      wsUnsub();
+      tickUnsub();
+    };
+  }, [indices.length]); // re-subscribe if indices count changes (e.g. after refresh)
 
   return {
     indices,

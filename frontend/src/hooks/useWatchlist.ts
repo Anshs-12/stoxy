@@ -1,5 +1,6 @@
-import { useState, useEffect, useCallback } from 'react';
+import { useState, useEffect, useCallback, useRef } from 'react';
 import { watchlistApi, stocksApi, tickerApi } from '../lib/api';
+import { marketSocket } from '../lib/marketSocket';
 import { WatchlistSummary, WatchlistDetail } from '../types';
 import { useToast } from '../context/ToastContext';
 
@@ -20,6 +21,9 @@ export const useWatchlist = () => {
   const [livePrices, setLivePrices] = useState<Record<string, LivePrice>>({});
   const [livePricesLoading, setLivePricesLoading] = useState(false);
   const { addToast } = useToast();
+
+  // Track the symbol→instrumentKey map so tick listener can update livePrices
+  const symbolToKeyRef = useRef<Map<string, string>>(new Map());
 
   const loadLists = useCallback(async () => {
     setLoading(true);
@@ -50,9 +54,17 @@ export const useWatchlist = () => {
       const r = await watchlistApi.getById(id);
       setActiveList(r.data);
 
-      // Fetch live prices for stocks using their instrumentKey
+      // ── REST snapshot for initial live prices ──
       setLivePricesLoading(true);
       const keys = r.data.watchlistStocks.map(s => s.instrumentKey).filter(Boolean);
+
+      // Build symbol→key map for WebSocket tick updates
+      const map = new Map<string, string>();
+      r.data.watchlistStocks.forEach(s => {
+        if (s.instrumentKey) map.set(s.stockSymbol, s.instrumentKey);
+      });
+      symbolToKeyRef.current = map;
+
       if (keys.length > 0) {
         try {
           const t = await tickerApi.getLtpc(keys);
@@ -84,6 +96,44 @@ export const useWatchlist = () => {
     }
   }, [addToast]);
 
+  // ── WebSocket live price updates for the active watchlist ──
+  useEffect(() => {
+    if (!activeList) return;
+
+    const keys = activeList.watchlistStocks
+      .map(s => s.instrumentKey)
+      .filter(Boolean);
+
+    if (keys.length === 0) return;
+
+    const wsUnsub = marketSocket.subscribe(keys, 'ltpc');
+
+    const tickUnsub = marketSocket.addTickListener(msg => {
+      const instrKey = msg.instrumentKey;
+      if (!instrKey) return;
+      const ltp = msg.ltp;
+      const cp = msg.cp;
+      if (ltp == null) return;
+      const cpVal = cp ?? ltp;
+      const pChange = cpVal > 0 ? ((ltp - cpVal) / cpVal) * 100 : 0;
+
+      // Find which stock symbol maps to this instrumentKey
+      activeList.watchlistStocks.forEach(s => {
+        if (s.instrumentKey === instrKey) {
+          setLivePrices(prev => ({
+            ...prev,
+            [s.stockSymbol]: { symbol: s.stockSymbol, ltp, pChange },
+          }));
+        }
+      });
+    });
+
+    return () => {
+      wsUnsub();
+      tickUnsub();
+    };
+  }, [activeList]);
+
   const createWatchlist = async (name: string) => {
     if (!name.trim()) return false;
     try {
@@ -104,6 +154,7 @@ export const useWatchlist = () => {
         setActiveId(null);
         setActiveList(null);
         setLivePrices({});
+        symbolToKeyRef.current.clear();
       }
       await loadLists();
       addToast('Watchlist deleted', 'success');

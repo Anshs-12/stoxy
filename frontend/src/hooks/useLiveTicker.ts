@@ -1,14 +1,13 @@
-import { useQuery } from '@tanstack/react-query';
-import { tickerApi } from '@/lib/api';
+/**
+ * useLiveTicker.ts
+ *
+ * Thin wrapper around the shared TickerContext LTPC subscription.
+ * Previously polled REST every 2 s; now receives WebSocket push ticks.
+ */
+
+import { useLtpc } from '@/hooks/useLtpc';
 import type { LtpcData } from '@/types';
 
-export function useLiveTicker(instrumentKeys: string[]) {
-  return useQuery({
-    queryKey: ['ltpc', instrumentKeys.sort().join(',')],
-    queryFn: () => tickerApi.getLtpc(instrumentKeys),
-    enabled: instrumentKeys.length > 0,
-    refetchInterval: 2000,
-    staleTime: 1000,
-    placeholderData: (prev: Record<string, LtpcData> | undefined) => prev,
-  });
+export function useLiveTicker(instrumentKeys: string[]): Record<string, LtpcData | null> {
+  return useLtpc(instrumentKeys);
 }

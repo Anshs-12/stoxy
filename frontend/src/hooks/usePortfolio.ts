@@ -1,5 +1,6 @@
 import { useState, useEffect, useCallback } from 'react';
 import { portfolioApi, stocksApi, tickerApi } from '../lib/api';
+import { marketSocket } from '../lib/marketSocket';
 import { PortfolioResponse, TransactionResponse, PortfolioStock } from '../types';
 import { useToast } from '../context/ToastContext';
 
@@ -19,7 +20,7 @@ export const usePortfolio = () => {
       const r = await portfolioApi.getPortfolio();
       const portfolioData = r.data;
 
-      // Fetch live prices for all held stocks
+      // ── REST snapshot for initial live prices ──
       const keys = portfolioData.stocks.map(s => s.instrumentKey).filter(Boolean);
       let liveData: Record<string, { ltp: number; cp: number }> = {};
       if (keys.length > 0) {
@@ -87,6 +88,74 @@ export const usePortfolio = () => {
   useEffect(() => {
     loadPortfolio();
   }, [loadPortfolio]);
+
+  // ── WebSocket live PnL updates for held stocks ──
+  // Subscribes to ltpc for all held instrument keys.
+  // Updates each stock's ltp / currentValue / dayPnL / unrealizedPnL reactively.
+  // Market-closed (code 4000) is handled by the singleton — no retry.
+  useEffect(() => {
+    if (!portfolio || portfolio.stocks.length === 0) return;
+
+    const keys = portfolio.stocks.map(s => s.instrumentKey).filter(Boolean);
+    if (keys.length === 0) return;
+
+    const wsUnsub = marketSocket.subscribe(keys, 'ltpc');
+
+    const tickUnsub = marketSocket.addTickListener(msg => {
+      const instrKey = msg.instrumentKey;
+      if (!instrKey) return;
+      const ltp = msg.ltp;
+      const cp = msg.cp;
+      if (ltp == null) return;
+
+      setPortfolio(prev => {
+        if (!prev) return prev;
+
+        const updatedStocks = prev.stocks.map(s => {
+          if (s.instrumentKey !== instrKey) return s;
+          const cpVal = cp ?? s.ltp;  // fall back to previous ltp if no cp
+          const currentVal = ltp * s.totalQuantity;
+          const invested = Number(s.investedAmount) || 0;
+          const unrealizedPnL = currentVal - invested;
+          const unrealizedPnLPercent = invested > 0 ? (unrealizedPnL / invested) * 100 : 0;
+          const dayPnL = (ltp - cpVal) * s.totalQuantity;
+          const dayPnLPercent = cpVal > 0 ? ((ltp - cpVal) / cpVal) * 100 : 0;
+          return {
+            ...s,
+            ltp,
+            currentValue: currentVal,
+            unrealizedPnL,
+            unrealizedPnLPercent,
+            dayPnL,
+            dayPnLPercent,
+          };
+        });
+
+        const totalCurrentValue = updatedStocks.reduce((sum, s) => sum + s.currentValue, 0);
+        const totalDayPnL = updatedStocks.reduce((sum, s) => sum + s.dayPnL, 0);
+        const totalInvested = Number(prev.totalInvestedValue) || 0;
+        const totalUnrealizedPnL = totalCurrentValue - totalInvested;
+        const totalUnrealizedPnLPercent = totalInvested > 0 ? (totalUnrealizedPnL / totalInvested) * 100 : 0;
+        const totalPrevClose = totalCurrentValue - totalDayPnL;
+        const totalDayPnLPercent = totalPrevClose > 0 ? (totalDayPnL / totalPrevClose) * 100 : 0;
+
+        return {
+          ...prev,
+          stocks: updatedStocks,
+          totalCurrentValue,
+          totalUnrealizedPnL,
+          totalUnrealizedPnLPercent,
+          totalDayPnL,
+          totalDayPnLPercent,
+        };
+      });
+    });
+
+    return () => {
+      wsUnsub();
+      tickUnsub();
+    };
+  }, [portfolio?.stocks.length]); // re-subscribe when holdings change
 
   const searchStocks = useCallback(async (query: string) => {
     if (query.length < 2) {

@@ -17,6 +17,7 @@ export default defineConfig(({mode}) => {
                 '/api/v2': {
                     target: BACKEND,
                     changeOrigin: true,
+                    ws: true,          // proxy WebSocket upgrades (required for /api/v2/wss/market)
                     secure: BACKEND.startsWith('https'),
                     cookieDomainRewrite: 'localhost',
                 },

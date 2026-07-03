@@ -266,8 +266,8 @@ export const Watchlist = () => {
                                                                     ? 'text-positive bg-positive/10'
                                                                     : 'text-negative bg-negative/10 dark:bg-negative/10'
                                                             }`}>
-                                {isUp ? '+' : ''}{fmt(pChg)}%
-                              </span>
+                                                          {isUp ? '+' : ''}{fmt(pChg)}%
+                                                        </span>
                                                     ) : (
                                                         <span className="text-muted text-[11px]">—</span>
                                                     )}

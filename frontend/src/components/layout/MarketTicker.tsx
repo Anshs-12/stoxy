@@ -1,6 +1,7 @@
 import { useEffect, useState, useRef } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { indexApi, tickerApi } from '../../lib/api';
+import { marketSocket } from '../../lib/marketSocket';
 import { fmt, getChangeColor, isMarketOpen } from '../../lib/utils';
 import type { IndexSearchResult } from '../../types';
 
@@ -20,9 +21,14 @@ export const MarketTicker = () => {
   const [items, setItems] = useState<TickerItem[]>([]);
   const [paused, setPaused] = useState(false);
 
+  // Keep a ref to the discovered indices so the tick listener can update them
+  const foundRef = useRef<IndexSearchResult[]>([]);
+  // itemsRef mirrors state so the tick listener closure always has fresh data
+  const itemsRef = useRef<TickerItem[]>([]);
+  itemsRef.current = items;
+
   useEffect(() => {
     let cancelled = false;
-    let intervalId: ReturnType<typeof setInterval>;
 
     const discover = async (): Promise<IndexSearchResult[]> => {
       const seen = new Set<string>();
@@ -43,51 +49,99 @@ export const MarketTicker = () => {
       return found;
     };
 
-    const fetchPrices = async (found: IndexSearchResult[]) => {
-      if (cancelled || found.length === 0) return;
-      try {
-        const keys = found.map(i => i.instrumentKey);
-        const r = await tickerApi.getLtpc(keys);
-        const liveMap = r.data ?? {};
-
-        const live: TickerItem[] = found.map(item => {
-          const tick = liveMap[item.instrumentKey];
-          const ltp = tick?.ltp ?? null;
-          const cp = tick?.cp ?? null;
-          const pChange =
-            ltp != null && cp != null && cp > 0
-              ? ((ltp - cp) / cp) * 100
-              : 0;
-          return {
-            key: item.instrumentKey,
-            symbol: item.indexName,
-            price: ltp != null ? fmt(ltp) : '—',
-            ltp,
-            pChange,
-          };
-        });
-        if (!cancelled) setItems(live);
-      } catch {
-        // silent — decorative ticker
-      }
-    };
-
     const init = async () => {
       try {
         const found = await discover();
-        if (cancelled) return;
-        await fetchPrices(found);
-        // Poll live prices every 30s — pass found array to closure
-        intervalId = setInterval(() => fetchPrices(found), 30_000);
+        if (cancelled || found.length === 0) return;
+        foundRef.current = found;
+
+        // ── Step 1: REST snapshot ──
+        try {
+          const keys = found.map(i => i.instrumentKey);
+          const r = await tickerApi.getLtpc(keys);
+          const liveMap = r.data ?? {};
+
+          if (!cancelled) {
+            const initial: TickerItem[] = found.map(item => {
+              const tick = liveMap[item.instrumentKey];
+              const ltp = tick?.ltp ?? null;
+              const cp = tick?.cp ?? null;
+              const pChange =
+                ltp != null && cp != null && cp > 0
+                  ? ((ltp - cp) / cp) * 100
+                  : 0;
+              return {
+                key: item.instrumentKey,
+                symbol: item.indexName,
+                price: ltp != null ? fmt(ltp) : '—',
+                ltp,
+                pChange,
+              };
+            });
+            setItems(initial);
+          }
+        } catch {
+          // non-fatal — ticker bar is decorative; show names without prices
+          if (!cancelled) {
+            setItems(found.map(item => ({
+              key: item.instrumentKey,
+              symbol: item.indexName,
+              price: '—',
+              ltp: null,
+              pChange: 0,
+            })));
+          }
+        }
+
+        // ── Step 2: WebSocket subscription (ltpc mode for indices) ──
+        if (!cancelled) {
+          const keys = found.map(i => i.instrumentKey);
+
+          // Subscribe returns unsubscribe — stored in cleanup below
+          const wsUnsub = marketSocket.subscribe(keys, 'ltpc');
+
+          const tickUnsub = marketSocket.addTickListener(msg => {
+            const key = msg.instrumentKey;
+            if (!key) return;
+
+            const ltp = msg.ltp;
+            const cp = msg.cp;
+            if (ltp == null) return;
+
+            const pChange =
+              cp != null && cp > 0 ? ((ltp - cp) / cp) * 100 : 0;
+
+            setItems(prev =>
+              prev.map(item =>
+                item.key === key
+                  ? {
+                      ...item,
+                      ltp,
+                      price: fmt(ltp),
+                      pChange,
+                    }
+                  : item
+              )
+            );
+          });
+
+          // Return combined cleanup
+          return () => {
+            wsUnsub();
+            tickUnsub();
+          };
+        }
       } catch {
-        // completely silent
+        // completely silent — ticker bar failure is non-critical
       }
     };
 
-    init();
+    let cleanup: (() => void) | undefined;
+    init().then(fn => { cleanup = fn; });
+
     return () => {
       cancelled = true;
-      clearInterval(intervalId);
+      cleanup?.();
     };
   }, []);
 
@@ -132,7 +186,7 @@ export const MarketTicker = () => {
               </span>
               <span className="text-primary font-semibold">{item.price}</span>
               <span className={`font-semibold ${getChangeColor(item.pChange)}`}>
-                {isUp ? '+' : ''}{item.pChange.toFixed(2)}%
+                {item.pChange >= 0 ? '+' : ''}{item.pChange.toFixed(2)}%
               </span>
 
               {/* Separator */}
