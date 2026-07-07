@@ -187,8 +187,12 @@ public class BroadcastHandler extends TextWebSocketHandler {
                     }
 //                    log.info("Broadcasting LTPC data for {} to session {}.", instrumentKey, browserSession.getId());
                     browserSession.sendMessage(ltpcPayload);
+                } catch (IllegalStateException e) {
+                    log.warn("Session {} is closed or in an illegal state: {}", browserSession.getId(), e.getMessage());
                 } catch (IOException e) {
                     log.warn("Failed to send WebSocket message to session {}: {}", browserSession.getId(), e.getMessage(), e);
+                } catch (Exception e) {
+                    log.error("Unexpected error occurred while broadcasting to session {}: {}", browserSession.getId(), e.getMessage(), e);
                 }
             }
         } catch (JsonProcessingException e) {

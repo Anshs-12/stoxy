@@ -87,12 +87,15 @@ public class MarketDataHandler implements WebSocket.Listener {
     public CompletionStage<?> onBinary(WebSocket webSocket,
                                        ByteBuffer data,
                                        boolean last) {
+//        log.info("1. onBinary start {}", Instant.now());
         int remainingBytes = data.remaining();
         byte[] payloadBytes = new byte[remainingBytes];
         data.get(payloadBytes); // scooping out entire data
 
         try {
+            webSocket.request(1);
             MarketDataFeedV3.FeedResponse response = MarketDataFeedV3.FeedResponse.parseFrom(payloadBytes);
+//            log.info("2. parsed {}", Instant.now());
             if (response.getType() == MarketDataFeedV3.Type.live_feed) {
                 Map<String, MarketDataFeedV3.Feed> responseFeedsMap = response.getFeedsMap();
                 for (String instrumentKey : responseFeedsMap.keySet()) {
@@ -100,11 +103,14 @@ public class MarketDataHandler implements WebSocket.Listener {
                     if (stockData.hasLtpc()) {
                         LtpcDataDTO ltpcPayload = generateLtpcDTO(instrumentKey, stockData.getLtpc());
                         try {
+//                            log.info("3. before redis {}", Instant.now());
                             redisTemplate.opsForValue().set("LTPC:" + instrumentKey, ltpcPayload, Duration.ofMinutes(3));
+//                            log.info("4. after redis {}", Instant.now());
                         } catch (Exception e) {
                             log.debug("Redis write skipped during shutdown: {}", e.getMessage());
                         }
                         broadcastHandler.broadcastTick(instrumentKey, ltpcPayload, null);
+//                        log.info("5. after broadcast {}", Instant.now());
                     } else if (stockData.hasFullFeed()) {
                         LtpcDataDTO ltpcPayload = generateLtpcDTO(instrumentKey, stockData.getFullFeed().getMarketFF().getLtpc());
                         try {
@@ -122,10 +128,8 @@ public class MarketDataHandler implements WebSocket.Listener {
                     }
                 }
             }
-            webSocket.request(1);
         } catch (InvalidProtocolBufferException e) {
             // Throwing error is avoided, Request the next frame to keep the stream alive.
-            webSocket.request(1);
         }
         return null;
     }

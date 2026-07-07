@@ -19,6 +19,13 @@ spring:
       port: ${redis_port}
       username: ${redis_username}
       password: ${redis_password}
+      timeout: 2s
+      lettuce:
+        pool:
+          max-active: 8
+          max-idle: 8
+          min-idle: 2
+          max-wait: 100ms
 
 
   app:
