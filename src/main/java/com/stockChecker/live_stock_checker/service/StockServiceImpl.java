@@ -49,7 +49,11 @@ public class StockServiceImpl implements StockService {
         log.info("Fetching stock details - symbol: {}, instrumentKey: {}", stockRequest.getStockSymbol(),
                 stockRequest.getInstrumentKey());
         if (response.getIsOpen()) {
-            upstoxWebSocketClient.onSubscribe(List.of(stockRequest.getInstrumentKey()), "sub", "full");
+            try {
+                upstoxWebSocketClient.onSubscribe(List.of(stockRequest.getInstrumentKey()), "sub", "full");
+            } catch (Exception e) {
+                log.warn("WebSocket subscribe failed, continuing with REST fallback: {}", e.getMessage());
+            }
             return stockCacheService.getStockLive(stockRequest);
         }
         if (response.getNextOpeningDay().equals("MONDAY")) {
