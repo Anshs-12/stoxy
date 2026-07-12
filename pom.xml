@@ -219,7 +219,37 @@
             <artifactId>openpdf</artifactId>
             <version>1.3.43</version>
         </dependency>
+
+        <!--   SpringAI Dependencies   -->
+
+        <dependency>
+            <groupId>org.springframework.ai</groupId>
+            <artifactId>spring-ai-starter-model-openai</artifactId>
+        </dependency>
+
+        <!--   Qdrant SpringAI Dependencies   -->
+        <dependency>
+            <groupId>org.springframework.ai</groupId>
+            <artifactId>spring-ai-starter-vector-store-qdrant</artifactId>
+        </dependency>
+
+
     </dependencies>
+
+    <!--   SpringAI BOM (Bill of Materials)   -->
+
+    <dependencyManagement>
+        <dependencies>
+            <dependency>
+                <groupId>org.springframework.ai</groupId>
+                <artifactId>spring-ai-bom</artifactId>
+                <version>1.0.0</version>
+                <type>pom</type>
+                <scope>import</scope>
+            </dependency>
+        </dependencies>
+    </dependencyManagement>
+
 
     <build>
         <finalName>stoxy-backend</finalName>
@@ -267,6 +297,7 @@
                 <artifactId>protobuf-maven-plugin</artifactId>
                 <version>0.6.1</version>
                 <configuration>
+                    <!--suppress UnresolvedMavenProperty -->
                     <protocArtifact>com.google.protobuf:protoc:3.25.1:exe:${os.detected.classifier}</protocArtifact>
                 </configuration>
                 <executions>
