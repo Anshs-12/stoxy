@@ -26,6 +26,13 @@ public class NewsAnalysisServiceImpl implements NewsAnalysisService {
         return getNews(stockName, qdrantQuery, tavilyQuery);
     }
 
+    @Override
+    public String getMarketIndexNews(String marketIndexName) {
+        String qdrantQuery = String.format("%s market news",marketIndexName);
+        String tavilyQuery = String.format("%s market index latest news",marketIndexName);
+        return getNews(marketIndexName, qdrantQuery, tavilyQuery);
+    }
+
     private String getNews(String stockName, String qdrantQuery, String tavilyQuery) {
         log.info("Fetching news for stock: {}", stockName);
         List<Document> qdrantResponses = fetchQdrantDB(qdrantQuery, stockName);
