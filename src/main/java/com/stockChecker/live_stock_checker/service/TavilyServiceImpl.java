@@ -44,7 +44,7 @@ public class TavilyServiceImpl implements TavilyService {
             log.info("Processing Tavily API response for query: {}", query);
             List<Document> tavilyDocumentResponse = new ArrayList<>();
             for (var eachResult : resultsNode) {
-                if (eachResult.path("score").asDouble() >= 0.7) {
+                if (eachResult.path("score").asDouble() >= 0.5) {
                     String url = eachResult.path("url").asText();
                     String source = new java.net.URI(url).getHost(); // e.g. "economictimes.indiatimes.com"
                     Map<String, Object> metadataMap = Map.of(
