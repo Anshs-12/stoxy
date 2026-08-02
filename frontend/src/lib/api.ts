@@ -2,7 +2,9 @@ import axios from 'axios';
 import type {
     IndexDetail,
     IndexSearchResponse,
+    IndexSearchDTO,
     StockSearchResponse,
+    StockSearchDTO,
     StockDetail,
     ScreenerResponse,
     WatchlistSummary,
@@ -235,6 +237,17 @@ export const chartsApi = {
 
     history: (instrumentKey: string, range = '1M', unit = 'days', interval = '1') =>
         api.get(`/charts/${encodeURIComponent(instrumentKey)}/history`, { params: { range, unit, interval } }),
+};
+
+// ?? Analysis Endpoints (LLM-powered, slow) ??
+// POST /analyze/stock body: StockSearchDTO → String (LLM prose)
+// POST /analyze/index  body: IndexSearchDTO → String (LLM prose)
+// These hit Tavily + ChatClient; default 30s timeout is too short.
+export const analysisApi = {
+    stock: (body: StockSearchDTO) =>
+        api.post<string>('/analyze/stock', body, { timeout: 120_000 }),
+    index: (body: IndexSearchDTO) =>
+        api.post<string>('/analyze/index', body, { timeout: 120_000 }),
 };
 
 

@@ -58,3 +58,12 @@ export interface IndexSearchResult {
 export interface IndexSearchResponse {
   indexSearchDTOList: IndexSearchResult[];
 }
+
+// Backend: IndexSearchDTO — request body for /analyze/index
+export interface IndexSearchDTO {
+  indexName: string;
+  indexSymbol: string;
+  exchange: string;
+  segment: string;
+  instrumentKey: string;
+}

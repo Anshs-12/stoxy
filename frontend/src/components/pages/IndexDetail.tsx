@@ -1,14 +1,52 @@
+import { useState } from 'react';
 import { useParams, Link } from 'react-router-dom';
-import { Loader2, ArrowLeft, RefreshCw, TrendingUp, TrendingDown } from 'lucide-react';
+import { Loader2, ArrowLeft, RefreshCw, TrendingUp, TrendingDown, Sparkles } from 'lucide-react';
 import { useIndexDetail } from '../../hooks/useIndexDetail';
 import { useTheme } from '../../context/ThemeContext';
+import { analysisApi, parseApiError } from '../../lib/api';
 import { fmt, getChangeColor, isMarketOpen } from '../../lib/utils';
 import { StockChart } from '../ui/StockChart';
+import { AnalysisDialog } from '../ui/AnalysisDialog';
 
 export const NSEIndexDetail = () => {
   const { symbol } = useParams<{ symbol: string }>();
   const { index, loading, error, refreshIndex } = useIndexDetail(symbol);
   const { isDark } = useTheme();
+
+  const [analysisOpen, setAnalysisOpen] = useState(false);
+  const [analysisLoading, setAnalysisLoading] = useState(false);
+  const [analysisError, setAnalysisError] = useState<string | null>(null);
+  const [analysisText, setAnalysisText] = useState<string | null>(null);
+
+  // InstrumentKey format: "EXCHANGE_SEGMENT|SymbolName" e.g. "NSE_INDEX|Nifty 50"
+  const parseExchangeSegment = (key: string) => {
+    const [prefix] = key.split('|');
+    const [exchange, segment] = (prefix ?? '').split('_');
+    return { exchange: exchange ?? '', segment: segment ?? '' };
+  };
+
+  const handleAnalyze = async () => {
+    if (!index) return;
+    const { exchange, segment } = parseExchangeSegment(index.instrumentKey);
+    setAnalysisOpen(true);
+    setAnalysisLoading(true);
+    setAnalysisError(null);
+    setAnalysisText(null);
+    try {
+      const r = await analysisApi.index({
+        indexName: index.indexName,
+        indexSymbol: index.indexSymbol,
+        exchange,
+        segment,
+        instrumentKey: index.instrumentKey,
+      });
+      setAnalysisText(typeof r.data === 'string' ? r.data : '');
+    } catch (err) {
+      setAnalysisError(parseApiError(err));
+    } finally {
+      setAnalysisLoading(false);
+    }
+  };
 
   /* ── Loading ── */
   if (loading) {
@@ -48,12 +86,22 @@ export const NSEIndexDetail = () => {
         <Link to="/" className="flex items-center gap-1.5 text-[11px] text-muted hover:text-primary transition-colors">
           <ArrowLeft className="h-3 w-3" /> Back to Dashboard
         </Link>
-        <button
-          onClick={refreshIndex}
-          className="flex items-center gap-1.5 text-[11px] text-muted hover:text-primary transition-colors p-1.5 rounded-md hover:bg-neutral"
-        >
-          <RefreshCw className="h-3 w-3" /> Refresh
-        </button>
+        <div className="flex items-center gap-2">
+          <button
+            onClick={refreshIndex}
+            className="px-3 py-2 bg-neutral text-[12px] font-medium hover:bg-neutral/80 transition-colors flex items-center gap-1.5 border border-border-light rounded-lg"
+          >
+            <RefreshCw className="h-3.5 w-3.5" /> Refresh
+          </button>
+          <button
+            onClick={handleAnalyze}
+            disabled={analysisLoading}
+            className="px-3 py-2 bg-neutral text-[12px] font-medium hover:bg-neutral/80 transition-colors flex items-center gap-1.5 disabled:opacity-50 border border-border-light rounded-lg"
+          >
+            {analysisLoading ? <Loader2 className="h-3.5 w-3.5 animate-spin" /> : <Sparkles className="h-3.5 w-3.5" />}
+            AI Analyze
+          </button>
+        </div>
       </div>
 
       {/* Header */}
@@ -103,6 +151,17 @@ export const NSEIndexDetail = () => {
           </div>
         </div>
       </div>
+
+      {analysisOpen && (
+        <AnalysisDialog
+          open={analysisOpen}
+          onOpenChange={setAnalysisOpen}
+          title={`AI Analysis — ${index.indexName}`}
+          loading={analysisLoading}
+          error={analysisError}
+          content={analysisText}
+        />
+      )}
 
       {/* Main Grid */}
       <div className="grid grid-cols-12 gap-6">
@@ -187,6 +246,7 @@ export const NSEIndexDetail = () => {
           )}
         </div>
       </div>
+
     </div>
   );
 };

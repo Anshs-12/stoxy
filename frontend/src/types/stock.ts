@@ -9,6 +9,16 @@ export interface StockSearchResult {
   isin: string;
 }
 
+// Backend: StockSearchDTO — request body for /analyze/stock
+export interface StockSearchDTO {
+  stockName: string;
+  stockSymbol: string;
+  companyName: string;
+  exchange: string;
+  instrumentKey: string;
+  isin: string;
+}
+
 // Backend: StockSearchResponseDTO
 export interface StockSearchResponse {
   content: StockSearchResult[];
