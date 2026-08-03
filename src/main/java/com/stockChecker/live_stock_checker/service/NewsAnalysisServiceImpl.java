@@ -28,22 +28,20 @@ public class NewsAnalysisServiceImpl implements NewsAnalysisService {
 
     @Override
     public String getMarketIndexNews(String marketIndexName) {
-        String qdrantQuery = String.format("%s market news",marketIndexName);
-        String tavilyQuery = String.format("%s market index latest news",marketIndexName);
+        String qdrantQuery = String.format("%s market news", marketIndexName);
+        String tavilyQuery = String.format("%s market index latest news", marketIndexName);
         return getNews(marketIndexName, qdrantQuery, tavilyQuery);
     }
 
     private String getNews(String stockName, String qdrantQuery, String tavilyQuery) {
-        log.info("Fetching news for stock: {}", stockName);
         List<Document> qdrantResponses = fetchQdrantDB(qdrantQuery, stockName);
-
+        boolean usedTavily = false;
         if (qdrantResponses.size() < 3) {
-            log.info("Less than 3 results found in Qdrant DB for query: {}. Fetching from Tavily API.", qdrantQuery);
             // call tavily endpoint, filling in the Qdrant VectorDB and get the results again.
             List<Document> tavilyResponses = tavilyService.getTavilySearchResults(stockName, tavilyQuery);
             if (!tavilyResponses.isEmpty()) {
+                usedTavily = true;
                 // adding to Qdrant VectorDB
-                log.info("Adding {} results to Qdrant DB for query: {}", tavilyResponses.size(), qdrantQuery);
                 try {
                     vectorStore.add(tavilyResponses);
                     qdrantResponses = fetchQdrantDB(qdrantQuery, stockName);
@@ -57,6 +55,7 @@ public class NewsAnalysisServiceImpl implements NewsAnalysisService {
             log.warn("No news found for stock: {} after Tavily fallback.", stockName);
             return "No recent news available for " + stockName + ".";
         }
+        log.info("Resolved {} news documents for {} (tavily fallback: {})", qdrantResponses.size(), stockName, usedTavily);
         StringBuilder sb = new StringBuilder();
         for (Document doc : qdrantResponses) {
             sb.append(doc.getText()).append("\n\n---\n\n");

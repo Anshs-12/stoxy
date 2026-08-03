@@ -6,6 +6,7 @@ import com.stockChecker.live_stock_checker.service.IndexService;
 import com.stockChecker.live_stock_checker.service.NewsAnalysisService;
 import com.stockChecker.live_stock_checker.service.TickerService;
 import lombok.RequiredArgsConstructor;
+import lombok.extern.slf4j.Slf4j;
 import org.springframework.ai.tool.annotation.Tool;
 import org.springframework.ai.tool.annotation.ToolParam;
 import org.springframework.stereotype.Component;
@@ -13,10 +14,9 @@ import org.springframework.stereotype.Component;
 import java.util.List;
 import java.util.Map;
 
-import static reactor.netty.http.HttpConnectionLiveness.log;
-
 @Component
 @RequiredArgsConstructor
+@Slf4j
 public class IndexAnalysisTool {
 
     private final IndexService indexService;
@@ -27,8 +27,7 @@ public class IndexAnalysisTool {
     public IndexDetailResponseDTO getMarketIndexDetails(
             @ToolParam(description = "Upstox instrument key") String instrumentKey) {
         IndexDetailResponseDTO response = indexService.getIndexByInstrumentKey(instrumentKey);
-        log.info("Fetched market index details for instrumentKey: {}", instrumentKey);
-        log.info("StockDetailResponseDTO payload: {}", response);
+        log.info("Analysis | Fetched market index details for instrumentKey: {}", instrumentKey);
         return response;
     }
 
@@ -36,8 +35,7 @@ public class IndexAnalysisTool {
     public FullFeedDataDTO getTickerInfo(
             @ToolParam(description = "Upstox instrument key") String instrumentKey) {
         Map<String, FullFeedDataDTO> tickerInfo = tickerService.getLiveFullFeedData(List.of(instrumentKey));
-        log.info("Fetched ticker info for instrumentKey: {}", instrumentKey);
-        log.info("IndexDetailResponseDTO tickerInfo: {}", tickerInfo);
+        log.info("Analysis | Fetched ticker info for instrumentKey: {}", instrumentKey);
         return tickerInfo.get(instrumentKey);
     }
 
@@ -45,8 +43,7 @@ public class IndexAnalysisTool {
     public String getMarketIndexNews(
             @ToolParam(description = "Market Index name, eg: NIFTY") String indexName) {
         String response = newsAnalysisService.getMarketIndexNews(indexName);
-        log.info("Fetched market index news for: {}", indexName);
-        log.info("IndexDetailResponseDTO news: {}", response);
+        log.info("Analysis | Fetched market index news for: {}", indexName);
         return response;
     }
 }

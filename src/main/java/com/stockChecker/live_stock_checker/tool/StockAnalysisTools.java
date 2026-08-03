@@ -30,8 +30,7 @@ public class StockAnalysisTools {
         StockDetailResponseDTO response = stockService.getStockDetails(StockSearchDTO.builder()
                 .instrumentKey(instrumentKey)
                 .build());
-        log.info("Fetched stock details for instrumentKey: {}", instrumentKey);
-        log.info("StockDetailResponseDTO payload: {}", response);
+        log.info("Analysis | Fetched stock details for instrumentKey: {}", instrumentKey);
         return response;
     }
 
@@ -39,8 +38,7 @@ public class StockAnalysisTools {
     public FullFeedDataDTO getTickerInfo(
             @ToolParam(description = "Upstox instrument key") String instrumentKey) {
         Map<String, FullFeedDataDTO> tickerInfo = tickerService.getLiveFullFeedData(List.of(instrumentKey));
-        log.info("Fetched ticker info for instrumentKey: {}", instrumentKey);
-        log.info("StockDetailResponseDTO tickerInfo: {}", tickerInfo);
+        log.info("Analysis | Fetched ticker info for instrumentKey: {}", instrumentKey);
         return tickerInfo.get(instrumentKey);
     }
 
@@ -48,8 +46,7 @@ public class StockAnalysisTools {
     public String getStockNews(
             @ToolParam(description = "Stock name or symbol, e.g. HDFC Bank") String stockName) {
         String response = newsAnalysisService.getStockNews(stockName);
-        log.info("Fetched stock news for: {}", stockName);
-        log.info("StockDetailResponseDTO news: {}", response);
+        log.info("Analysis | Fetched stock news for: {}", stockName);
         return response;
     }
 

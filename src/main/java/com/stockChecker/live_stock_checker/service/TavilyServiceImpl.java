@@ -28,7 +28,6 @@ public class TavilyServiceImpl implements TavilyService {
     public List<Document> getTavilySearchResults(String stockName, String query) {
         try {
             // calling Tavily endpoint.
-            log.info("Fetching Tavily API response for query: {}", query);
             String response = getTavilySearchData(query);
             if (response == null) {
                 log.error("No response from Tavily API for query: {}", query);
@@ -41,7 +40,6 @@ public class TavilyServiceImpl implements TavilyService {
                 return List.of();
             }
             // creating the document list : parsing TavilyResponse to SpringAI Document
-            log.info("Processing Tavily API response for query: {}", query);
             List<Document> tavilyDocumentResponse = new ArrayList<>();
             for (var eachResult : resultsNode) {
                 if (eachResult.path("score").asDouble() >= 0.5) {
@@ -67,20 +65,19 @@ public class TavilyServiceImpl implements TavilyService {
                     query, tavilyDocumentResponse.size());
             return tavilyDocumentResponse;
         } catch (Exception e) {
-            log.error("Error processing Tavily API response: {}", e.getMessage());
+            log.error("Error processing Tavily API response for query: {}", query, e);
             return List.of();
         }
     }
 
     public String getTavilySearchData(String query) {
         try {
-            log.info("Calling Tavily API for query: {}", query);
             return tavilyRestClient.post()
                     .body(getTavilyRequestBody(query))
                     .retrieve()
                     .body(String.class);
         } catch (Exception e) {
-            log.error("Error fetching data from Tavily API: {}", e.getMessage());
+            log.error("Error fetching data from Tavily API for query: {}", query, e);
             return null;
         }
     }
