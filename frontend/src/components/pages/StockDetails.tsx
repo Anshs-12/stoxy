@@ -1,9 +1,11 @@
 import { useState } from 'react';
 import { useLocation, useParams, Link } from 'react-router-dom';
-import { ShoppingCart, Loader2, ArrowLeft, X, ListPlus, TrendingUp, TrendingDown } from 'lucide-react';
+import { ShoppingCart, Loader2, ArrowLeft, X, ListPlus, TrendingUp, TrendingDown, Sparkles } from 'lucide-react';
 import { useStockDetails } from '../../hooks/useStockDetails';
+import { analysisApi, parseApiError } from '../../lib/api';
 import { fmt, getChangeColor, isMarketOpen } from '../../lib/utils';
 import { StockChart } from '../ui/StockChart';
+import { AnalysisDialog } from '../ui/AnalysisDialog';
 
 export const StockDetails = () => {
   const { symbol } = useParams<{ symbol: string }>();
@@ -29,6 +31,33 @@ export const StockDetails = () => {
   const [buyLoading, setBuyLoading] = useState(false);
   const [sellLoading, setSellLoading] = useState(false);
   const [wlOpen, setWlOpen] = useState(false);
+  const [analysisOpen, setAnalysisOpen] = useState(false);
+  const [analysisLoading, setAnalysisLoading] = useState(false);
+  const [analysisError, setAnalysisError] = useState<string | null>(null);
+  const [analysisText, setAnalysisText] = useState<string | null>(null);
+
+  const handleAnalyze = async () => {
+    if (!stock) return;
+    setAnalysisOpen(true);
+    setAnalysisLoading(true);
+    setAnalysisError(null);
+    setAnalysisText(null);
+    try {
+      const r = await analysisApi.stock({
+        stockName: stock.stockName,
+        stockSymbol: stock.stockSymbol,
+        companyName: stock.companyResponseDTO?.companyName ?? '',
+        exchange: stock.exchange,
+        instrumentKey: stock.instrumentKey,
+        isin: stock.isin,
+      });
+      setAnalysisText(typeof r.data === 'string' ? r.data : '');
+    } catch (err) {
+      setAnalysisError(parseApiError(err));
+    } finally {
+      setAnalysisLoading(false);
+    }
+  };
 
   if (loading) return (
     <div className="flex flex-col items-center justify-center h-64 text-muted gap-3">
@@ -146,6 +175,14 @@ export const StockDetails = () => {
               )}
             </div>
             <button
+              onClick={handleAnalyze}
+              disabled={analysisLoading}
+              className="px-3 py-2 bg-neutral text-[12px] font-medium hover:bg-neutral/80 transition-colors flex items-center gap-1.5 disabled:opacity-50 border border-border-light rounded-lg"
+            >
+              {analysisLoading ? <Loader2 className="h-3.5 w-3.5 animate-spin" /> : <Sparkles className="h-3.5 w-3.5" />}
+              AI Analyze
+            </button>
+            <button
               onClick={() => { setBuyOpen(true); setSellOpen(false); setWlOpen(false); }}
               className="px-4 py-2 bg-accent text-white text-[12px] font-semibold flex items-center gap-1.5 hover:bg-accent/90 transition-all rounded-lg"
             >
@@ -212,6 +249,17 @@ export const StockDetails = () => {
           )}
         </div>
       </div>
+
+      {analysisOpen && (
+        <AnalysisDialog
+          open={analysisOpen}
+          onOpenChange={setAnalysisOpen}
+          title={`AI Analysis — ${stock.stockName}`}
+          loading={analysisLoading}
+          error={analysisError}
+          content={analysisText}
+        />
+      )}
 
       {/* ── MAIN GRID ── */}
       <div className="grid grid-cols-12 gap-6">

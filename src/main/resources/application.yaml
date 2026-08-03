@@ -1,3 +1,4 @@
+#file: noinspection SpellCheckingInspection
 spring:
   # application name
   main:
@@ -43,6 +44,26 @@ spring:
             scope:
               - email
               - profile
+
+  ai:
+    openai:
+      api-key: ${GROQ_API_KEY}
+      base-url: ${GROQ_BASE_URL}
+      chat:
+        options:
+          model: ${GROQ_MODEL}
+      embedding:
+        enabled: false
+
+    vectorstore:
+      qdrant:
+        host: ${QDRANT_URL}
+        port: ${QDRANT_PORT}
+        api-key: ${QDRANT_API_KEY}
+        use-tls: true
+        collection-name: StoxyAI
+        initialize-schema: true
+
 
   jpa:
     #    show-sql: true # logging to show the queries being executed

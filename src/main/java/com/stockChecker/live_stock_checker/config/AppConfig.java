@@ -4,6 +4,7 @@ import org.modelmapper.ModelMapper;
 import org.springframework.beans.factory.annotation.Value;
 import org.springframework.context.annotation.Bean;
 import org.springframework.context.annotation.Configuration;
+import org.springframework.context.annotation.Primary;
 import org.springframework.http.HttpHeaders;
 import org.springframework.http.MediaType;
 import org.springframework.scheduling.TaskScheduler;
@@ -19,12 +20,33 @@ public class AppConfig {
     }
 
     @Bean
-    public RestClient restClient(@Value("${upstox_analytics_token}") String token) {
+    @Primary
+    public RestClient upstoxRestClient(@Value("${upstox_analytics_token}") String token) {
         return RestClient.builder()
                 .baseUrl("https://api.upstox.com/")
                 .defaultHeader(HttpHeaders.CONTENT_TYPE,
                         MediaType.APPLICATION_JSON_VALUE)
                 .defaultHeader(HttpHeaders.ACCEPT,
+                        MediaType.APPLICATION_JSON_VALUE)
+                .defaultHeader("Authorization", "Bearer " + token)
+                .build();
+    }
+
+    @Bean
+    public RestClient tavilyRestClient(@Value("${TAVILY_API_KEY}") String token) {
+        return RestClient.builder()
+                .baseUrl("https://api.tavily.com/search")
+                .defaultHeader(HttpHeaders.CONTENT_TYPE,
+                        MediaType.APPLICATION_JSON_VALUE)
+                .defaultHeader("Authorization", "Bearer " + token)
+                .build();
+    }
+
+    @Bean
+    public RestClient jinaEmbeddingRestClient(@Value("${JINA_API_KEY}") String token) {
+        return RestClient.builder()
+                .baseUrl("https://api.jina.ai/v1/embeddings")
+                .defaultHeader(HttpHeaders.CONTENT_TYPE,
                         MediaType.APPLICATION_JSON_VALUE)
                 .defaultHeader("Authorization", "Bearer " + token)
                 .build();

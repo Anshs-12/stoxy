@@ -53,9 +53,14 @@ public class TickerServiceImpl implements TickerService {
             fetchMarketQuoteData(responseMap, dummyFullMap, missingKeys);
 
             // 2. Upgrade to live stream if the market is open
+            // in getLiveLtpcData
             if (marketStatusService.isMarketOpen().getIsOpen()) {
                 log.info("Market is open. Upgrading missing keys to WebSocket stream.");
-                upstoxWebSocketClient.onSubscribe(missingKeys, "sub", "ltpc");
+                try {
+                    upstoxWebSocketClient.onSubscribe(missingKeys, "sub", "ltpc");
+                } catch (Exception e) {
+                    log.warn("WebSocket subscribe failed, REST snapshot already cached: {}", e.getMessage());
+                }
             } else {
                 log.info("Market is closed. Serving REST snapshot only.");
             }
@@ -87,7 +92,11 @@ public class TickerServiceImpl implements TickerService {
             // 2. Upgrade to live stream if the market is open
             if (marketStatusService.isMarketOpen().getIsOpen()) {
                 log.info("Market is open. Upgrading missing keys to Full Feed WebSocket stream.");
-                upstoxWebSocketClient.onSubscribe(missingKeys, "sub", "full");
+                try {
+                    upstoxWebSocketClient.onSubscribe(missingKeys, "sub", "full");
+                } catch (Exception e) {
+                    log.warn("WebSocket subscribe failed, REST snapshot already cached: {}", e.getMessage());
+                }
             } else {
                 log.info("Market is closed. Serving REST snapshot only.");
             }
