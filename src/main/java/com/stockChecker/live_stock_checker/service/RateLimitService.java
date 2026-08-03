@@ -23,11 +23,22 @@ public class RateLimitService {
         if (requestType.contains("/auth")) {
             // getting authBucket from Redis.
             bucket = proxyManager.getProxy(requestByteKey, () -> getAuthBucketConfiguration());
+        } else if (requestType.contains("analyze")) {
+            bucket = proxyManager.getProxy(requestByteKey, () -> getAnalyzeBucketConfiguration());
         } else {
             // getting generalBucket from Redis
             bucket = proxyManager.getProxy(requestByteKey, () -> getGeneralBucketConfiguration());
         }
         return bucket.tryConsume(1);
+    }
+
+    private BucketConfiguration getAnalyzeBucketConfiguration() {
+        return BucketConfiguration.builder().addLimit(
+                Bandwidth.builder()
+                        .capacity(5)
+                        .refillGreedy(5, Duration.ofHours(3))
+                        .build())
+                .build();
     }
 
     private BucketConfiguration getAuthBucketConfiguration() {
