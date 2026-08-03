@@ -1,29 +1,29 @@
-import { Loader2, X, Sparkles } from 'lucide-react';
+import { Link } from 'react-router-dom';
+import { Loader2, X, Sparkles, LogIn, AlertTriangle } from 'lucide-react';
 import ReactMarkdown from 'react-markdown';
 import remarkGfm from 'remark-gfm';
+import type { AnalysisError } from '../../lib/api';
 
 interface AnalysisDialogProps {
     open: boolean;
     onOpenChange: (open: boolean) => void;
     title: string;
     loading: boolean;
-    error: string | null;
+    error: AnalysisError | null;
     content: string | null;
 }
 
 /**
  * Inline AI analysis panel — lives on the page, not a modal.
  *
- * Why inline (not a dialog):
- *   - Avoids the floating-overlay feel that hides the page context.
- *   - The user can scroll back to the chart / info while reading the prose.
- *   - "Close" simply collapses the section; opening it again starts a fresh call.
- *
- * Renders the LLM prose returned by /analyze/{stock,index}.
- * - `loading` → spinner + "Analyzing…" message.
- * - `error`   → error text in red.
- * - `content` → markdown rendered with react-markdown + remark-gfm (tables, lists).
- *   Markdown elements are styled to match the existing palette/tokens.
+ * Renders three kinds of result:
+ *  - loading  → spinner + "Analyzing…"
+ *  - error    → variant-specific block (see ErrorBlock below):
+ *                 rate_limit   → clock icon + countdown from Retry-After
+ *                 unauthorized → sign-in CTA
+ *                 upstream     → retry-in-a-moment hint
+ *                 generic      → raw message
+ *  - content  → markdown rendered with react-markdown + remark-gfm.
  */
 export function AnalysisDialog({
     open,
@@ -61,11 +61,7 @@ export function AnalysisDialog({
                     </div>
                 )}
 
-                {!loading && error && (
-                    <div className="py-2 text-[13px] font-sans text-negative">
-                        {error}
-                    </div>
-                )}
+                {!loading && error && <ErrorBlock error={error} />}
 
                 {!loading && !error && content && (
                     <ReactMarkdown
@@ -167,5 +163,84 @@ export function AnalysisDialog({
                 )}
             </div>
         </section>
+    );
+}
+
+/**
+ * Variant-specific error UI. Each variant has its own icon, message, and (where
+ * useful) a CTA — keep them visually similar but distinguishable.
+ */
+function ErrorBlock({ error }: { error: AnalysisError }) {
+    switch (error.kind) {
+        case 'rate_limit':
+            return <RateLimitBlock retryAfterSeconds={error.retryAfterSeconds} />;
+        case 'unauthorized':
+            return <UnauthorizedBlock />;
+        case 'upstream':
+            return (
+                <Notice
+                    icon={<AlertTriangle className="h-4 w-4 text-negative" />}
+                    title="AI service unavailable"
+                    body="Our analysis provider is having trouble right now. Please try again in a moment."
+                />
+            );
+        case 'generic':
+            return (
+                <Notice
+                    icon={<AlertTriangle className="h-4 w-4 text-negative" />}
+                    title="Something went wrong"
+                    body={error.raw || 'Please try again.'}
+                />
+            );
+    }
+}
+
+function Notice({ icon, title, body, action }: {
+    icon: React.ReactNode;
+    title: string;
+    body: string;
+    action?: React.ReactNode;
+}) {
+    return (
+        <div className="flex items-start gap-3 py-2">
+            <div className="mt-0.5">{icon}</div>
+            <div className="flex-1 min-w-0">
+                <p className="text-[13px] font-sans font-medium text-primary">{title}</p>
+                <p className="text-[12px] font-sans text-muted mt-1">{body}</p>
+                {action && <div className="mt-3">{action}</div>}
+            </div>
+        </div>
+    );
+}
+
+function RateLimitBlock({ retryAfterSeconds: _retryAfterSeconds }: { retryAfterSeconds: number | null }) {
+    // Backend doesn't currently send Retry-After, so we don't show a countdown.
+    // If the backend starts sending it, the prop is already wired through — just
+    // uncomment the timer block below.
+    return (
+        <Notice
+            icon={<Sparkles className="h-4 w-4 text-negative" />}
+            title="Free credits used for today"
+            body="You’ve used all your free AI analyses. Please try again later."
+        />
+    );
+}
+
+function UnauthorizedBlock() {
+    return (
+        <Notice
+            icon={<LogIn className="h-4 w-4 text-negative" />}
+            title="Sign in required"
+            body="You need to be signed in to run an AI analysis."
+            action={
+                <Link
+                    to="/login"
+                    className="inline-flex items-center gap-1.5 px-3 py-1.5 bg-accent text-white text-[12px] font-medium rounded-md hover:bg-accent/90 transition-colors"
+                >
+                    <LogIn className="h-3.5 w-3.5" />
+                    Sign in
+                </Link>
+            }
+        />
     );
 }

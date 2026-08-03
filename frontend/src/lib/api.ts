@@ -38,6 +38,45 @@ export function parseApiError(err: unknown): string {
     return 'Request failed';
 }
 
+// ── Typed Analysis Errors ──
+// Discriminated union: each variant carries the fields the UI needs to render a
+// tailored message. classify() maps an axios error into one of these variants.
+//
+// Backend ErrorCode enum (from ApiErrorResponse.error):
+//   RATE_LIMIT_EXCEEDED → 429 from RateLimitFilter
+//   UNAUTHORIZED        → 401 from AuthEntryPoint
+//   INTERNAL_SERVER_ERROR / UPSTOX_FEED_ERROR / unknown → treated as upstream
+//   anything else → generic
+export type AnalysisError =
+    | { kind: 'rate_limit'; retryAfterSeconds: number | null; raw: string }
+    | { kind: 'unauthorized'; raw: string }
+    | { kind: 'upstream'; raw: string }
+    | { kind: 'generic'; raw: string };
+
+export function classifyAnalysisError(err: unknown): AnalysisError {
+    const raw = parseApiError(err);
+    const e = err as any;
+    const status: number | undefined = e?.response?.status;
+    const code: string | undefined = e?.response?.data?.error;
+
+    if (status === 429 || code === 'RATE_LIMIT_EXCEEDED') {
+        // RateLimitFilter doesn't currently set Retry-After, but read it if present.
+        const retryAfterHeader = e?.response?.headers?.['retry-after'];
+        const retryAfterSeconds = retryAfterHeader ? Number(retryAfterHeader) : null;
+        return { kind: 'rate_limit', retryAfterSeconds, raw };
+    }
+    if (status === 401 || status === 403 || code === 'UNAUTHORIZED') {
+        return { kind: 'unauthorized', raw };
+    }
+    if (
+        status === 500 || status === 502 || status === 503 || status === 504 ||
+        code === 'INTERNAL_SERVER_ERROR' || code === 'UPSTOX_FEED_ERROR'
+    ) {
+        return { kind: 'upstream', raw };
+    }
+    return { kind: 'generic', raw };
+}
+
 // ── No global 401 redirect ──
 // Route protection is handled by <AuthGate> at the router level.
 // A global redirect here would incorrectly send users to /login when public

@@ -2,7 +2,7 @@ import { useState } from 'react';
 import { useLocation, useParams, Link } from 'react-router-dom';
 import { ShoppingCart, Loader2, ArrowLeft, X, ListPlus, TrendingUp, TrendingDown, Sparkles } from 'lucide-react';
 import { useStockDetails } from '../../hooks/useStockDetails';
-import { analysisApi, parseApiError } from '../../lib/api';
+import { analysisApi, classifyAnalysisError, type AnalysisError } from '../../lib/api';
 import { fmt, getChangeColor, isMarketOpen } from '../../lib/utils';
 import { StockChart } from '../ui/StockChart';
 import { AnalysisDialog } from '../ui/AnalysisDialog';
@@ -33,7 +33,7 @@ export const StockDetails = () => {
   const [wlOpen, setWlOpen] = useState(false);
   const [analysisOpen, setAnalysisOpen] = useState(false);
   const [analysisLoading, setAnalysisLoading] = useState(false);
-  const [analysisError, setAnalysisError] = useState<string | null>(null);
+  const [analysisError, setAnalysisError] = useState<AnalysisError | null>(null);
   const [analysisText, setAnalysisText] = useState<string | null>(null);
 
   const handleAnalyze = async () => {
@@ -53,7 +53,7 @@ export const StockDetails = () => {
       });
       setAnalysisText(typeof r.data === 'string' ? r.data : '');
     } catch (err) {
-      setAnalysisError(parseApiError(err));
+      setAnalysisError(classifyAnalysisError(err));
     } finally {
       setAnalysisLoading(false);
     }

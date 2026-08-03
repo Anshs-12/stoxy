@@ -3,7 +3,7 @@ import { useParams, Link } from 'react-router-dom';
 import { Loader2, ArrowLeft, RefreshCw, TrendingUp, TrendingDown, Sparkles } from 'lucide-react';
 import { useIndexDetail } from '../../hooks/useIndexDetail';
 import { useTheme } from '../../context/ThemeContext';
-import { analysisApi, parseApiError } from '../../lib/api';
+import { analysisApi, classifyAnalysisError, type AnalysisError } from '../../lib/api';
 import { fmt, getChangeColor, isMarketOpen } from '../../lib/utils';
 import { StockChart } from '../ui/StockChart';
 import { AnalysisDialog } from '../ui/AnalysisDialog';
@@ -15,7 +15,7 @@ export const NSEIndexDetail = () => {
 
   const [analysisOpen, setAnalysisOpen] = useState(false);
   const [analysisLoading, setAnalysisLoading] = useState(false);
-  const [analysisError, setAnalysisError] = useState<string | null>(null);
+  const [analysisError, setAnalysisError] = useState<AnalysisError | null>(null);
   const [analysisText, setAnalysisText] = useState<string | null>(null);
 
   // InstrumentKey format: "EXCHANGE_SEGMENT|SymbolName" e.g. "NSE_INDEX|Nifty 50"
@@ -42,7 +42,7 @@ export const NSEIndexDetail = () => {
       });
       setAnalysisText(typeof r.data === 'string' ? r.data : '');
     } catch (err) {
-      setAnalysisError(parseApiError(err));
+      setAnalysisError(classifyAnalysisError(err));
     } finally {
       setAnalysisLoading(false);
     }
