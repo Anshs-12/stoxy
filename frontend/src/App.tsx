@@ -9,6 +9,7 @@ import { AuthGate } from "./components/layout/AuthGate";
 import { Header } from "./components/layout/Header";
 import { Sidebar } from "./components/layout/Sidebar";
 import { MarketTicker } from "./components/layout/MarketTicker";
+import { Footer } from "./components/layout/Footer";
 import ReactGA from "react-ga4";
 import { useEffect } from "react";
 import { useLocation } from "react-router-dom";
@@ -175,6 +176,7 @@ function App() {
                                                     </Routes>
                                                 </Suspense>
                                             </div>
+                                            <Footer />
                                         </main>
                                     </div>
                                 </div>

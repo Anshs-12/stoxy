@@ -1,6 +1,6 @@
 import {useState, useEffect, useRef} from 'react';
 import {NavLink, useNavigate} from 'react-router-dom';
-import {Search, Bell, User, ChevronDown, LogOut, Menu, Moon, Sun} from 'lucide-react';
+import {Search, Github, User, ChevronDown, LogOut, Menu, Moon, Sun} from 'lucide-react';
 import {stocksApi} from '../../lib/api';
 import {useAuth} from '../../context/AuthContext';
 import {useTheme} from '../../context/ThemeContext';
@@ -109,7 +109,7 @@ export const Header = ({onMenuClick}: { onMenuClick?: () => void }) => {
                                  className={({isActive}) =>
                                      `text-[13px] font-sans transition-colors pb-0.5 ${isActive
                                          ? 'text-primary font-semibold border-b-2 border-accent'
-                                         : 'text-muted hover:text-muted-heavy border-b-2 border-transparent'}`
+                                         : 'text-muted hover:text-accent border-b-2 border-transparent'}`
                                  }>
                             {item.label}
                         </NavLink>
@@ -184,9 +184,9 @@ export const Header = ({onMenuClick}: { onMenuClick?: () => void }) => {
                     >
                         {isDark ? <Sun className="h-4 w-4 text-accent"/> : <Moon className="h-4 w-4"/>}
                     </button>
-                    <button className="hover:text-primary transition-colors p-1.5 rounded-md hover:bg-neutral">
-                        <Bell className="h-4 w-4"/>
-                    </button>
+                    <a href="https://github.com/anshs-12/stoxy" target="_blank" rel="noopener noreferrer" className="hover:text-accent transition-colors p-1.5 rounded-md hover:bg-neutral">
+                        <Github className="h-4 w-4"/>
+                    </a>
 
                     {/* Profile */}
                     <div className="relative" ref={profileRef}>

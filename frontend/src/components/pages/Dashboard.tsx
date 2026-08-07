@@ -99,7 +99,7 @@ export const Dashboard = () => {
         <div className="flex items-end justify-between">
           <div>
             <h1 className="text-4xl font-heading font-light tracking-tight text-primary">Market Overview</h1>
-            <p className="text-[12px] font-mono text-muted mt-1.5">Real-time NSE &amp; BSE indices · live via Upstox</p>
+            <p className="text-[12px] font-mono text-muted mt-1.5">Equities · Indices · AI Analysis</p>
           </div>
           <button
             onClick={handleRefresh}
