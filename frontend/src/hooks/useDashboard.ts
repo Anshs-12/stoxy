@@ -6,7 +6,14 @@ import type { IndexSearchResult, LtpcData } from '../types';
 // Queries to bootstrap the dashboard indices — use the search endpoint
 // to discover instrument keys dynamically, then fetch an initial REST
 // snapshot and subscribe to WebSocket ltpc updates.
-const INDEX_QUERIES = ['NIFTY 50', 'NIFTY BANK', 'SENSEX'];
+const INDEX_QUERIES = [
+  'NIFTY 50', 'NIFTY 100', 'NIFTY 200', 'NIFTY 500',
+  'NIFTY BANK', 'NIFTY AUTO', 'NIFTY FINANCIAL SERVICES', 'NIFTY FMCG',
+  'NIFTY IT', 'NIFTY MEDIA', 'NIFTY METAL', 'NIFTY PHARMA',
+  'NIFTY PSU BANK', 'NIFTY PRIVATE BANK', 'NIFTY REALTY',
+  'NIFTY ENERGY', 'NIFTY INFRASTRUCTURE', 'NIFTY COMMODITIES',
+  'SENSEX 50', 'SENSEX',
+];
 
 export interface DashboardIndex {
   indexName: string;

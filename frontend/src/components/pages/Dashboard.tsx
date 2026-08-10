@@ -1,45 +1,46 @@
-import { useEffect, useState } from 'react';
+import { useEffect, useState, useMemo } from 'react';
 import { Link, useNavigate } from 'react-router-dom';
-import { RefreshCw, TrendingUp, TrendingDown, ArrowUpRight, ArrowRight, Activity } from 'lucide-react';
+import { RefreshCw, ArrowUpRight, ArrowRight } from 'lucide-react';
 import { useDashboard } from '../../hooks/useDashboard';
 import type { DashboardIndex } from '../../hooks/useDashboard';
+import { useTopStocks } from '../../hooks/useTopStocks';
 import { useTheme } from '../../context/ThemeContext';
 import { fmt, getChangeColor } from '../../lib/utils';
+import { AIInsight } from '../layout/AIInsight';
+import { MarketPulse } from '../ui/MarketPulse';
+import { MiniChart } from '../ui/MiniChart';
 
-/* ── Mini SVG sparkline using the day-range concept ── */
-const MiniChart = ({ pChange, color }: { pChange: number | null; color: string }) => {
-  // Generate a simple trend line based on % change (decorative)
-  const isUp = (pChange ?? 0) >= 0;
-  const points = isUp
-    ? '0,30 20,22 40,18 60,12 80,8 100,4'
-    : '0,4 20,8 40,12 60,18 80,24 100,30';
-  return (
-    <svg viewBox="0 0 100 36" className="w-full h-9 mt-3" preserveAspectRatio="none">
-      <defs>
-        <linearGradient id={`g-${isUp ? 'up' : 'dn'}`} x1="0" y1="0" x2="0" y2="1">
-          <stop offset="0%" stopColor={color} stopOpacity="0.18" />
-          <stop offset="100%" stopColor={color} stopOpacity="0" />
-        </linearGradient>
-      </defs>
-      <polyline
-        points={points}
-        fill="none"
-        stroke={color}
-        strokeWidth="1.5"
-        strokeLinecap="round"
-        strokeLinejoin="round"
-      />
-    </svg>
-  );
+// Maps well-known NSE sectoral index names → short sector label
+const SECTOR_LABEL_MAP: Record<string, string> = {
+  'NIFTY BANK': 'Banking',
+  'NIFTY PSU BANK': 'PSU Bank',
+  'NIFTY PRIVATE BANK': 'Pvt Bank',
+  'NIFTY FINANCIAL SERVICES': 'Finance',
+  'NIFTY IT': 'IT',
+  'NIFTY FMCG': 'FMCG',
+  'NIFTY AUTO': 'Auto',
+  'NIFTY PHARMA': 'Pharma',
+  'NIFTY METAL': 'Metal',
+  'NIFTY ENERGY': 'Energy',
+  'NIFTY REALTY': 'Realty',
+  'NIFTY MEDIA': 'Media',
+  'NIFTY HEALTHCARE': 'Health',
+  'NIFTY INFRASTRUCTURE': 'Infra',
+  'NIFTY COMMODITIES': 'Commod',
+  'NIFTY CONSUMPTION': 'Consump',
 };
 
-const fmtVol = (n: number) =>
-  n >= 1000 ? `${(n / 1000).toFixed(1)}k` : String(n);
+const SECTOR_COLORS = [
+  '#4d9fff', '#4dd6c4', '#a78bfa', '#ffb454', '#3ddc84',
+  '#ff6b5e', '#facc15', '#22d3ee', '#fb923c', '#a3e635',
+  '#f472b6', '#94a3b8',
+];
 
 /* ── Dashboard Page ── */
 export const Dashboard = () => {
   const navigate = useNavigate();
   const { indices, loading, error, refreshDashboard } = useDashboard();
+  const { stocks: topStocks } = useTopStocks(6);
   const { isDark } = useTheme();
   const [mounted, setMounted] = useState(false);
 
@@ -53,6 +54,60 @@ export const Dashboard = () => {
 
   const handleRefresh = () => refreshDashboard();
 
+  // Compute sector breadth from the loaded indices. Each mapped sector
+  // shows the % change of the matching NSE sectoral index (live data).
+  const sectorData = useMemo(() => {
+    const seen = new Set<string>();
+    const out: { name: string; pct: number; color: string }[] = [];
+    let colorIdx = 0;
+    for (const idx of indices) {
+      const label = SECTOR_LABEL_MAP[idx.indexName.toUpperCase().trim()];
+      if (!label || seen.has(label)) continue;
+      if (idx.pChange == null) continue;
+      seen.add(label);
+      out.push({
+        name: label,
+        pct: idx.pChange,
+        color: SECTOR_COLORS[colorIdx++ % SECTOR_COLORS.length],
+      });
+      if (out.length >= 5) break;
+    }
+    return out;
+  }, [indices]);
+
+  // ── Top 5 indices in a fixed display order. Match is case-insensitive on
+  // indexName and tolerant of minor backend variants (e.g. "NIFTY 50" vs
+  // "Nifty 50"). Unmatched indices fall through to their natural search order.
+  const STRIP_ORDER = [
+    'NIFTY 50',
+    'SENSEX',
+    'NIFTY BANK',
+    'NIFTY 100',
+    'NIFTY 200',
+  ];
+  const stripIndices = useMemo(() => {
+    const picked: DashboardIndex[] = [];
+    const seen = new Set<string>();
+    for (const target of STRIP_ORDER) {
+      const match = indices.find(
+        i => !seen.has(i.instrumentKey) && i.indexName.toUpperCase() === target,
+      );
+      if (match) {
+        picked.push(match);
+        seen.add(match.instrumentKey);
+      }
+    }
+    // Append any remaining indices so the strip always has 5 cards if available.
+    for (const i of indices) {
+      if (picked.length >= 5) break;
+      if (!seen.has(i.instrumentKey)) {
+        picked.push(i);
+        seen.add(i.instrumentKey);
+      }
+    }
+    return picked;
+  }, [indices]);
+
   /* ── Loading State ── */
   if (loading) {
     return (
@@ -63,7 +118,7 @@ export const Dashboard = () => {
         </div>
         <div className="grid grid-cols-3 gap-4">
           {[0, 1, 2].map(i => (
-            <div key={i} className="bg-surface card-border rounded-xl p-6 h-36 skeleton animate-shimmer" />
+            <div key={i} className="bg-surface card-border p-6 h-36 skeleton animate-shimmer" />
           ))}
         </div>
       </div>
@@ -77,7 +132,7 @@ export const Dashboard = () => {
         <p className="text-sm text-negative text-center max-w-sm">{error}</p>
         <button
           onClick={handleRefresh}
-          className="px-5 py-2.5 bg-accent text-white font-sans text-sm rounded-lg hover:bg-accent/90 transition-colors"
+          className="px-5 py-2.5 bg-accent text-white font-sans text-sm hover:bg-accent/90 transition-colors"
         >
           Try Again
         </button>
@@ -104,7 +159,7 @@ export const Dashboard = () => {
           <button
             onClick={handleRefresh}
             disabled={loading}
-            className="flex items-center gap-2 px-4 py-2 bg-surface border border-border hover:border-border text-[11px] font-mono text-primary rounded-lg disabled:opacity-50 group transition-all hover:shadow-ambient"
+            className="flex items-center gap-2 px-4 py-2 bg-surface border border-border-light hover:border-accent text-[11px] font-mono text-primary disabled:opacity-50 group transition-colors"
           >
             <RefreshCw className={`h-3.5 w-3.5 transition-transform ${loading ? 'animate-spin' : 'group-hover:rotate-180'} duration-500`} />
             Refresh
@@ -112,109 +167,93 @@ export const Dashboard = () => {
         </div>
       </div>
 
-      {/* Index Cards Grid */}
-      <div className={`grid gap-4 mt-8 ${indices.length <= 3 ? 'grid-cols-3' : 'grid-cols-4'}`}>
-        {indices.map((idx: DashboardIndex, i) => {
-          const isUp = (idx.pChange ?? 0) >= 0;
-          const changeColor = isUp
-            ? (isDark ? '#5ab870' : '#2e7d32')
-            : (isDark ? '#e06060' : '#c62828');
-          return (
-            <Link
-              to={`/index/${encodeURIComponent(idx.instrumentKey)}`}
-              key={idx.instrumentKey}
-              className="group bg-surface card-border rounded-xl p-6 transition-all duration-300 cursor-pointer fade-in-up"
-              style={{ animationDelay: `${i * 0.12 + 0.2}s`, opacity: 0 }}
-            >
-              <div className="flex items-start justify-between mb-1">
-                <div className="flex items-center gap-2">
-                  <div className={`h-6 w-6 rounded-md flex items-center justify-center ${isUp ? 'bg-positive/10' : 'bg-negative/10'}`}>
-                    {isUp
-                      ? <TrendingUp className="h-3.5 w-3.5 text-positive" />
-                      : <TrendingDown className="h-3.5 w-3.5 text-negative" />
-                    }
-                  </div>
-                  <span className="text-[10px] font-mono text-muted tracking-wider uppercase">{idx.indexName}</span>
-                </div>
-                <ArrowUpRight className="h-4 w-4 text-muted opacity-0 group-hover:opacity-100 transition-opacity" />
-              </div>
+      {/* AI Insight — above the index strip */}
+      <AIInsight />
 
-              {idx.ltp != null ? (
-                <>
-                  <div className="text-2xl font-mono font-semibold tracking-tight mt-3 text-primary">
-                    {fmt(idx.ltp)}
+      {/* Index Strip — single horizontal strip with mini sparklines */}
+      <div className="bg-surface border border-border-light mt-8 divide-x divide-border-light overflow-hidden">
+        <div className="grid grid-cols-2 md:grid-cols-3 lg:grid-cols-5">
+          {stripIndices.map((idx: DashboardIndex, i) => {
+            const isUp = (idx.pChange ?? 0) >= 0;
+            const changeColor = isUp
+              ? (isDark ? '#5ab870' : '#2e7d32')
+              : (isDark ? '#e06060' : '#c62828');
+            return (
+              <Link
+                to={`/index/${encodeURIComponent(idx.instrumentKey)}`}
+                key={idx.instrumentKey}
+                className="group px-5 py-4 hover:bg-neutral transition-colors fade-in-up border-b md:border-b-0 border-border-light"
+                style={{ animationDelay: `${i * 0.08}s`, opacity: 0 }}
+              >
+                <div className="flex items-center justify-between gap-2 mb-2">
+                  <div className="text-[10px] font-mono text-muted tracking-wider uppercase truncate">
+                    {idx.indexName}
                   </div>
-                  <div className={`flex items-center gap-1.5 text-[13px] font-mono font-medium mt-1 ${getChangeColor(idx.pChange)}`}>
-                    {isUp ? <ArrowUpRight className="h-3.5 w-3.5" /> : <TrendingDown className="h-3.5 w-3.5" />}
-                    <span>{isUp ? '+' : ''}{fmt(idx.change)}</span>
-                    <span className="text-muted">({isUp ? '+' : ''}{idx.pChange?.toFixed(2)}%)</span>
-                  </div>
-                </>
-              ) : (
-                <div className="mt-3">
-                  <div className="h-6 w-24 skeleton animate-shimmer rounded mb-2" />
-                  <div className="h-4 w-16 skeleton animate-shimmer rounded" />
+                  {idx.exchange && (
+                    <span className={`flex-shrink-0 text-[8px] font-bold uppercase tracking-wider ${
+                      idx.exchange === 'BSE' ? 'text-amber-500' : 'text-accent'
+                    }`}>
+                      {idx.exchange}
+                    </span>
+                  )}
                 </div>
-              )}
-            </Link>
-          );
-        })}
+                {idx.ltp != null ? (
+                  <>
+                    <div className="text-[16px] font-mono font-semibold tracking-tight text-primary">
+                      {fmt(idx.ltp)}
+                    </div>
+                    <div className={`flex items-center gap-1 text-[11px] font-mono font-medium mt-1 ${getChangeColor(idx.pChange)}`}>
+                      <span>{isUp ? '↗' : '↘'}</span>
+                      <span>{isUp ? '+' : ''}{idx.change?.toFixed(2)}</span>
+                      <span className="text-muted">({isUp ? '+' : ''}{idx.pChange?.toFixed(2)}%)</span>
+                    </div>
+                    <div className="mt-2">
+                      <MiniChart instrumentKey={idx.instrumentKey} color={changeColor} height={28} />
+                    </div>
+                  </>
+                ) : (
+                  <div className="h-4 w-20 skeleton animate-shimmer mt-1" />
+                )}
+              </Link>
+            );
+          })}
+        </div>
       </div>
 
       {/* Index Summary Table */}
       {indices.length > 0 && (
         <div className="grid grid-cols-12 gap-4 mt-6">
-          {/* Market Sentiment */}
+          {/* Market Pulse — visual gauge */}
           <div
-            className="col-span-5 bg-surface p-6 card-border rounded-xl fade-in-up"
+            className="col-span-12 lg:col-span-4 fade-in-up"
             style={{ animationDelay: '0.5s', opacity: 0 }}
           >
-            <div className="flex items-center gap-2 mb-5">
-              <Activity className="h-4 w-4 text-muted" />
-              <h3 className="text-[10px] font-mono text-muted tracking-widest uppercase">Market Pulse</h3>
-            </div>
-
-            {/* Show up/down split of found indices */}
-            {(() => {
-              const up = indices.filter(i => (i.pChange ?? 0) >= 0).length;
-              const dn = indices.length - up;
-              const upPct = indices.length > 0 ? Math.round((up / indices.length) * 100) : 50;
-              return (
-                <>
-                  <div className="flex justify-between items-end mb-6">
-                    <div>
-                      <div className="text-3xl font-mono font-semibold text-positive">{fmtVol(up)}</div>
-                      <div className="text-[9px] font-mono text-muted tracking-widest mt-1">GAINING</div>
-                    </div>
-                    <div className="text-right">
-                      <div className="text-3xl font-mono font-semibold text-negative">{fmtVol(dn)}</div>
-                      <div className="text-[9px] font-mono text-muted tracking-widest mt-1">DECLINING</div>
-                    </div>
-                  </div>
-                  <div className="relative h-2 w-full bg-neutral rounded-full overflow-hidden mb-3">
-                    <div
-                      className="h-full bg-positive rounded-full transition-all duration-1000 ease-out"
-                      style={{ width: `${upPct}%` }}
-                    />
-                  </div>
-                  <div className="flex justify-between text-[10px] font-mono text-muted">
-                    <span className="text-positive font-medium">{upPct}% Bullish</span>
-                    <span className="text-negative font-medium">{100 - upPct}% Bearish</span>
-                  </div>
-                </>
-              );
-            })()}
+            <MarketPulse
+              gaining={indices.filter(i => (i.pChange ?? 0) >= 0).length}
+              declining={indices.filter(i => (i.pChange ?? 0) < 0).length}
+              sectors={sectorData}
+              note={
+                sectorData.length > 0
+                  ? `Breadth driven by ${sectorData[0].name} at ${sectorData[0].pct >= 0 ? '+' : ''}${sectorData[0].pct.toFixed(2)}% — ${indices.filter(i => (i.pChange ?? 0) >= 0).length} of ${indices.length} tracked indices advancing.`
+                  : `Breadth — ${indices.filter(i => (i.pChange ?? 0) >= 0).length} of ${indices.length} tracked indices advancing.`
+              }
+            />
           </div>
 
           {/* Index Overview Table */}
           <div
-            className="col-span-7 bg-surface p-6 card-border rounded-xl fade-in-up"
+            className="col-span-12 lg:col-span-8 bg-surface p-6 border border-border-light fade-in-up"
             style={{ animationDelay: '0.6s', opacity: 0 }}
           >
-            <div className="flex items-center justify-between mb-5">
-              <h3 className="text-[10px] font-mono text-muted tracking-widest uppercase">Index Overview</h3>
-              <ArrowRight className="h-3.5 w-3.5 text-muted" />
-            </div>
+            <Link
+              to="/indices"
+              className="flex items-center justify-between mb-5 group hover:text-accent transition-colors"
+            >
+              <h3 className="text-[10px] font-mono text-muted tracking-widest uppercase group-hover:text-accent transition-colors">
+                Index Overview · View all
+              </h3>
+              <ArrowRight className="h-3.5 w-3.5 text-muted group-hover:text-accent transition-colors" />
+            </Link>
             <table className="w-full text-[13px] font-mono">
               <thead>
                 <tr className="text-[9px] text-muted tracking-widest uppercase text-left">
@@ -223,34 +262,102 @@ export const Dashboard = () => {
                   ))}
                 </tr>
               </thead>
-              <tbody>
-                {indices.map((idx: DashboardIndex) => {
-                  const isUp = (idx.pChange ?? 0) >= 0;
-                  return (
-                    <tr
-                      key={idx.instrumentKey}
-                      onClick={() => navigate(`/index/${encodeURIComponent(idx.instrumentKey)}`)}
-                      className="hover:bg-neutral transition-colors cursor-pointer group border-t border-border-light"
-                    >
-                      <td className="py-3.5 font-medium group-hover:text-accent transition-colors">{idx.indexName}</td>
-                      <td className="py-3.5 text-muted text-[11px]">{idx.exchange}</td>
-                      <td className="py-3.5 text-right text-muted-heavy">
-                        {idx.ltp != null ? fmt(idx.ltp) : '—'}
-                      </td>
-                      <td className={`py-3.5 text-right font-medium ${getChangeColor(idx.change)}`}>
-                        {idx.change != null ? `${isUp ? '+' : ''}${fmt(idx.change)}` : '—'}
-                      </td>
-                      <td className={`py-3.5 text-right font-medium ${getChangeColor(idx.pChange)}`}>
-                        {idx.pChange != null ? `${isUp ? '+' : ''}${idx.pChange.toFixed(2)}%` : '—'}
-                      </td>
-                    </tr>
-                  );
-                })}
-              </tbody>
             </table>
+            <div className="max-h-[320px] overflow-y-auto">
+              <table className="w-full text-[13px] font-mono">
+                <tbody>
+                  {indices.map((idx: DashboardIndex) => {
+                    const isUp = (idx.pChange ?? 0) >= 0;
+                    return (
+                      <tr
+                        key={idx.instrumentKey}
+                        onClick={() => navigate(`/index/${encodeURIComponent(idx.instrumentKey)}`)}
+                        className="hover:bg-neutral transition-colors cursor-pointer group border-t border-border-light"
+                      >
+                        <td className="py-3 font-medium group-hover:text-accent transition-colors">{idx.indexName}</td>
+                        <td className="py-3 text-muted text-[11px]">{idx.exchange}</td>
+                        <td className="py-3 text-right text-muted-heavy">
+                          {idx.ltp != null ? fmt(idx.ltp) : '—'}
+                        </td>
+                        <td className={`py-3 text-right font-medium ${getChangeColor(idx.change)}`}>
+                          {idx.change != null ? `${isUp ? '+' : ''}${fmt(idx.change)}` : '—'}
+                        </td>
+                        <td className={`py-3 text-right font-medium ${getChangeColor(idx.pChange)}`}>
+                          {idx.pChange != null ? `${isUp ? '+' : ''}${idx.pChange.toFixed(2)}%` : '—'}
+                        </td>
+                      </tr>
+                    );
+                  })}
+                </tbody>
+              </table>
+            </div>
           </div>
         </div>
       )}
+
+      {/* ── Top Stocks — live data from screener ── */}
+      <div className="mt-10">
+        <div className="flex items-end justify-between mb-5">
+          <div>
+            <h2 className="text-2xl font-heading font-light tracking-tight text-primary">Top Stocks</h2>
+            <p className="text-[12px] font-mono text-muted mt-1">Live from Financial Services · IT · Energy</p>
+          </div>
+          <Link
+            to="/screener"
+            className="text-[11px] font-mono text-muted hover:text-accent transition-colors flex items-center gap-1"
+          >
+            See more <ArrowRight className="h-3 w-3" />
+          </Link>
+        </div>
+        <div className="grid grid-cols-2 md:grid-cols-3 lg:grid-cols-6 gap-3">
+          {topStocks.length === 0 ? (
+            Array.from({ length: 6 }).map((_, i) => (
+              <div key={i} className="bg-surface border border-border-light p-4 h-32 skeleton animate-shimmer" />
+            ))
+          ) : (
+            topStocks.map(s => {
+              const isUp = (s.pChange ?? 0) >= 0;
+              const changeColor = isUp
+                ? (isDark ? '#5ab870' : '#2e7d32')
+                : (isDark ? '#e06060' : '#c62828');
+              return (
+                <Link
+                  key={s.stockSymbol}
+                  to={`/stocks/${s.stockSymbol}`}
+                  state={s}
+                  className="bg-surface border border-border-light p-4 hover:border-accent transition-all group flex flex-col gap-2"
+                >
+                  <div className="flex items-start justify-between mb-1">
+                    <div className="text-[13px] font-mono font-semibold text-primary group-hover:text-accent transition-colors truncate">{s.stockSymbol}</div>
+                    <ArrowUpRight className="h-3.5 w-3.5 text-muted opacity-0 group-hover:opacity-100 transition-opacity" />
+                  </div>
+                  <div className="text-[12px] text-muted truncate">{s.companyName || s.stockName}</div>
+                  {s.ltp != null ? (
+                    <>
+                      <div className="text-[15px] font-mono font-semibold text-primary tracking-tight">
+                        ₹{fmt(s.ltp)}
+                      </div>
+                      <div className={`text-[11px] font-mono font-medium ${getChangeColor(s.pChange)}`}>
+                        {isUp ? '+' : ''}{s.pChange?.toFixed(2)}%
+                      </div>
+                      <div className="mt-auto pt-1">
+                        <MiniChart instrumentKey={s.instrumentKey} color={changeColor} height={24} />
+                      </div>
+                    </>
+                  ) : (
+                    <div className="h-4 w-16 skeleton animate-shimmer" />
+                  )}
+                  {s.exchange && (
+                    <div className="text-[9px] font-mono text-muted mt-1 uppercase tracking-wider truncate">
+                      {s.exchange}
+                    </div>
+                  )}
+                </Link>
+              );
+            })
+          )}
+        </div>
+      </div>
     </div>
   );
 };

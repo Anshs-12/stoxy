@@ -100,6 +100,7 @@ export const Header = ({onMenuClick}: { onMenuClick?: () => void }) => {
                 <nav className="hidden md:flex items-center gap-6">
                     {[
                         {label: 'Market', to: '/'},
+                        {label: 'Indices', to: '/indices'},
                         {label: 'Watchlist', to: '/watchlist'},
                         {label: 'Portfolio', to: '/portfolio'},
                         {label: 'Screener', to: '/screener'},

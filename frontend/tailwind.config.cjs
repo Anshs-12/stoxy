@@ -20,7 +20,7 @@ module.exports = {
       fontFamily: {
         sans: ["Inter", "DM Sans", "system-ui", "sans-serif"],
         heading: ["Inter", "DM Sans", "system-ui", "sans-serif"],
-        mono: ["Geist Mono", "SF Mono", "Fira Code", "monospace"],
+        mono: ["'IBM Plex Mono'", "Geist Mono", "SF Mono", "Fira Code", "monospace"],
       },
       borderRadius: {
         sm: '4px',

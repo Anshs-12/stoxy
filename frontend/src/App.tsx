@@ -10,6 +10,7 @@ import { Header } from "./components/layout/Header";
 import { Sidebar } from "./components/layout/Sidebar";
 import { MarketTicker } from "./components/layout/MarketTicker";
 import { Footer } from "./components/layout/Footer";
+import { PageBackground } from "./components/layout/AIInsight";
 import ReactGA from "react-ga4";
 import { useEffect } from "react";
 import { useLocation } from "react-router-dom";
@@ -28,6 +29,11 @@ const StockDetails = lazy(() =>
 const NSEIndexDetail = lazy(() =>
     import("./components/pages/IndexDetail").then((m) => ({
         default: m.NSEIndexDetail,
+    })),
+);
+const AllIndices = lazy(() =>
+    import("./components/pages/AllIndices").then((m) => ({
+        default: m.AllIndices,
     })),
 );
 const StockSearch = lazy(() =>
@@ -91,6 +97,7 @@ function App() {
                         <TickerProvider>
                             <BrowserRouter>
                                 <RouteTracker />
+                                <PageBackground>
                                 <div className="flex flex-col h-screen bg-base relative text-primary">
                                     <Header
                                         onMenuClick={() => setSidebarOpen(true)}
@@ -126,6 +133,12 @@ function App() {
                                                             path="/index/:symbol"
                                                             element={
                                                                 <NSEIndexDetail />
+                                                            }
+                                                        />
+                                                        <Route
+                                                            path="/indices"
+                                                            element={
+                                                                <AllIndices />
                                                             }
                                                         />
                                                         <Route
@@ -180,6 +193,7 @@ function App() {
                                         </main>
                                     </div>
                                 </div>
+                                </PageBackground>
                             </BrowserRouter>
                         </TickerProvider>
                     </ToastProvider>

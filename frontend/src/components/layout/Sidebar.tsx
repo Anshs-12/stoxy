@@ -1,8 +1,9 @@
 import { NavLink } from 'react-router-dom';
-import { LayoutGrid, Eye, SlidersHorizontal, Briefcase, Search, TrendingUp } from 'lucide-react';
+import { LayoutGrid, Eye, SlidersHorizontal, Briefcase, Search, TrendingUp, BarChart3 } from 'lucide-react';
 
 const links = [
   { to: '/', icon: LayoutGrid, label: 'Dashboard' },
+  { to: '/indices', icon: BarChart3, label: 'Indices' },
   { to: '/watchlist', icon: Eye, label: 'Watchlist' },
   { to: '/portfolio', icon: Briefcase, label: 'Portfolio' },
   { to: '/screener', icon: SlidersHorizontal, label: 'Screener' },
