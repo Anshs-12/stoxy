@@ -2,7 +2,7 @@ package com.stockChecker.live_stock_checker.controller;
 
 import com.stockChecker.live_stock_checker.payload.UserInfoResponseDTO;
 import com.stockChecker.live_stock_checker.security.JWT.JwtUtils;
-import com.stockChecker.live_stock_checker.service.AuthService;
+import com.stockChecker.live_stock_checker.service.auth.AuthService;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.http.HttpHeaders;

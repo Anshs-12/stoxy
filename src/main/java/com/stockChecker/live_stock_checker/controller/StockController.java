@@ -4,7 +4,7 @@ import com.stockChecker.live_stock_checker.payload.StockPayload.StockDetailRespo
 import com.stockChecker.live_stock_checker.payload.StockPayload.StockScreenerDTO;
 import com.stockChecker.live_stock_checker.payload.StockPayload.StockSearchResponseDTO;
 import com.stockChecker.live_stock_checker.payload.StockPayload.StockSearchDTO;
-import com.stockChecker.live_stock_checker.service.StockService;
+import com.stockChecker.live_stock_checker.service.stock.StockService;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.http.HttpStatus;

@@ -9,7 +9,7 @@ import com.stockChecker.live_stock_checker.payload.UpstoxPayload.UpstoxSubscribe
 import com.stockChecker.live_stock_checker.payload.WebsocketPayload.FullFeedDataDTO;
 import com.stockChecker.live_stock_checker.payload.WebsocketPayload.LtpcDataDTO;
 import com.stockChecker.live_stock_checker.payload.WebsocketPayload.QuoteDTO;
-import com.stockChecker.live_stock_checker.service.IndexService;
+import com.stockChecker.live_stock_checker.service.index.IndexService;
 import com.upstox.marketdatafeederv3udapi.rpc.proto.MarketDataFeedV3;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;

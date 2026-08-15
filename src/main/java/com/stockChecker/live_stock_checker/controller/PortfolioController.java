@@ -2,7 +2,7 @@ package com.stockChecker.live_stock_checker.controller;
 
 import com.stockChecker.live_stock_checker.config.AuthUtils;
 import com.stockChecker.live_stock_checker.payload.PortfolioPayload.*;
-import com.stockChecker.live_stock_checker.service.PortfolioService;
+import com.stockChecker.live_stock_checker.service.portfolio.PortfolioService;
 import jakarta.validation.Valid;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;

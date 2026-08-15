@@ -1,7 +1,7 @@
 package com.stockChecker.live_stock_checker.controller;
 
 import com.stockChecker.live_stock_checker.payload.ChartsPayload.CandleDataDTO;
-import com.stockChecker.live_stock_checker.service.ChartService;
+import com.stockChecker.live_stock_checker.service.chart.ChartService;
 import lombok.RequiredArgsConstructor;
 import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;

@@ -2,8 +2,8 @@ package com.stockChecker.live_stock_checker.controller;
 
 import com.stockChecker.live_stock_checker.payload.IndexPayload.IndexSearchDTO;
 import com.stockChecker.live_stock_checker.payload.StockPayload.StockSearchDTO;
-import com.stockChecker.live_stock_checker.service.IndexAnalysisService;
-import com.stockChecker.live_stock_checker.service.StockAnalysisService;
+import com.stockChecker.live_stock_checker.service.index.IndexAnalysisService;
+import com.stockChecker.live_stock_checker.service.stock.StockAnalysisService;
 import lombok.RequiredArgsConstructor;
 import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;

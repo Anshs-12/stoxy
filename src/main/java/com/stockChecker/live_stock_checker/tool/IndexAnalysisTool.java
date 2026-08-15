@@ -2,9 +2,9 @@ package com.stockChecker.live_stock_checker.tool;
 
 import com.stockChecker.live_stock_checker.payload.IndexPayload.IndexDetailResponseDTO;
 import com.stockChecker.live_stock_checker.payload.WebsocketPayload.FullFeedDataDTO;
-import com.stockChecker.live_stock_checker.service.IndexService;
-import com.stockChecker.live_stock_checker.service.NewsAnalysisService;
-import com.stockChecker.live_stock_checker.service.TickerService;
+import com.stockChecker.live_stock_checker.service.index.IndexService;
+import com.stockChecker.live_stock_checker.service.ai.NewsAnalysisService;
+import com.stockChecker.live_stock_checker.service.ticker.TickerService;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.ai.tool.annotation.Tool;

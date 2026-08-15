@@ -2,7 +2,7 @@ package com.stockChecker.live_stock_checker.controller;
 
 import com.stockChecker.live_stock_checker.payload.IndexPayload.IndexDetailResponseDTO;
 import com.stockChecker.live_stock_checker.payload.IndexPayload.IndexSearchResponseDTO;
-import com.stockChecker.live_stock_checker.service.IndexService;
+import com.stockChecker.live_stock_checker.service.index.IndexService;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.http.HttpStatus;

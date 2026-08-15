@@ -6,9 +6,9 @@ import com.stockChecker.live_stock_checker.payload.UpstoxPayload.UpstoxSubscribe
 import com.stockChecker.live_stock_checker.payload.UpstoxPayload.UpstoxSubscribeRequest;
 import com.stockChecker.live_stock_checker.payload.WebsocketPayload.FullFeedDataDTO;
 import com.stockChecker.live_stock_checker.payload.WebsocketPayload.LtpcDataDTO;
-import com.stockChecker.live_stock_checker.service.IndexService;
+import com.stockChecker.live_stock_checker.service.index.IndexService;
 import com.stockChecker.live_stock_checker.service.MarketStatusService;
-import com.stockChecker.live_stock_checker.service.TickerService;
+import com.stockChecker.live_stock_checker.service.ticker.TickerService;
 import jakarta.annotation.PostConstruct;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.context.annotation.Lazy;

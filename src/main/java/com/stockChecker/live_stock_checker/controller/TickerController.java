@@ -2,7 +2,7 @@ package com.stockChecker.live_stock_checker.controller;
 
 import com.stockChecker.live_stock_checker.payload.WebsocketPayload.FullFeedDataDTO;
 import com.stockChecker.live_stock_checker.payload.WebsocketPayload.LtpcDataDTO;
-import com.stockChecker.live_stock_checker.service.TickerService;
+import com.stockChecker.live_stock_checker.service.ticker.TickerService;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.http.HttpStatus;
