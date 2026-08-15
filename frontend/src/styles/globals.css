@@ -170,3 +170,16 @@
     transition: background-color 5000s ease-in-out 0s;
   }
 }
+
+/* ── Loading pixel grid + shimmering word ── */
+@keyframes pixel-on {
+  0%, 100% { opacity: 0.15; }
+  50%      { opacity: 1; }
+}
+@keyframes shimmer-text {
+  0%   { background-position: 200% 50%; }
+  100% { background-position: -200% 50%; }
+}
+@media (prefers-reduced-motion: reduce) {
+  .bg-ink { animation: none !important; opacity: 0.4 !important; }
+}

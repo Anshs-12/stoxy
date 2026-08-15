@@ -1,4 +1,4 @@
-import { useState } from 'react';
+import { useEffect, useState } from 'react';
 import { useLocation, useParams, Link } from 'react-router-dom';
 import { ShoppingCart, Loader2, ArrowLeft, X, ListPlus, TrendingUp, TrendingDown, Sparkles } from 'lucide-react';
 import { useStockDetails } from '../../hooks/useStockDetails';
@@ -35,6 +35,17 @@ export const StockDetails = () => {
   const [analysisLoading, setAnalysisLoading] = useState(false);
   const [analysisError, setAnalysisError] = useState<AnalysisError | null>(null);
   const [analysisText, setAnalysisText] = useState<string | null>(null);
+  const [analysisGeneratedAt, setAnalysisGeneratedAt] = useState<Date | null>(null);
+
+  // Reset AI analysis state when navigating between different stocks
+  // (component instance is reused across same-route-param changes)
+  useEffect(() => {
+    setAnalysisOpen(false);
+    setAnalysisLoading(false);
+    setAnalysisError(null);
+    setAnalysisText(null);
+    setAnalysisGeneratedAt(null);
+  }, [symbol]);
 
   const handleAnalyze = async () => {
     if (!stock) return;
@@ -42,6 +53,7 @@ export const StockDetails = () => {
     setAnalysisLoading(true);
     setAnalysisError(null);
     setAnalysisText(null);
+    setAnalysisGeneratedAt(null);
     try {
       const r = await analysisApi.stock({
         stockName: stock.stockName,
@@ -52,6 +64,7 @@ export const StockDetails = () => {
         isin: stock.isin,
       });
       setAnalysisText(typeof r.data === 'string' ? r.data : '');
+      setAnalysisGeneratedAt(new Date());
     } catch (err) {
       setAnalysisError(classifyAnalysisError(err));
     } finally {
@@ -250,7 +263,7 @@ export const StockDetails = () => {
         </div>
       </div>
 
-      {analysisOpen && (
+      {(analysisOpen || analysisText || analysisError) && (
         <AnalysisDialog
           open={analysisOpen}
           onOpenChange={setAnalysisOpen}
@@ -258,6 +271,8 @@ export const StockDetails = () => {
           loading={analysisLoading}
           error={analysisError}
           content={analysisText}
+          generatedAt={analysisGeneratedAt}
+          onRetry={handleAnalyze}
         />
       )}
 

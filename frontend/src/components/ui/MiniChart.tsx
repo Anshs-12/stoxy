@@ -1,4 +1,5 @@
 import { useEffect, useRef, useState } from 'react';
+import { chartsApi } from '../../lib/api';
 
 interface SparkPoint {
   time: number | string;
@@ -49,10 +50,10 @@ export const MiniChart = ({
 
     const fetchPoints = async () => {
       try {
-        const url = `/api/v2/charts/${encodeURIComponent(instrumentKey)}/intraday?unit=${unit}&interval=${interval}`;
-        const r = await fetch(url, { credentials: 'include' });
-        if (!r.ok) throw new Error(`HTTP ${r.status}`);
-        const raw = await r.json();
+        // Route through axios so baseURL resolves to the backend in prod
+        // (VITE_API_URL) and to the Vite proxy in dev (/api/v2).
+        const r = await chartsApi.intraday(instrumentKey, unit, interval);
+        const raw = r.data as any[];
         if (cancelled || !Array.isArray(raw) || raw.length === 0) {
           setFailed(true);
           setLoading(false);
