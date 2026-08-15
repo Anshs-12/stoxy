@@ -125,11 +125,23 @@ public class TickerServiceImpl implements TickerService {
             throw new UpstoxFeedException("Error parsing JSON response: " + e.getMessage());
         }
         for (var data : rootNode.get("data")) {
+            double lastPrice = data.path("last_price").asDouble();
+            double prevClose;
+            if (data.hasNonNull("net_change") && lastPrice > 0) {
+                // upstox doesn't provide previous_close; derive it from the net_change and last_price
+                // net change: previous close = last price - net change
+                prevClose = lastPrice - data.path("net_change").asDouble();
+                if (prevClose <= 0) {
+                    prevClose = data.path("ohlc").path("close").asDouble();
+                }
+            } else {
+                prevClose = data.path("ohlc").path("close").asDouble();
+            }
             FullFeedDataDTO fullfeedDTO = FullFeedDataDTO.builder()
                     .instrumentKey(data.path("instrument_token").asText())
                     .lastTradedPrice(BigDecimal.valueOf(data.path("last_price").asDouble()))
                     .lastTradedTime(data.path("last_trade_time").asLong())
-                    .closePrice(BigDecimal.valueOf(data.path("ohlc").path("close").asDouble()))
+                    .closePrice(BigDecimal.valueOf(prevClose))
                     .averageTradedPrice(BigDecimal.valueOf(data.path("average_price").asDouble()))
                     .volumeTradedToday(data.path("volume").asLong())
                     .totalBuyQuantity(data.path("total_buy_quantity").asLong())
