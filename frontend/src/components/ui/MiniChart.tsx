@@ -1,5 +1,20 @@
 import { useEffect, useRef, useState } from 'react';
-import { chartsApi } from '../../lib/api';
+import { api } from '../../lib/api';
+
+// Production serves the API from a separate subdomain (api.stoxyfinance.app),
+// while the deployed origin (www.stoxyfinance.app / stoxyfinance.app) is a
+// static host that does not proxy /api/v2. The build-time VITE_API_URL may be
+// relative ("/api/v2") which only exists behind the Vite dev proxy, so the base
+// is resolved at runtime to keep the mini chart from 404ing in production.
+function resolveApiBase(): string {
+    const baked = (api.defaults.baseURL as string | undefined) ?? '/api/v2';
+    if (baked.startsWith('http')) return baked;
+    const { hostname } = window.location;
+    if (hostname === 'stoxyfinance.app' || hostname === 'www.stoxyfinance.app') {
+        return 'https://api.stoxyfinance.app/api/v2';
+    }
+    return baked;
+}
 
 interface SparkPoint {
   time: number | string;
@@ -50,9 +65,12 @@ export const MiniChart = ({
 
     const fetchPoints = async () => {
       try {
-        // Route through axios so baseURL resolves to the backend in prod
-        // (VITE_API_URL) and to the Vite proxy in dev (/api/v2).
-        const r = await chartsApi.intraday(instrumentKey, unit, interval);
+        // Route through axios (same client as the rest of the app) but with the
+        // API base resolved at runtime so it never hits the static origin in prod.
+        const r = await api.get(`/charts/${encodeURIComponent(instrumentKey)}/intraday`, {
+            baseURL: resolveApiBase(),
+            params: { unit, interval },
+        });
         const raw = r.data as any[];
         if (cancelled || !Array.isArray(raw) || raw.length === 0) {
           setFailed(true);
