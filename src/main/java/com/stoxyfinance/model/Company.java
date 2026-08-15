@@ -1,0 +1,24 @@
+package com.stoxyfinance.model;
+
+import jakarta.persistence.*;
+import lombok.AllArgsConstructor;
+import lombok.Builder;
+import lombok.Data;
+import lombok.NoArgsConstructor;
+
+@Entity
+@Data
+@AllArgsConstructor
+@NoArgsConstructor
+@Builder
+public class Company {
+
+    @Id
+    @GeneratedValue(strategy = GenerationType.IDENTITY)
+    private Integer serialNumber;
+    private String companyName;
+    @Column(columnDefinition = "TEXT")
+    private String description;
+    private String sector;
+    private String sectorMarketCap; // Sector market cap in INR (crore)
+}

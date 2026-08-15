@@ -1,0 +1,47 @@
+package com.stoxyfinance.security.JWT;
+
+import com.fasterxml.jackson.databind.ObjectMapper;
+import com.stoxyfinance.payload.ApiErrorResponse;
+import com.stoxyfinance.payload.ErrorCode;
+import jakarta.servlet.ServletException;
+import jakarta.servlet.http.HttpServletRequest;
+import jakarta.servlet.http.HttpServletResponse;
+import lombok.extern.slf4j.Slf4j;
+import org.springframework.http.MediaType;
+import org.springframework.security.core.AuthenticationException;
+import org.springframework.security.web.AuthenticationEntryPoint;
+import org.springframework.stereotype.Component;
+
+import java.io.IOException;
+
+@Component
+@Slf4j
+public class AuthEntryPoint implements AuthenticationEntryPoint {
+
+    private final ObjectMapper objectMapper = new ObjectMapper();
+
+    // this class basically is for catching the unAuthorized requests and send back a error response
+    @Override
+    public void commence(HttpServletRequest request,
+                         HttpServletResponse response,
+                         AuthenticationException authException) throws IOException, ServletException {
+        log.warn("Unauthorized request - path: {}, reason: {}", request.getServletPath(), authException.getMessage());
+        generateErrorResponseDTO(request, response, authException);
+    }
+
+    public void generateErrorResponseDTO(HttpServletRequest request,
+                                         HttpServletResponse response,
+                                         AuthenticationException authException) throws IOException {
+        response.setContentType(MediaType.APPLICATION_JSON_VALUE);
+        response.setStatus(HttpServletResponse.SC_UNAUTHORIZED);
+        ApiErrorResponse apiErrorResponse = ApiErrorResponse.builder()
+                .success(false)
+                .message("UnAuthorized Request")
+                .error(ErrorCode.UNAUTHORIZED)
+                .path(request.getServletPath())
+                .build();
+
+
+        objectMapper.writeValue(response.getOutputStream(), apiErrorResponse);
+    }
+}

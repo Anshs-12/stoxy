@@ -8,10 +8,10 @@
         <version>3.5.8</version>
         <relativePath/> <!-- lookup parent from repository -->
     </parent>
-    <groupId>com.stockChecker</groupId>
-    <artifactId>live-stock-checker</artifactId>
+    <groupId>com.stoxyfinance</groupId>
+    <artifactId>stoxyfinance</artifactId>
     <version>0.0.1-SNAPSHOT</version>
-    <name>live-stock-checker</name>
+    <name>StoxyFinance</name>
     <description>Demo project for Spring Boot</description>
     <url/>
     <licenses>

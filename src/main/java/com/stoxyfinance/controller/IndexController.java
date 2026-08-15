@@ -1,0 +1,36 @@
+package com.stoxyfinance.controller;
+
+import com.stoxyfinance.payload.IndexPayload.IndexDetailResponseDTO;
+import com.stoxyfinance.payload.IndexPayload.IndexSearchResponseDTO;
+import com.stoxyfinance.service.index.IndexService;
+import lombok.RequiredArgsConstructor;
+import lombok.extern.slf4j.Slf4j;
+import org.springframework.http.HttpStatus;
+import org.springframework.http.ResponseEntity;
+import org.springframework.web.bind.annotation.*;
+
+@RestController
+@RequestMapping("/index")
+@Slf4j
+@RequiredArgsConstructor
+public class IndexController {
+
+    private final IndexService indexService;
+
+    // get entire Index Response by instrumentKey
+    @GetMapping("/search/{instrumentKey}")
+    public ResponseEntity<IndexDetailResponseDTO> getIndexByInstrumentKey(@PathVariable String instrumentKey) {
+        log.info("Index request - instrument key: {}", instrumentKey);
+        IndexDetailResponseDTO indexDetailResponseDTO = indexService.getIndexByInstrumentKey(instrumentKey);
+        return new ResponseEntity<>(indexDetailResponseDTO, HttpStatus.OK);
+    }
+
+    // this endpoint searches all parameters like segment, exchange, name, symbol...
+    @GetMapping("/search")
+    public ResponseEntity<IndexSearchResponseDTO> searchIndices(@RequestParam String query) {
+        log.info("Index search request - query: {}", query);
+        IndexSearchResponseDTO indexSearchResponseDTOList = indexService.searchIndices(query);
+        return new ResponseEntity<>(indexSearchResponseDTOList, HttpStatus.OK);
+    }
+
+}
