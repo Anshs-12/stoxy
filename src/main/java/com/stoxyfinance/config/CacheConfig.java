@@ -80,6 +80,14 @@ public class CacheConfig {
         redisCacheConfigMap.put("stockWeekDayClosed", defaultCacheConfig.entryTtl(Duration.ofMinutes(1065)));
         redisCacheConfigMap.put("stockWeekendClosed", defaultCacheConfig.entryTtl(Duration.ofMinutes(3945)));
 
+        // ----------------------------- Charts Caching -----------------------------
+        redisCacheConfigMap.put("chartsIntradayLive", defaultCacheConfig.entryTtl(Duration.ofSeconds(60)));
+        redisCacheConfigMap.put("chartsIntradayWeekDayClosed", defaultCacheConfig.entryTtl(Duration.ofMinutes(1065)));
+        redisCacheConfigMap.put("chartsIntradayWeekendClosed", defaultCacheConfig.entryTtl(Duration.ofMinutes(3945)));
+        redisCacheConfigMap.put("chartsHistoryLive", defaultCacheConfig.entryTtl(Duration.ofSeconds(60)));
+        redisCacheConfigMap.put("chartsHistoryWeekDayClosed", defaultCacheConfig.entryTtl(Duration.ofMinutes(1065)));
+        redisCacheConfigMap.put("chartsHistoryWeekendClosed", defaultCacheConfig.entryTtl(Duration.ofMinutes(3945)));
+
         // assigning the map to RedisCacheManger
         return RedisCacheManager.builder(redisConnection)
                 .cacheDefaults(defaultCacheConfig)
