@@ -20,10 +20,13 @@ export const Header = ({onMenuClick}: { onMenuClick?: () => void }) => {
     const [results, setResults] = useState<SearchResult[]>([]);
     const [showDropdown, setShowDropdown] = useState(false);
     const [showProfile, setShowProfile] = useState(false);
+    const [showMore, setShowMore] = useState(false);
     const navigate = useNavigate();
     const timerRef = useRef<ReturnType<typeof setTimeout>>(undefined);
     const dropdownRef = useRef<HTMLDivElement>(null);
     const profileRef = useRef<HTMLDivElement>(null);
+    const moreRef = useRef<HTMLDivElement>(null);
+    const moreTimerRef = useRef<ReturnType<typeof setTimeout>>(undefined);
     const {user, logout} = useAuth();
     const {theme, setTheme, isDark} = useTheme();
 
@@ -115,6 +118,46 @@ export const Header = ({onMenuClick}: { onMenuClick?: () => void }) => {
                             {item.label}
                         </NavLink>
                     ))}
+                    <div
+                        className="relative"
+                        ref={moreRef}
+                        onMouseEnter={() => {
+                            if (moreTimerRef.current) clearTimeout(moreTimerRef.current);
+                            setShowMore(true);
+                        }}
+                        onMouseLeave={() => {
+                            moreTimerRef.current = setTimeout(() => setShowMore(false), 150);
+                        }}
+                    >
+                        <button
+                            className={`flex items-center gap-1 text-[13px] font-sans transition-colors pb-0.5 border-b-2 ${
+                                showMore ? 'text-primary font-semibold border-accent' : 'text-muted hover:text-accent border-transparent'
+                            }`}
+                        >
+                            More
+                            <ChevronDown className={`h-3 w-3 transition-transform ${showMore ? 'rotate-180' : ''}`} />
+                        </button>
+                        {showMore && (
+                            <div className="absolute top-full left-1/2 -translate-x-1/2 mt-2 w-36 bg-surface border border-border rounded-md z-50 shadow-ambient overflow-hidden">
+                                {[{label: 'Learn', to: '/learn'},
+                                  {label: 'Market Status', to: '/status'},
+                                  {label: 'Contact', to: '/contact'}].map(item => (
+                                    <NavLink
+                                        key={item.to}
+                                        to={item.to}
+                                        onClick={() => setShowMore(false)}
+                                        className={({isActive}) =>
+                                            `block w-full text-left px-4 py-2.5 text-[13px] transition-colors ${
+                                                isActive ? 'text-accent font-medium' : 'text-primary hover:bg-neutral'
+                                            }`
+                                        }
+                                    >
+                                        {item.label}
+                                    </NavLink>
+                                ))}
+                            </div>
+                        )}
+                    </div>
                 </nav>
             </div>
 

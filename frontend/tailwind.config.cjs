@@ -16,6 +16,7 @@ module.exports = {
         positive: "var(--color-positive)",
         negative: "var(--color-negative)",
         accent: "var(--color-accent)",
+        play: "var(--color-play)",
       },
       fontFamily: {
         sans: ["Inter", "DM Sans", "system-ui", "sans-serif"],

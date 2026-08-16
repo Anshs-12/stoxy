@@ -1,5 +1,5 @@
 import { NavLink } from 'react-router-dom';
-import { LayoutGrid, Eye, SlidersHorizontal, Briefcase, Search, TrendingUp, BarChart3 } from 'lucide-react';
+import { LayoutGrid, Eye, SlidersHorizontal, Briefcase, Search, TrendingUp, BarChart3, Mail, BookOpen } from 'lucide-react';
 
 const links = [
   { to: '/', icon: LayoutGrid, label: 'Dashboard' },
@@ -8,6 +8,8 @@ const links = [
   { to: '/portfolio', icon: Briefcase, label: 'Portfolio' },
   { to: '/screener', icon: SlidersHorizontal, label: 'Screener' },
   { to: '/search', icon: Search, label: 'Search' },
+  { to: '/learn', icon: BookOpen, label: 'Learn' },
+  { to: '/contact', icon: Mail, label: 'Contact' },
 ];
 
 interface SidebarProps {

@@ -14,6 +14,8 @@ import type {
     UserInfo,
     LtpcData,
     FullFeedData,
+    MarketStatus,
+    MarketHoliday,
 } from '../types';
 
 // ── Base URL ──
@@ -247,6 +249,14 @@ export const portfolioApi = {
 
     exportTransactionsPDF: () =>
         api.get('/portfolio/transactions/export', {responseType: 'blob'}),
+};
+
+// ── Market Status Endpoints ──
+// GET /market/status → MarketStatusResponse { isOpen, nextOpeningTime, ... }
+// GET /market/holidays → MarketHolidayResponse[] { date, holidayName }
+export const marketApi = {
+    getStatus: () => api.get<MarketStatus>('/market/status'),
+    getHolidays: () => api.get<MarketHoliday[]>('/market/holidays'),
 };
 
 // ── Auth Endpoints ──

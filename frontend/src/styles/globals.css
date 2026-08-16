@@ -18,6 +18,7 @@
     --color-positive: #2e7d32;
     --color-negative: #c62828;
     --color-accent: #ff4f00;
+    --color-play: #1d4ed8;
 
     --grid-color: rgba(38, 36, 36, 0.025);
   }
@@ -37,6 +38,7 @@
     --color-positive: #5ab870;
     --color-negative: #e06060;
     --color-accent: #ff4f00;
+    --color-play: #7dd3fc;
 
     --grid-color: rgba(238, 229, 218, 0.02);
   }
@@ -92,6 +94,17 @@
   @keyframes fadeInUp {
     from { opacity: 0; transform: translateY(12px); }
     to { opacity: 1; transform: translateY(0); }
+  }
+
+  /* ── Transient center notice (2s fade out) ── */
+  .toast-fade {
+    animation: toastFade 2s ease forwards;
+  }
+  @keyframes toastFade {
+    0%   { opacity: 0; transform: translateY(-4px); }
+    12%  { opacity: 1; transform: translateY(0); }
+    75%  { opacity: 1; }
+    100% { opacity: 0; }
   }
 
   /* ── Ticker ── */

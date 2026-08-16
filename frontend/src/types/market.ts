@@ -67,3 +67,20 @@ export interface IndexSearchDTO {
   segment: string;
   instrumentKey: string;
 }
+
+// Backend: MarketStatusResponse (GET /market/status)
+export interface MarketStatus {
+  isOpen: boolean;
+  nextOpeningTime: string; // "09:15:00"
+  nextOpeningDay: string;
+  nextOpeningDate: string;
+  lastClosingTime: string; // "15:30:00"
+  lastClosingDay: string;
+  lastClosingDate: string;
+}
+
+// Backend: MarketHolidayResponse (GET /market/holidays)
+export interface MarketHoliday {
+  date: string; // "2026-08-15"
+  holidayName: string;
+}
