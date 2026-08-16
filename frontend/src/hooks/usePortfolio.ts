@@ -1,6 +1,8 @@
 import { useState, useEffect, useCallback } from 'react';
 import { portfolioApi, stocksApi, tickerApi } from '../lib/api';
 import { marketSocket } from '../lib/marketSocket';
+import { getPrevClose } from '../lib/prevClose';
+import { usePrevCloseFix } from './usePrevCloseFix';
 import { PortfolioResponse, TransactionResponse, PortfolioStock } from '../types';
 import { useToast } from '../context/ToastContext';
 
@@ -12,6 +14,24 @@ export const usePortfolio = () => {
   const [txLoading, setTxLoading] = useState(false);
   const [buyResults, setBuyResults] = useState<{ stockName: string; stockSymbol: string; instrumentKey: string; isin: string; exchange: string; companyName: string }[]>([]);
   const { addToast } = useToast();
+
+  const recalcTotals = (base: PortfolioResponse): PortfolioResponse => {
+    const totalCurrentValue = base.stocks.reduce((sum, s) => sum + s.currentValue, 0);
+    const totalDayPnL = base.stocks.reduce((sum, s) => sum + s.dayPnL, 0);
+    const totalInvested = Number(base.totalInvestedValue) || 0;
+    const totalUnrealizedPnL = totalCurrentValue - totalInvested;
+    const totalUnrealizedPnLPercent = totalInvested > 0 ? (totalUnrealizedPnL / totalInvested) * 100 : 0;
+    const totalPrevClose = totalCurrentValue - totalDayPnL;
+    const totalDayPnLPercent = totalPrevClose > 0 ? (totalDayPnL / totalPrevClose) * 100 : 0;
+    return {
+      ...base,
+      totalCurrentValue,
+      totalUnrealizedPnL,
+      totalUnrealizedPnLPercent,
+      totalDayPnL,
+      totalDayPnLPercent,
+    };
+  };
 
   const loadPortfolio = useCallback(async () => {
     setLoading(true);
@@ -38,15 +58,17 @@ export const usePortfolio = () => {
         // Prefer live ticker ltp if available, fall back to backend value
         const ltpValue = live?.ltp ? Number(live.ltp) : Number(s.ltp) || Number(s.avgBuyingPrice) || 0;
         const cpValue = live?.cp ? Number(live.cp) : ltpValue;
+        const prevClose = getPrevClose(s.instrumentKey, cpValue, ltpValue) ?? cpValue;
         const currentVal = ltpValue * s.totalQuantity;
         const invested = Number(s.investedAmount) || 0;
         const unrealizedPnL = currentVal - invested;
         const unrealizedPnLPercent = invested > 0 ? (unrealizedPnL / invested) * 100 : 0;
-        const dayPnL = (ltpValue - cpValue) * s.totalQuantity;
-        const dayPnLPercent = cpValue > 0 ? ((ltpValue - cpValue) / cpValue) * 100 : 0;
+        const dayPnL = (ltpValue - prevClose) * s.totalQuantity;
+        const dayPnLPercent = prevClose > 0 ? ((ltpValue - prevClose) / prevClose) * 100 : 0;
 
         return {
           ...s,
+          cp: prevClose,
           ltp: ltpValue,
           currentValue: currentVal,
           unrealizedPnL,
@@ -113,7 +135,7 @@ export const usePortfolio = () => {
 
         const updatedStocks = prev.stocks.map(s => {
           if (s.instrumentKey !== instrKey) return s;
-          const cpVal = cp ?? s.ltp;  // fall back to previous ltp if no cp
+          const cpVal = cp ?? s.cp ?? ltp;  // fall back to cached previous close, then ltp
           const currentVal = ltp * s.totalQuantity;
           const invested = Number(s.investedAmount) || 0;
           const unrealizedPnL = currentVal - invested;
@@ -122,6 +144,7 @@ export const usePortfolio = () => {
           const dayPnLPercent = cpVal > 0 ? ((ltp - cpVal) / cpVal) * 100 : 0;
           return {
             ...s,
+            cp: cpVal,
             ltp,
             currentValue: currentVal,
             unrealizedPnL,
@@ -156,6 +179,27 @@ export const usePortfolio = () => {
       tickUnsub();
     };
   }, [portfolio?.stocks.length]); // re-subscribe when holdings change
+
+  // ── Previous-close repair: fills stale cp (cp == ltp on closed days)
+  // from candle history once per day, then patches day PnL per stock and
+  // recomputes totals. ──
+  usePrevCloseFix(
+    portfolio?.stocks ?? [],
+    updater =>
+      setPortfolio(prev => {
+        if (!prev) return prev;
+        const next = typeof updater === 'function' ? updater(prev.stocks) : updater;
+        return recalcTotals({ ...prev, stocks: next });
+      }),
+    s => s.instrumentKey,
+    s => ({ cp: s.cp, ltp: s.ltp }),
+    (s, prevClose) => ({
+      ...s,
+      cp: prevClose,
+      dayPnL: (s.ltp - prevClose) * s.totalQuantity,
+      dayPnLPercent: prevClose > 0 ? ((s.ltp - prevClose) / prevClose) * 100 : 0,
+    })
+  );
 
   const searchStocks = useCallback(async (query: string) => {
     if (query.length < 2) {

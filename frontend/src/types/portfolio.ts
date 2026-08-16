@@ -8,6 +8,7 @@ export interface PortfolioStock {
   instrumentKey: string;
   currentValue: number;
   ltp: number;            // backend returns 'ltp' (lowercase)
+  cp: number | null;      // previous close — frontend-enriched (may be null pre-fill)
   unrealizedPnL: number;
   unrealizedPnLPercent: number;
   dayPnL: number;

@@ -1,12 +1,15 @@
-import { useState, useEffect, useCallback, useRef } from 'react';
+import { useState, useEffect, useCallback, useRef, useMemo } from 'react';
 import { watchlistApi, stocksApi, tickerApi } from '../lib/api';
 import { marketSocket } from '../lib/marketSocket';
+import { getPrevClose } from '../lib/prevClose';
+import { usePrevCloseFix } from './usePrevCloseFix';
 import { WatchlistSummary, WatchlistDetail } from '../types';
 import { useToast } from '../context/ToastContext';
 
 interface LivePrice {
   symbol: string;
   ltp: number;
+  cp: number | null;
   pChange: number;
 }
 
@@ -75,10 +78,12 @@ export const useWatchlist = () => {
             if (live) {
               const ltpVal = Number(live.ltp);
               const cpVal = Number(live.cp);
+              const prevClose = getPrevClose(s.instrumentKey, cpVal, ltpVal);
               priceMap[s.stockSymbol] = {
                 symbol: s.stockSymbol,
                 ltp: ltpVal,
-                pChange: cpVal > 0 ? ((ltpVal - cpVal) / cpVal) * 100 : 0,
+                cp: cpVal,
+                pChange: prevClose != null && prevClose > 0 ? ((ltpVal - prevClose) / prevClose) * 100 : 0,
               };
             }
           });
@@ -122,7 +127,7 @@ export const useWatchlist = () => {
         if (s.instrumentKey === instrKey) {
           setLivePrices(prev => ({
             ...prev,
-            [s.stockSymbol]: { symbol: s.stockSymbol, ltp, pChange },
+            [s.stockSymbol]: { symbol: s.stockSymbol, ltp, cp: cp ?? null, pChange },
           }));
         }
       });
@@ -133,6 +138,27 @@ export const useWatchlist = () => {
       tickUnsub();
     };
   }, [activeList]);
+
+  // ── Previous-close repair: fills stale cp (cp == ltp on closed days)
+  // from candle history once per day, then patches pChange. ──
+  const livePriceList = useMemo(() => Object.values(livePrices), [livePrices]);
+  usePrevCloseFix(
+    livePriceList,
+    updater =>
+      setLivePrices(prev => {
+        const next = typeof updater === 'function' ? updater(Object.values(prev)) : updater;
+        const out: Record<string, LivePrice> = {};
+        for (const p of next) out[p.symbol] = p;
+        return out;
+      }),
+    p => symbolToKeyRef.current.get(p.symbol) ?? '',
+    p => ({ cp: p.cp, ltp: p.ltp }),
+    (p, prevClose) => ({
+      ...p,
+      cp: prevClose,
+      pChange: prevClose > 0 ? ((p.ltp - prevClose) / prevClose) * 100 : 0,
+    })
+  );
 
   const createWatchlist = async (name: string) => {
     if (!name.trim()) return false;

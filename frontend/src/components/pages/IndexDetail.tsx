@@ -3,6 +3,8 @@ import { useParams, Link } from 'react-router-dom';
 import {
   Loader2,
   ArrowLeft,
+  ArrowUp,
+  ArrowDown,
   RefreshCw,
   TrendingUp,
   TrendingDown,
@@ -15,25 +17,15 @@ import {
   CreditCard,
 } from 'lucide-react';
 import { useIndexDetail } from '../../hooks/useIndexDetail';
+import { useCandleStats, type DayStats } from '../../hooks/useCandleStats';
 import { useTheme } from '../../context/ThemeContext';
-import { analysisApi, chartsApi, classifyAnalysisError, type AnalysisError } from '../../lib/api';
-import { fmt, getChangeColor } from '../../lib/utils';
+import { analysisApi, classifyAnalysisError, type AnalysisError } from '../../lib/api';
+import { fmt, fmtCr, getChangeColor } from '../../lib/utils';
 import { StockChart } from '../ui/StockChart';
 import { AnalysisDialog } from '../ui/AnalysisDialog';
 import { ComingSoon, Tooltip } from '../ui/ComingSoon';
-
-/* ── Summary stats derived from chart data (no backend change needed) ── */
-interface DayStats {
-  open: number | null;
-  high: number | null;
-  low: number | null;
-  prevClose: number | null;
-}
-
-interface YearStats {
-  yearHigh: number | null;
-  yearLow: number | null;
-}
+import { YearRangeCard } from '../ui/YearRangeCard';
+import type { IndexPriceInfo } from '../../types/market';
 
 const AI_CREDITS_TIP = (
   <>
@@ -96,9 +88,7 @@ export const NSEIndexDetail = () => {
     }
   }, [credits]);
 
-  const [dayStats, setDayStats] = useState<DayStats | null>(null);
-  const [yearStats, setYearStats] = useState<YearStats | null>(null);
-  const [statsLoading, setStatsLoading] = useState(false);
+  const { dayStats, yearStats, statsLoading } = useCandleStats(index?.instrumentKey ?? null);
 
   const parseExchangeSegment = (key: string) => {
     const [prefix] = key.split('|');
@@ -148,58 +138,6 @@ export const NSEIndexDetail = () => {
     setAnalysisOpen(false);
   };
 
-  // Derive Day OHLC from intraday candles (1-minute, full day) and 52W
-  // High/Low from 1Y daily history. Depends ONLY on the instrumentKey.
-  useEffect(() => {
-    if (!index) return;
-    const instrumentKey = index.instrumentKey;
-    let cancelled = false;
-    setDayStats(null);
-    setYearStats(null);
-    setStatsLoading(true);
-
-    const loadStats = async () => {
-      try {
-        const [dayRes, yearRes] = await Promise.all([
-          chartsApi.intraday(instrumentKey, 'minutes', '1').catch(() => null),
-          chartsApi.history(instrumentKey, '1Y', 'days', '1').catch(() => null),
-        ]);
-
-        if (cancelled) return;
-
-        const dayCandles = (dayRes?.data ?? []) as Array<{
-          date: string; open: number; high: number; low: number; close: number;
-        }>;
-        const yearCandles = (yearRes?.data ?? []) as Array<{
-          date: string; open: number; high: number; low: number; close: number;
-        }>;
-
-        if (dayCandles.length > 0) {
-          const open = dayCandles[0].open;
-          const high = dayCandles.reduce((m, c) => Math.max(m, c.high), dayCandles[0].high);
-          const low = dayCandles.reduce((m, c) => Math.min(m, c.low), dayCandles[0].low);
-          const prevClose = dayCandles[dayCandles.length - 1].close;
-          setDayStats({ open, high, low, prevClose });
-        } else {
-          setDayStats({ open: null, high: null, low: null, prevClose: null });
-        }
-
-        if (yearCandles.length > 0) {
-          const yearHigh = yearCandles.reduce((m, c) => Math.max(m, c.high), yearCandles[0].high);
-          const yearLow = yearCandles.reduce((m, c) => Math.min(m, c.low), yearCandles[0].low);
-          setYearStats({ yearHigh, yearLow });
-        } else {
-          setYearStats({ yearHigh: null, yearLow: null });
-        }
-      } finally {
-        if (!cancelled) setStatsLoading(false);
-      }
-    };
-
-    loadStats();
-    return () => { cancelled = true; };
-  }, [index?.instrumentKey]);
-
   if (loading) {
     return (
       <div className="flex items-center justify-center h-64 text-muted">
@@ -222,8 +160,12 @@ export const NSEIndexDetail = () => {
   const m = index.indexMetadataDTO;
   const adv = index.indexAdvanceDTO;
   const ltp = index.liveLtp;
-  const change = index.liveChange;
-  const pChange = index.livePChange;
+  const prevClose = (() => {
+    const cpSane = index.liveCp != null && ltp != null && Math.abs(index.liveCp - ltp) >= 0.005;
+    return cpSane ? index.liveCp : (dayStats?.prevClose ?? index.liveCp ?? null);
+  })();
+  const change = ltp != null && prevClose != null ? ltp - prevClose : null;
+  const pChange = change != null && prevClose != null && prevClose > 0 ? (change / prevClose) * 100 : null;
   const isUp = (change ?? 0) >= 0;
   const { exchange } = parseExchangeSegment(index.instrumentKey);
 
@@ -231,21 +173,12 @@ export const NSEIndexDetail = () => {
   const negativeColor = isDark ? '#e06060' : '#c62828';
   const lineColor = isUp ? positiveColor : negativeColor;
 
-  const dayRangePct = (() => {
-    if (!dayStats || ltp == null || dayStats.high == null || dayStats.low == null) return null;
-    const range = dayStats.high - dayStats.low;
-    if (range <= 0) return 50;
-    return Math.max(0, Math.min(100, ((ltp - dayStats.low) / range) * 100));
-  })();
-
   const yearHighPct = (() => {
     if (!yearStats || ltp == null || yearStats.yearHigh == null || yearStats.yearLow == null) return null;
     const range = yearStats.yearHigh - yearStats.yearLow;
     if (range <= 0) return null;
     return ((yearStats.yearHigh - ltp) / range) * 100;
   })();
-
-  const prevClose = dayStats?.prevClose ?? index.liveCp ?? null;
 
   const showAnalysisPanel =
     !analysisDismissed && (analysisOpen || analysisLoading || !!analysisError || !!analysisText);
@@ -328,8 +261,9 @@ export const NSEIndexDetail = () => {
               </div>
               <div className={`flex items-center justify-end gap-1.5 text-[13px] font-medium mt-2 ${getChangeColor(change)}`}>
                 {isUp ? <TrendingUp className="h-3.5 w-3.5" /> : <TrendingDown className="h-3.5 w-3.5" />}
-                <span>{isUp ? '+' : ''}{fmt(change)}</span>
-                <span className="text-muted">({isUp ? '+' : ''}{pChange?.toFixed(2)}%)</span>
+                <span>{isUp ? '+' : ''}{fmt(change ?? 0)}</span>
+                <span className="text-muted">({isUp ? '+' : ''}{(pChange ?? 0).toFixed(2)}%)</span>
+                <span className="text-[13px] font-mono font-semibold text-primary ml-1">1D</span>
               </div>
             </>
           ) : (
@@ -376,11 +310,11 @@ export const NSEIndexDetail = () => {
         </div>
         <div className="col-span-12 lg:col-span-3">
           {m && (
-            <div className="bg-surface border border-border-light p-4 rounded-none">
+            <div className="bg-surface border border-border-light p-4 rounded-none h-full flex flex-col">
               <h3 className="text-[9px] text-muted uppercase tracking-widest font-medium mb-3">
                 Index Info
               </h3>
-              <div className="space-y-2 text-[12px]">
+              <div className="space-y-2 text-[12px] pb-4">
                 <InfoRow label="Symbol" value={index.indexSymbol} />
                 <InfoRow
                   label="Constituents"
@@ -394,6 +328,61 @@ export const NSEIndexDetail = () => {
                   value={m.isActive ? 'ACTIVE' : 'INACTIVE'}
                   tone={m.isActive ? 'positive' : 'negative'}
                 />
+                <InfoRow
+                  label="Free Float MCap"
+                  value={index.indexPriceInfoDTO?.ffmc != null ? fmtCr(index.indexPriceInfoDTO.ffmc) : null}
+                />
+                <InfoRow
+                  label="Volume (Today)"
+                  value={index.indexPriceInfoDTO?.totalTradedVolume != null ? fmtQty(index.indexPriceInfoDTO.totalTradedVolume) : null}
+                />
+                <InfoRow
+                  label="Traded Value"
+                  value={index.indexPriceInfoDTO?.totalTradedValue != null ? fmtCr(index.indexPriceInfoDTO.totalTradedValue) : null}
+                />
+              </div>
+
+              {/* Today snapshot — pinned to the bottom so the card never looks
+                  half-empty next to the tall chart */}
+              <div className="mt-auto border-t border-border-light pt-4">
+                <div className="flex items-start justify-between gap-4">
+                  <div>
+                    <div className="text-[10px] font-mono text-muted uppercase tracking-widest">Open</div>
+                    <div className="text-[18px] font-mono font-semibold text-primary mt-1 tabular-nums">
+                      {dayStats?.open != null ? fmt(dayStats.open) : '—'}
+                    </div>
+                  </div>
+                  <div className="text-right">
+                    <div className="text-[10px] font-mono text-muted uppercase tracking-widest">Prev Close</div>
+                    <div className="text-[18px] font-mono font-semibold text-primary mt-1 tabular-nums">
+                      {prevClose != null ? fmt(prevClose) : '—'}
+                    </div>
+                  </div>
+                </div>
+                <div className="flex items-start justify-between gap-4 mt-5">
+                  <div>
+                    <div className="text-[10px] font-mono text-muted uppercase tracking-widest">Day Low</div>
+                    <div className="text-[18px] font-mono font-semibold text-negative mt-1 tabular-nums">
+                      {dayStats?.low != null ? fmt(dayStats.low) : '—'}
+                    </div>
+                  </div>
+                  <div className="text-right">
+                    <div className="text-[10px] font-mono text-muted uppercase tracking-widest">Day High</div>
+                    <div className="text-[18px] font-mono font-semibold text-positive mt-1 tabular-nums">
+                      {dayStats?.high != null ? fmt(dayStats.high) : '—'}
+                    </div>
+                  </div>
+                </div>
+                <div className="flex items-start justify-between gap-4 mt-5">
+                  <div>
+                    <div className="text-[10px] font-mono text-muted uppercase tracking-widest">Lower Circuit</div>
+                    <div className="text-[18px] font-mono font-semibold text-negative mt-1 tabular-nums">—</div>
+                  </div>
+                  <div className="text-right">
+                    <div className="text-[10px] font-mono text-muted uppercase tracking-widest">Upper Circuit</div>
+                    <div className="text-[18px] font-mono font-semibold text-positive mt-1 tabular-nums">—</div>
+                  </div>
+                </div>
               </div>
             </div>
           )}
@@ -404,9 +393,9 @@ export const NSEIndexDetail = () => {
       <div className="grid grid-cols-12 gap-4">
         {/* LEFT column — Day's Range on top, OHLC below (~65% wide) */}
         <div className="col-span-12 lg:col-span-8 flex flex-col gap-4">
-          <div className="bg-surface border border-border-light p-5 rounded-none">
+          <div className="bg-surface border border-border-light p-5 rounded-none flex-1">
             {dayStats && dayStats.high != null && dayStats.low != null ? (
-              <DayRangeBar dayStats={dayStats} ltp={ltp} lineColor={lineColor} dayRangePct={dayRangePct} change={change} />
+              <DayRangeBar dayStats={dayStats} ltp={ltp} lineColor={lineColor} change={change} />
             ) : (
               <>
                 <div className="flex items-center gap-2 mb-4">
@@ -422,54 +411,11 @@ export const NSEIndexDetail = () => {
             )}
           </div>
 
-          <div className="grid grid-cols-3 border border-border-light bg-surface rounded-none">
-            <StatTile
-              icon={<BarChart3 className="h-3 w-3 text-muted" />}
-              label="Open"
-              value={dayStats?.open != null ? fmt(dayStats.open) : null}
-              sub="Today"
-              loading={statsLoading && dayStats === null}
-            />
-            <StatTile
-              icon={<BarChart3 className="h-3 w-3 text-muted" />}
-              label="Prev Close"
-              value={prevClose != null ? fmt(prevClose) : null}
-              sub="Reference"
-              loading={statsLoading && dayStats === null && index.liveCp == null}
-            />
-            <StatTile
-              icon={<Activity className="h-3 w-3 text-positive" />}
-              label="Day's High"
-              value={dayStats?.high != null ? fmt(dayStats.high) : null}
-              sub="Intraday"
-              loading={statsLoading && dayStats === null}
-            />
-            <StatTile
-              icon={<Activity className="h-3 w-3 text-negative" />}
-              label="Day's Low"
-              value={dayStats?.low != null ? fmt(dayStats.low) : null}
-              sub="Intraday"
-              loading={statsLoading && dayStats === null}
-            />
-            <StatTile
-              icon={<TrendingUp className="h-3 w-3 text-positive" />}
-              label="52W High"
-              value={yearStats?.yearHigh != null ? fmt(yearStats.yearHigh) : null}
-              sub={yearHighPct != null ? `${yearHighPct.toFixed(2)}% from high` : undefined}
-              loading={statsLoading && yearStats === null}
-            />
-            <StatTile
-              icon={<TrendingDown className="h-3 w-3 text-negative" />}
-              label="52W Low"
-              value={yearStats?.yearLow != null ? fmt(yearStats.yearLow) : null}
-              sub={yearHighPct != null ? `${(100 - yearHighPct).toFixed(2)}% from low` : undefined}
-              loading={statsLoading && yearStats === null}
-            />
-          </div>
+          <YearRangeCard yearStats={yearStats} ltp={ltp} yearHighPct={yearHighPct} lineColor={lineColor} />
         </div>
 
-        {/* RIGHT column — Market Breadth (~33% wide, spans full height of left col) */}
-        <div className="col-span-12 lg:col-span-4">
+        {/* RIGHT column — Market Breadth on top, Volume & Value below */}
+        <div className="col-span-12 lg:col-span-4 flex flex-col gap-4">
           {adv && adv.advances + adv.declines + adv.unChanged > 0 ? (
             <MarketBreadthCard adv={adv} />
           ) : (
@@ -481,6 +427,8 @@ export const NSEIndexDetail = () => {
               className="h-full"
             />
           )}
+
+          <IndexVolumeCard priceInfo={index.indexPriceInfoDTO} />
         </div>
       </div>
 
@@ -495,7 +443,7 @@ export const NSEIndexDetail = () => {
             className="h-full min-h-[180px]"
           />
         </div>
-        <div className="col-span-12 lg:col-span-3">
+        <div className="col-span-12 lg:col-span-3 flex flex-col gap-4">
           {m?.description && (
             <div className="bg-surface border border-border-light p-5 rounded-none h-full">
               <div className="flex items-center gap-2 mb-3">
@@ -509,6 +457,23 @@ export const NSEIndexDetail = () => {
               </p>
             </div>
           )}
+
+          <div className="bg-surface border border-border-light p-5 rounded-none h-full flex flex-col">
+            <div className="flex items-center gap-2 mb-3">
+              <Info className="h-3 w-3 text-muted" />
+              <h3 className="text-[9px] text-muted uppercase tracking-widest font-medium">
+                Disclaimer
+              </h3>
+            </div>
+            <p className="text-[12px] font-sans text-primary font-medium leading-relaxed">
+              Index levels and constituent data stream from the exchange feed
+              and are indicative. Fundamentals and sector benchmarks are
+              reference values — do your own research before investing.
+            </p>
+            <div className="mt-auto pt-3 text-[10px] font-mono font-bold text-primary uppercase tracking-widest">
+              NOT AN INVESTMENT ADVICE
+            </div>
+          </div>
         </div>
       </div>
     </div>
@@ -517,36 +482,45 @@ export const NSEIndexDetail = () => {
 
 /* ── Local helpers ── */
 
-interface StatTileProps {
-  icon: React.ReactNode;
-  label: string;
-  value: string | null;
-  sub?: string;
-  loading?: boolean;
-}
+const fmtQty = (n: number | undefined | null) =>
+  n != null ? n.toLocaleString('en-IN') : '—';
 
-function StatTile({ icon, label, value, sub, loading }: StatTileProps) {
+/* ── Volume & Value — totalTradedVolume / totalTradedValue / ffmc from the
+ * IndexPriceInfo DTO (these exist for indices too). ── */
+function IndexVolumeCard({ priceInfo }: { priceInfo: IndexPriceInfo | null }) {
+  const items: Array<{ label: string; value: string }> = [];
+  if (priceInfo?.totalTradedVolume != null)
+    items.push({ label: 'Volume (Today)', value: fmtQty(priceInfo.totalTradedVolume) });
+  if (priceInfo?.totalTradedValue != null)
+    items.push({ label: 'Traded Value', value: fmtCr(priceInfo.totalTradedValue) });
+  if (priceInfo?.ffmc != null)
+    items.push({ label: 'Free Float MCap', value: fmtCr(priceInfo.ffmc) });
+
   return (
-    <div className="p-4 border-r border-b border-border-light last:border-r-0 [&:nth-child(3n)]:border-r-0 [&:nth-child(n+4)]:border-b-0">
-      <div className="flex items-center gap-1.5 mb-2">
-        {icon}
-        <span className="text-[9px] font-mono text-muted uppercase tracking-widest">
-          {label}
-        </span>
+    <div className="bg-surface border border-border-light p-4 rounded-none">
+      <div className="flex items-center gap-2 mb-3">
+        <BarChart3 className="h-3.5 w-3.5 text-muted" />
+        <h3 className="text-[9px] text-muted uppercase tracking-widest font-medium">
+          Volume &amp; Value
+        </h3>
       </div>
-      {loading ? (
-        <div className="h-4 w-16 skeleton animate-shimmer" />
-      ) : value != null ? (
-        <>
-          <div className="text-[15px] font-mono font-semibold text-primary leading-tight">
-            {value}
-          </div>
-          {sub && (
-            <div className="text-[10px] font-mono text-muted mt-1">{sub}</div>
-          )}
-        </>
+      {items.length === 0 ? (
+        <div className="text-[12px] text-muted py-2">
+          Volume data unavailable for this index yet.
+        </div>
       ) : (
-        <div className="text-[13px] font-mono text-muted">—</div>
+        <div className="space-y-2.5">
+          {items.map(item => (
+            <div key={item.label} className="flex justify-between items-center gap-2">
+              <span className="text-[10px] font-mono text-muted uppercase tracking-widest">
+                {item.label}
+              </span>
+              <span className="text-[13px] font-mono font-medium text-primary tabular-nums">
+                {item.value}
+              </span>
+            </div>
+          ))}
+        </div>
       )}
     </div>
   );
@@ -578,19 +552,17 @@ function InfoRow({ label, value, tone = 'neutral' }: InfoRowProps) {
  *
  * Three values (Low / LTP / High) in a single row, plus a hair-thin
  * track underneath showing where the index opened and where the LTP
- * currently sits. The "% from low" sits as the headline number on
- * the right. ── */
+ * currently sits. The LTP sits in the middle with a direction arrow
+ * against the previous close. ── */
 function DayRangeBar({
   dayStats,
   ltp,
   lineColor,
-  dayRangePct,
   change,
 }: {
   dayStats: DayStats;
   ltp: number | null;
   lineColor: string;
-  dayRangePct: number | null;
   change: number | null;
 }) {
   // Where did this index open? We compute its position on the day's
@@ -603,8 +575,7 @@ function DayRangeBar({
     return Math.max(0, Math.min(100, ((dayStats.open - dayStats.low) / range) * 100));
   })();
 
-  // LTP-vs-open: positive means price moved up since the open.
-  const openDelta = ltp != null && dayStats.open != null ? ltp - dayStats.open : null;
+  const isUp = change != null && change >= 0;
 
   return (
     <div className="flex items-start gap-6">
@@ -616,25 +587,32 @@ function DayRangeBar({
             Day&apos;s Range
           </h3>
         </div>
-        <div className="grid grid-cols-3 gap-4">
+        {/* Values: Low pinned to the left end, High to the right end; only the
+             LTP sits in the middle with a direction arrow vs the previous close. */}
+        <div className="flex items-end justify-between gap-4">
           <div>
-            <div className="text-[9px] font-mono text-muted uppercase tracking-widest">
+            <div className="text-[9px] font-mono text-muted uppercase tracking-widest font-bold">
               Low
             </div>
             <div className="text-[14px] font-mono font-medium text-negative mt-0.5">
               {dayStats.low != null ? fmt(dayStats.low) : '—'}
             </div>
           </div>
-          <div>
-            <div className="text-[9px] font-mono text-muted uppercase tracking-widest">
+          <div className="text-center">
+            <div className="text-[9px] font-mono text-muted uppercase tracking-widest font-bold">
               LTP
             </div>
-            <div className="text-[14px] font-mono font-medium mt-0.5" style={{ color: lineColor }}>
-              {ltp != null ? fmt(ltp) : '—'}
+            <div className="flex items-center justify-center gap-1 mt-0.5">
+              {isUp
+                ? <ArrowUp className="h-3.5 w-3.5 text-positive" />
+                : <ArrowDown className="h-3.5 w-3.5 text-negative" />}
+              <span className="text-[15px] font-mono font-semibold text-primary tabular-nums">
+                {ltp != null ? fmt(ltp) : '—'}
+              </span>
             </div>
           </div>
-          <div>
-            <div className="text-[9px] font-mono text-muted uppercase tracking-widest">
+          <div className="text-right">
+            <div className="text-[9px] font-mono text-muted uppercase tracking-widest font-bold">
               High
             </div>
             <div className="text-[14px] font-mono font-medium text-positive mt-0.5">
@@ -673,7 +651,7 @@ function DayRangeBar({
                 className="absolute -top-1 -translate-x-1/2 px-1 py-px text-[9px] font-mono font-semibold text-primary bg-surface border border-border-light rounded-none leading-none tabular-nums"
                 style={{ left: `${openPct}%` }}
               >
-                {fmt(dayStats.open!)}
+                <span className="text-muted font-medium">O&nbsp;</span>{fmt(dayStats.open!)}
               </div>
             </>
           )}
@@ -690,42 +668,19 @@ function DayRangeBar({
           </div>
 
           {/* LTP diamond marker on the track (primary point of interest) */}
-          {dayRangePct != null && (
+          {/* Open diamond marker on the track (marks where the index opened) */}
+          {openPct != null && (
             <span
               className="absolute top-1/2 -translate-y-1/2 -translate-x-1/2 h-2.5 w-2.5 rotate-45 border border-surface"
               style={{
-                left: `${dayRangePct}%`,
+                left: `${openPct}%`,
                 backgroundColor: lineColor,
                 boxShadow: `0 0 0 3px ${lineColor}22`,
               }}
-              title={`LTP ${ltp != null ? fmt(ltp) : ''}`}
+              title={`Open ${dayStats.open != null ? fmt(dayStats.open) : ''}`}
             />
           )}
         </div>
-      </div>
-
-      {/* Right: big "% from low" headline + small open/close delta */}
-      <div className="text-right flex-shrink-0">
-        <div className="text-[9px] font-mono text-muted uppercase tracking-widest">
-          From Low
-        </div>
-        <div
-          className={`text-[26px] font-mono font-light leading-none mt-1 ${
-            dayRangePct != null ? getChangeColor(change) : 'text-muted'
-          }`}
-        >
-          {dayRangePct != null ? `${dayRangePct.toFixed(1)}%` : '—'}
-        </div>
-        {openDelta != null && dayStats.open != null && (
-          <div
-            className={`text-[10px] font-mono mt-2 ${
-              openDelta >= 0 ? 'text-positive' : 'text-negative'
-            }`}
-          >
-            {openDelta >= 0 ? '+' : ''}{fmt(openDelta)}{' '}
-            <span className="text-muted">vs open</span>
-          </div>
-        )}
       </div>
     </div>
   );

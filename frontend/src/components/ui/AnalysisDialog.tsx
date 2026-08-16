@@ -50,7 +50,7 @@ export function AnalysisDialog({
   const ChevronIcon = open ? ChevronUp : ChevronDown;
 
   return (
-    <section className="bg-surface border border-border-light hover:border-accent rounded-none transition-colors">
+    <section className="bg-surface border border-border-light rounded-none transition-colors">
       <header
         className="flex items-center justify-between px-5 py-3.5 cursor-pointer select-none hover:bg-neutral transition-colors"
         onClick={() => onOpenChange(!open)}
@@ -66,7 +66,7 @@ export function AnalysisDialog({
       >
         <div className="flex items-center gap-2 min-w-0">
           <Sparkles className="h-3.5 w-3.5 text-accent flex-shrink-0" />
-          <h2 className="text-[9px] text-muted uppercase tracking-[0.12em] font-medium truncate">
+          <h2 className="text-[13px] font-heading font-medium tracking-tight text-primary truncate">
             {title}
           </h2>
           {hasPayload && !loading && (

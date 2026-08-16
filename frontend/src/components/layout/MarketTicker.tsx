@@ -2,6 +2,8 @@ import { useEffect, useState, useRef } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { indexApi, tickerApi } from '../../lib/api';
 import { marketSocket } from '../../lib/marketSocket';
+import { getPrevClose } from '../../lib/prevClose';
+import { usePrevCloseFix } from '../../hooks/usePrevCloseFix';
 import { fmt, getChangeColor, isMarketOpen } from '../../lib/utils';
 import type { IndexSearchResult } from '../../types';
 
@@ -10,6 +12,7 @@ interface TickerItem {
   symbol: string;        // display name
   price: string;
   ltp: number | null;
+  cp: number | null;
   pChange: number;
 }
 
@@ -66,15 +69,17 @@ export const MarketTicker = () => {
               const tick = liveMap[item.instrumentKey];
               const ltp = tick?.ltp ?? null;
               const cp = tick?.cp ?? null;
+              const prevClose = getPrevClose(item.instrumentKey, cp, ltp);
               const pChange =
-                ltp != null && cp != null && cp > 0
-                  ? ((ltp - cp) / cp) * 100
+                ltp != null && prevClose != null && prevClose > 0
+                  ? ((ltp - prevClose) / prevClose) * 100
                   : 0;
               return {
                 key: item.instrumentKey,
                 symbol: item.indexName,
                 price: ltp != null ? fmt(ltp) : '—',
                 ltp,
+                cp,
                 pChange,
               };
             });
@@ -88,6 +93,7 @@ export const MarketTicker = () => {
               symbol: item.indexName,
               price: '—',
               ltp: null,
+              cp: null,
               pChange: 0,
             })));
           }
@@ -105,11 +111,7 @@ export const MarketTicker = () => {
             if (!key) return;
 
             const ltp = msg.ltp;
-            const cp = msg.cp;
             if (ltp == null) return;
-
-            const pChange =
-              cp != null && cp > 0 ? ((ltp - cp) / cp) * 100 : 0;
 
             setItems(prev =>
               prev.map(item =>
@@ -118,7 +120,11 @@ export const MarketTicker = () => {
                       ...item,
                       ltp,
                       price: fmt(ltp),
-                      pChange,
+                      cp: msg.cp ?? item.cp,
+                      pChange:
+                        msg.cp != null && msg.cp > 0
+                          ? ((ltp - msg.cp) / msg.cp) * 100
+                          : item.pChange,
                     }
                   : item
               )
@@ -144,6 +150,20 @@ export const MarketTicker = () => {
       cleanup?.();
     };
   }, []);
+
+  // ── Previous-close repair: fills stale cp (cp == ltp on closed days)
+  // from candle history once per day, then patches pChange. ──
+  usePrevCloseFix(
+    items,
+    setItems,
+    i => i.key,
+    i => ({ cp: i.cp, ltp: i.ltp }),
+    (item, prevClose) => ({
+      ...item,
+      cp: prevClose,
+      pChange: item.ltp != null && prevClose > 0 ? ((item.ltp - prevClose) / prevClose) * 100 : 0,
+    })
+  );
 
   if (items.length === 0) return null;
 

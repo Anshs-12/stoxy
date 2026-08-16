@@ -1,6 +1,8 @@
 import { useState, useEffect, useCallback } from 'react';
 import { stocksApi, tickerApi } from '../lib/api';
 import { marketSocket } from '../lib/marketSocket';
+import { getPrevClose } from '../lib/prevClose';
+import { usePrevCloseFix, recomputeChange } from './usePrevCloseFix';
 import type { StockSearchResult, LtpcData } from '../types';
 
 export interface TopStock extends StockSearchResult {
@@ -67,9 +69,10 @@ export const useTopStocks = (limit = 6) => {
                     const live = liveMap[s.instrumentKey];
                     const ltp = live?.ltp ?? null;
                     const cp = live?.cp ?? null;
-                    const change = ltp != null && cp != null ? ltp - cp : null;
+                    const prevClose = getPrevClose(s.instrumentKey, cp, ltp);
+                    const change = ltp != null && prevClose != null ? ltp - prevClose : null;
                     const pChange =
-                        cp != null && cp > 0 && change != null ? (change / cp) * 100 : null;
+                        prevClose != null && prevClose > 0 && change != null ? (change / prevClose) * 100 : null;
                     return { ...s, ltp, cp, change, pChange };
                 })
             );
@@ -93,18 +96,16 @@ export const useTopStocks = (limit = 6) => {
             const key = msg.instrumentKey;
             if (!key) return;
             const ltp = msg.ltp;
-            const cp = msg.cp;
             if (ltp == null) return;
-            const cpVal = cp ?? ltp;
-            const change = ltp - cpVal;
-            const pChange = cpVal > 0 ? (change / cpVal) * 100 : 0;
 
             setStocks(prev =>
-                prev.map(s =>
-                    s.instrumentKey === key
-                        ? { ...s, ltp, cp: cpVal, change, pChange }
-                        : s
-                )
+                prev.map(s => {
+                    if (s.instrumentKey !== key) return s;
+                    const cpVal = msg.cp ?? s.cp ?? ltp;
+                    const change = ltp - cpVal;
+                    const pChange = cpVal > 0 ? (change / cpVal) * 100 : 0;
+                    return { ...s, ltp, cp: cpVal, change, pChange };
+                })
             );
         });
 
@@ -113,6 +114,10 @@ export const useTopStocks = (limit = 6) => {
             tickUnsub();
         };
     }, [stocks.length]);
+
+    // ── Previous-close repair: fills stale cp (cp == ltp on closed days)
+    // from candle history once per day, then patches change/pChange. ──
+    usePrevCloseFix(stocks, setStocks, s => s.instrumentKey, s => ({ cp: s.cp, ltp: s.ltp }), recomputeChange);
 
     return { stocks, loading };
 };

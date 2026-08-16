@@ -169,6 +169,7 @@ export const Portfolio = () => {
         }
         const skeleton: PortfolioStock = {
             stockSymbol, stockName, ltp,
+            cp: null,
             totalQuantity: 0, avgBuyingPrice: 0, currentValue: 0,
             instrumentKey: instrumentKey || '',
             investedAmount: 0, unrealizedPnL: 0, unrealizedPnLPercent: 0,

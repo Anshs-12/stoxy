@@ -1,6 +1,8 @@
 import { useState, useEffect, useCallback } from 'react';
 import { indexApi, tickerApi } from '../lib/api';
 import { marketSocket } from '../lib/marketSocket';
+import { getPrevClose } from '../lib/prevClose';
+import { usePrevCloseFix, recomputeChange } from './usePrevCloseFix';
 import type { IndexSearchResult, LtpcData } from '../types';
 
 // Queries to bootstrap the dashboard indices — use the search endpoint
@@ -88,9 +90,10 @@ export const useDashboard = () => {
         const live = liveMap[item.instrumentKey];
         const ltp = live?.ltp ?? null;
         const cp = live?.cp ?? null;
-        const change = ltp != null && cp != null ? ltp - cp : null;
-        const pChange = cp != null && cp > 0 && change != null
-          ? (change / cp) * 100
+        const prevClose = getPrevClose(item.instrumentKey, cp, ltp);
+        const change = ltp != null && prevClose != null ? ltp - prevClose : null;
+        const pChange = prevClose != null && prevClose > 0 && change != null
+          ? (change / prevClose) * 100
           : null;
         return {
           ...item,
@@ -132,18 +135,16 @@ export const useDashboard = () => {
       const key = msg.instrumentKey;
       if (!key) return;
       const ltp = msg.ltp;
-      const cp = msg.cp;
       if (ltp == null) return;
-      const cpVal = cp ?? ltp;
-      const change = ltp - cpVal;
-      const pChange = cpVal > 0 ? (change / cpVal) * 100 : 0;
 
       setIndices(prev =>
-        prev.map(idx =>
-          idx.instrumentKey === key
-            ? { ...idx, ltp, cp: cpVal, change, pChange }
-            : idx
-        )
+        prev.map(idx => {
+          if (idx.instrumentKey !== key) return idx;
+          const cpVal = msg.cp ?? idx.cp ?? ltp;
+          const change = ltp - cpVal;
+          const pChange = cpVal > 0 ? (change / cpVal) * 100 : 0;
+          return { ...idx, ltp, cp: cpVal, change, pChange };
+        })
       );
     });
 
@@ -152,6 +153,10 @@ export const useDashboard = () => {
       tickUnsub();
     };
   }, [indices.length]); // re-subscribe if indices count changes (e.g. after refresh)
+
+  // ── Previous-close repair: fills stale cp (cp == ltp on closed days) from
+  // candle history once per day, then patches change/pChange. ──
+  usePrevCloseFix(indices, setIndices, i => i.instrumentKey, i => ({ cp: i.cp, ltp: i.ltp }), recomputeChange);
 
   return {
     indices,
