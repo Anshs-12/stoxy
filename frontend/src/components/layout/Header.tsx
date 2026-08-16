@@ -1,7 +1,7 @@
 import {useState, useEffect, useRef} from 'react';
 import {NavLink, useNavigate} from 'react-router-dom';
 import {Search, Github, User, ChevronDown, LogOut, Menu, Moon, Sun} from 'lucide-react';
-import {stocksApi} from '../../lib/api';
+import {stocksApi, indexApi} from '../../lib/api';
 import {useAuth} from '../../context/AuthContext';
 import {useTheme} from '../../context/ThemeContext';
 import {isMarketOpen} from '../../lib/utils';
@@ -15,9 +15,18 @@ interface SearchResult {
     isin: string;
 }
 
+interface IndexSearchResult {
+    indexName: string;
+    indexSymbol: string;
+    exchange: string;
+    segment: string;
+    instrumentKey: string;
+}
+
 export const Header = ({onMenuClick}: { onMenuClick?: () => void }) => {
     const [query, setQuery] = useState('');
     const [results, setResults] = useState<SearchResult[]>([]);
+    const [indexResults, setIndexResults] = useState<IndexSearchResult[]>([]);
     const [showDropdown, setShowDropdown] = useState(false);
     const [showProfile, setShowProfile] = useState(false);
     const [showMore, setShowMore] = useState(false);
@@ -49,21 +58,28 @@ export const Header = ({onMenuClick}: { onMenuClick?: () => void }) => {
         return () => clearInterval(t);
     }, []);
 
-    // Debounced search
+    // Debounced search — stocks + indices in parallel
     useEffect(() => {
         if (query.length < 2) {
             setResults([]);
+            setIndexResults([]);
             setShowDropdown(false);
             return;
         }
         clearTimeout(timerRef.current);
         timerRef.current = setTimeout(() => {
-            stocksApi.search(query, 0, 8)
-                .then(r => {
-                    setResults(r.data.content || []);
-                    setShowDropdown(true);
-                })
-                .catch(() => setResults([]));
+            Promise.all([
+                stocksApi.search(query, 0, 6)
+                    .then(r => r.data.content || [])
+                    .catch(() => []),
+                indexApi.search(query)
+                    .then(r => r.data.indexSearchDTOList || [])
+                    .catch(() => []),
+            ]).then(([stocks, indices]) => {
+                setResults(stocks);
+                setIndexResults(indices);
+                setShowDropdown(true);
+            });
         }, 400);
         return () => clearTimeout(timerRef.current);
     }, [query]);
@@ -82,6 +98,12 @@ export const Header = ({onMenuClick}: { onMenuClick?: () => void }) => {
         setQuery('');
         setShowDropdown(false);
         navigate(`/stocks/${stock.stockSymbol}`, {state: stock});
+    };
+
+    const selectIndex = (idx: IndexSearchResult) => {
+        setQuery('');
+        setShowDropdown(false);
+        navigate(`/index/${encodeURIComponent(idx.instrumentKey)}`, {state: idx});
     };
 
     const handleLogout = () => {
@@ -167,57 +189,87 @@ export const Header = ({onMenuClick}: { onMenuClick?: () => void }) => {
                     <Search className="absolute left-3 top-1/2 -translate-y-1/2 h-3.5 w-3.5 text-muted"/>
                     <input type="text" value={query} onChange={e => setQuery(e.target.value)}
                            placeholder="Search TCS, Reliance..."
-                           className="bg-surface text-[13px] pl-9 pr-4 py-1.5 rounded-md w-36 sm:w-48 lg:w-64 border border-border-light outline-none focus:border-border font-sans transition-colors placeholder:text-muted"/>
-                    {showDropdown && results.length > 0 && (
+                           className="bg-surface text-[13px] pl-9 pr-4 py-1.5 rounded-none w-36 sm:w-48 lg:w-64 border border-border-light outline-none focus:border-border font-sans transition-colors placeholder:text-muted"/>
+                    {(showDropdown && (results.length > 0 || indexResults.length > 0)) && (
                         <div
-                            className="absolute top-full left-0 right-0 mt-1 bg-surface border border-border rounded-md z-50 max-h-80 overflow-y-auto shadow-ambient">
-                            {results.map((r) => (
-                                <button key={r.stockSymbol} onClick={() => selectStock(r)}
-                                        className="w-full text-left px-4 py-2.5 hover:bg-neutral transition-colors flex justify-between items-center gap-2">
-                                    <div className="min-w-0">
-                                        <div
-                                            className="text-[13px] font-medium text-primary truncate">{r.stockName}</div>
-                                        <div className="text-[10px] text-muted">{r.companyName || r.stockName}</div>
-                                    </div>
-                                    <div className="flex items-center gap-1.5 flex-shrink-0">
-                                        <span
-                                            className="text-[10px] font-mono text-muted tracking-wider">{r.stockSymbol}</span>
-                                        {r.exchange && (
-                                            <span className={`text-[8px] font-bold px-1.5 py-0.5 rounded ${
-                                                r.exchange === 'BSE' ? 'bg-amber-500/15 text-amber-500' : 'bg-accent/15 text-accent'
-                                            }`}>{r.exchange}</span>
-                                        )}
-                                    </div>
-                                </button>
-                            ))}
+                            className="absolute top-full left-0 right-0 mt-1 bg-surface border border-border rounded-none z-50 max-h-80 overflow-y-auto shadow-ambient">
+                            {results.length > 0 && (
+                                <>
+                                    <div
+                                        className="px-4 pt-2.5 pb-1 text-[9px] font-mono text-muted uppercase tracking-widest">Stocks</div>
+                                    {results.map((r) => (
+                                        <button key={r.stockSymbol} onClick={() => selectStock(r)}
+                                                className="w-full text-left px-4 py-2.5 transition-colors flex justify-between items-center gap-2">
+                                            <div className="min-w-0">
+                                                <div
+                                                    className="text-[13px] font-medium text-primary truncate">{r.stockName}</div>
+                                                <div className="text-[10px] text-muted">{r.companyName || r.stockName}</div>
+                                            </div>
+                                            <div className="flex items-center gap-1.5 flex-shrink-0">
+                                                <span
+                                                    className="text-[10px] font-mono text-muted tracking-wider">{r.stockSymbol}</span>
+                                                {r.exchange && (
+                                                    <span className={`text-[10px] font-mono font-medium ${
+                                                        r.exchange === 'BSE' ? 'text-amber-500 dark:text-amber-400' : 'text-accent'
+                                                    }`}>{r.exchange}</span>
+                                                )}
+                                            </div>
+                                        </button>
+                                    ))}
+                                </>
+                            )}
+                            {indexResults.length > 0 && (
+                                <>
+                                    <div
+                                        className="px-4 pt-2.5 pb-1 text-[9px] font-mono text-muted uppercase tracking-widest">Indices</div>
+                                    {indexResults.map((r) => (
+                                        <button key={r.instrumentKey} onClick={() => selectIndex(r)}
+                                                className="w-full text-left px-4 py-2.5 transition-colors flex justify-between items-center gap-2">
+                                            <div className="min-w-0">
+                                                <div
+                                                    className="text-[13px] font-medium text-primary truncate">{r.indexName}</div>
+                                                <div className="text-[10px] text-muted">{r.segment}</div>
+                                            </div>
+                                            <div className="flex items-center gap-1.5 flex-shrink-0">
+                                                <span
+                                                    className="text-[10px] font-mono text-muted tracking-wider">{r.indexSymbol}</span>
+                                                <span
+                                                    className="text-[10px] font-mono font-medium text-accent">{r.exchange}</span>
+                                            </div>
+                                        </button>
+                                    ))}
+                                </>
+                            )}
                         </div>
                     )}
-                    {showDropdown && query.length >= 2 && results.length === 0 && (
+                    {showDropdown && query.length >= 2 && results.length === 0 && indexResults.length === 0 && (
                         <div
-                            className="absolute top-full left-0 right-0 mt-1 bg-surface border border-border rounded-md z-50 p-4 shadow-ambient">
-                            <p className="text-[12px] text-muted text-center">No stocks found for "{query}"</p>
+                            className="absolute top-full left-0 right-0 mt-1 bg-surface border border-border rounded-none z-50 p-4 shadow-ambient">
+                            <p className="text-[12px] text-muted text-center">No stocks or indices found for "{query}"</p>
                         </div>
                     )}
                 </div>
 
                 {/* ── Clock + Market Status ── */}
                 <div
-                    className="hidden lg:flex items-center gap-2.5 border border-border-light rounded-md px-3 py-1.5 bg-surface">
+                    className="hidden lg:flex items-center gap-2 border border-border-light rounded-none px-3 py-1.5 bg-surface">
                     {/* Date */}
                     <span className="text-[10px] font-mono text-muted tracking-wide">{clockDate}</span>
-                    <span className="text-border-light text-[10px]">|</span>
+                    <span className="text-[10px] text-muted/50">|</span>
                     {/* Market dot + status */}
                     <div className="flex items-center gap-1.5">
                         <div
                             className={`h-1.5 w-1.5 rounded-full flex-shrink-0 ${isMarketCurrentlyOpen ? 'bg-positive animate-pulse' : 'bg-muted'}`}/>
-                        <span className="text-[10px] font-mono text-muted tracking-wider">
+                        <span className={`text-[10px] font-mono tracking-wider ${
+                            isMarketCurrentlyOpen ? 'text-positive' : 'text-muted'
+                        }`}>
               {isMarketCurrentlyOpen ? 'NSE Open' : 'Closed'}
             </span>
                     </div>
-                    <span className="text-border-light text-[10px]">|</span>
+                    <span className="text-[10px] text-muted/50">|</span>
                     {/* Live time */}
                     <span
-                        className="text-[10px] font-mono text-primary font-semibold tracking-widest">{clockTime}</span>
+                        className="text-[10px] font-mono text-primary font-semibold tracking-widest tabular-nums">{clockTime}</span>
                 </div>
 
                 <div className="flex items-center gap-3 text-muted">
