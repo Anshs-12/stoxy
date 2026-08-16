@@ -1,5 +1,5 @@
 import { Link } from 'react-router-dom';
-import { Github, TrendingUp, Coffee } from 'lucide-react';
+import { Github, TrendingUp, Coffee, Mail } from 'lucide-react';
 
 const productLinks = [
     { to: '/', label: 'Dashboard' },
@@ -8,6 +8,8 @@ const productLinks = [
     { to: '/portfolio', label: 'Portfolio' },
     { to: '/screener', label: 'Screener' },
     { to: '/search', label: 'Search' },
+    { to: '/learn', label: 'Learn' },
+    { to: '/contact', label: 'Contact' },
 ];
 
 const GITHUB_URL = 'https://github.com/anshs-12/stoxy';
@@ -49,7 +51,7 @@ export const Footer = () => {
                                 href={BMC_URL}
                                 target="_blank"
                                 rel="noopener noreferrer"
-                                className="bmc-btn inline-flex items-center gap-1.5 h-[34px] px-3 border border-border text-[12px] text-muted no-underline cursor-pointer transition-colors hover:borbder-accent hover:text-accent"
+                                className="inline-flex items-center gap-1.5 h-[34px] px-3 border border-border text-[12px] text-muted no-underline cursor-pointer transition-colors hover:border-amber-400 hover:text-amber-400"
                             >
                                 <Coffee className="h-[15px] w-[15px]" />
                                 <span>Buy me a coffee</span>
@@ -81,7 +83,7 @@ export const Footer = () => {
                             About
                         </h3>
                         <p className="text-[12.5px] text-muted leading-[1.7] max-w-[280px]">
-                            Real-time market data via Upstox WebSocket feed, RAG-powered AI
+                            Real-time market data, RAG-powered AI
                             analysis, and a UI built to cut through noise — not add to it.
                         </p>
                         <div className="flex items-center gap-1.5 mt-4 text-[11.5px] text-positive">
@@ -94,9 +96,12 @@ export const Footer = () => {
                 {/* Footer bottom */}
                 <div className="max-w-[1240px] mx-auto pt-5 border-t border-border-light flex justify-between items-center flex-wrap gap-3 text-[11.5px] text-muted">
                     <span>© {year} Stoxy Finance. All rights reserved.</span>
-                    <div className="flex gap-5">
-                        <a href="#" className="text-muted no-underline hover:text-primary transition-colors">Privacy</a>
-                        <a href="#" className="text-muted no-underline hover:text-primary transition-colors">Terms</a>
+                    <div className="flex gap-5 items-center">
+                        <Link to="/privacy" className="text-muted no-underline hover:text-primary transition-colors">Privacy</Link>
+                        <Link to="/contact" className="flex items-center gap-1.5 text-muted no-underline hover:text-primary transition-colors">
+                            <Mail className="h-3 w-3" /> Contact
+                        </Link>
+                        <Link to="/terms" className="text-muted no-underline hover:text-primary transition-colors">Terms</Link>
                         <a href={GITHUB_URL} target="_blank" rel="noopener noreferrer" className="text-muted no-underline hover:text-primary transition-colors">GitHub</a>
                     </div>
                 </div>

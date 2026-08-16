@@ -59,6 +59,21 @@ const Portfolio = lazy(() =>
 const Login = lazy(() =>
     import("./components/pages/Login").then((m) => ({ default: m.Login })),
 );
+const Contact = lazy(() =>
+    import("./components/pages/Contact").then((m) => ({ default: m.default })),
+);
+const LearnStockMarket = lazy(() =>
+    import("./components/pages/LearnStockMarket").then((m) => ({ default: m.default })),
+);
+const MarketStatusPage = lazy(() =>
+    import("./components/pages/MarketStatusPage").then((m) => ({ default: m.default })),
+);
+const PrivacyPolicy = lazy(() =>
+    import("./components/pages/PrivacyPolicy").then((m) => ({ default: m.default })),
+);
+const TermsOfService = lazy(() =>
+    import("./components/pages/TermsOfService").then((m) => ({ default: m.default })),
+);
 
 // Single QueryClient for the whole app — retry once, 30s stale time
 const queryClient = new QueryClient({
@@ -111,7 +126,7 @@ function App() {
                                             }
                                         />
                                         <main className="flex-1 overflow-y-auto">
-                                            <div className="max-w-[1200px] mx-auto px-4 md:px-8 py-6 md:py-8">
+                                            <div className="max-w-[1320px] mx-auto px-4 md:px-8 py-6 md:py-8">
                                                 <Suspense
                                                     fallback={<PageLoader />}
                                                 >
@@ -156,6 +171,26 @@ function App() {
                                                         <Route
                                                             path="/login"
                                                             element={<Login />}
+                                                        />
+                                                        <Route
+                                                            path="/contact"
+                                                            element={<Contact />}
+                                                        />
+                                                        <Route
+                                                            path="/learn"
+                                                            element={<LearnStockMarket />}
+                                                        />
+                                                        <Route
+                                                            path="/status"
+                                                            element={<MarketStatusPage />}
+                                                        />
+                                                        <Route
+                                                            path="/privacy"
+                                                            element={<PrivacyPolicy />}
+                                                        />
+                                                        <Route
+                                                            path="/terms"
+                                                            element={<TermsOfService />}
                                                         />
 
                                                         {/* Protected routes — redirects to /login if unauthenticated */}
