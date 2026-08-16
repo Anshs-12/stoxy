@@ -56,6 +56,11 @@
   h1, h2, h3, h4, h5, h6 {
     @apply font-heading font-medium tracking-tight;
   }
+
+  ::selection {
+    background: rgba(29, 78, 216, 0.3); /* #1d4ed8 — same shade in both themes */
+    color: var(--color-text-primary);
+  }
 }
 
 @layer utilities {
