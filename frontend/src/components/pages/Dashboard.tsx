@@ -5,7 +5,7 @@ import { useDashboard } from '../../hooks/useDashboard';
 import type { DashboardIndex } from '../../hooks/useDashboard';
 import { useTopStocks } from '../../hooks/useTopStocks';
 import { useTheme } from '../../context/ThemeContext';
-import { fmt, getChangeColor } from '../../lib/utils';
+import { fmt, getChangeColor, isMarketOpen } from '../../lib/utils';
 import { AIInsight } from '../layout/AIInsight';
 import { MarketPulse } from '../ui/MarketPulse';
 import { MiniChart } from '../ui/MiniChart';
@@ -44,11 +44,12 @@ export const Dashboard = () => {
   const { isDark } = useTheme();
   const [mounted, setMounted] = useState(false);
 
-  const [marketOpen] = useState(() => {
-    const now = new Date();
-    const h = now.getHours(), m = now.getMinutes();
-    return (h > 9 || (h === 9 && m >= 15)) && (h < 15 || (h === 15 && m <= 30));
-  });
+  const [marketOpen, setMarketOpen] = useState(isMarketOpen);
+
+  useEffect(() => {
+    const t = setInterval(() => setMarketOpen(isMarketOpen()), 1000);
+    return () => clearInterval(t);
+  }, []);
 
   useEffect(() => { setMounted(true); }, []);
 
