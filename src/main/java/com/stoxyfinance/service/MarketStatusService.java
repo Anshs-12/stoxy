@@ -2,6 +2,7 @@ package com.stoxyfinance.service;
 
 import com.fasterxml.jackson.databind.JsonNode;
 import com.fasterxml.jackson.databind.ObjectMapper;
+import com.stoxyfinance.payload.MarketHolidayResponse;
 import com.stoxyfinance.payload.MarketStatusResponse;
 import jakarta.annotation.PostConstruct;
 import lombok.RequiredArgsConstructor;
@@ -10,7 +11,11 @@ import org.springframework.stereotype.Service;
 import org.springframework.web.client.RestClient;
 
 import java.time.*;
+import java.util.ArrayList;
+import java.util.HashMap;
 import java.util.HashSet;
+import java.util.List;
+import java.util.Map;
 import java.util.Set;
 
 @Service
@@ -36,6 +41,9 @@ public class MarketStatusService {
     private static final LocalTime marketClose = LocalTime.of(15, 30);
 
     private final Set<String> holidaySet = new HashSet<>();
+    private final Map<String, String> holidayNames = new HashMap<>();
+    private long lastHolidaysLoad = 0;
+    private static final long HOLIDAYS_REFRESH_MS = 24 * 60 * 60 * 1000;
 
     //     ----- Cache Logic Variables -----
     private Boolean cachedMarketStatus = null;
@@ -64,6 +72,23 @@ public class MarketStatusService {
                 .lastClosingDay(getLastClosingDate(todayDate, currentTime).getDayOfWeek().toString())
                 .lastClosingDate(getLastClosingDate(todayDate, currentTime).toString())
                 .build();
+    }
+
+    public List<MarketHolidayResponse> getHolidays() {
+        long now = System.currentTimeMillis();
+        // self-heal: the startup fetch may have failed or gone stale — reload on demand
+        if (holidayNames.isEmpty() || now - lastHolidaysLoad > HOLIDAYS_REFRESH_MS) {
+            loadHolidays();
+            lastHolidaysLoad = now;
+        }
+        List<MarketHolidayResponse> holidays = new ArrayList<>();
+        holidayNames.entrySet().stream()
+                .sorted(Map.Entry.comparingByKey())
+                .forEach(e -> holidays.add(MarketHolidayResponse.builder()
+                        .date(e.getKey())
+                        .holidayName(e.getValue())
+                        .build()));
+        return holidays;
     }
 
     private boolean isWeekend(DayOfWeek day) {
@@ -120,7 +145,13 @@ public class MarketStatusService {
                 if (!each.path("holiday_type").asText().equals("TRADING_HOLIDAY")) continue;
                 for (var exchange : each.path("closed_exchanges")) {
                     if (exchange.asText().equals("NSE")) {
-                        holidaySet.add(each.path("date").asText());
+                        String date = each.path("date").asText();
+                        String name = each.path("description").asText();
+                        if (name.isBlank()) name = each.path("holiday_name").asText();
+                        if (name.isBlank()) name = each.path("name").asText();
+                        if (name.isBlank()) name = date;
+                        holidaySet.add(date);
+                        holidayNames.put(date, name);
                         break;
                     }
                 }
@@ -129,6 +160,7 @@ public class MarketStatusService {
             log.warn("Failed to fetch holidays on startup. Error: " + e.getMessage());
             System.err.println("Failed to fetch holidays on startup. Error: " + e.getMessage());
         }
+        lastHolidaysLoad = System.currentTimeMillis();
     }
 
     private LocalDate getLastClosingDate(LocalDate todayDate, LocalTime currentTime) {
