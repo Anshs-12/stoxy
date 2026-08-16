@@ -5,6 +5,9 @@ import { useToast } from '../context/ToastContext';
 import { marketSocket } from '../lib/marketSocket';
 
 export const useStockDetails = (symbol: string | undefined, preloadedState?: any) => {
+  const initialExchange: 'NSE' | 'BSE' = preloadedState?.exchange === 'BSE' ? 'BSE' : 'NSE';
+  const [exchange, setExchange] = useState<'NSE' | 'BSE'>(initialExchange);
+  const [switchError, setSwitchError] = useState<string | null>(null);
   const [stock, setStock] = useState<StockDetail | null>(null);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState('');
@@ -53,6 +56,14 @@ export const useStockDetails = (symbol: string | undefined, preloadedState?: any
         };
       }
 
+      // Force the active exchange's instrument key (NSE_EQ|ISIN / BSE_EQ|ISIN)
+      if (payload.instrumentKey && payload.isin) {
+        const exchangeKey = `${exchange}_EQ|${payload.isin}`;
+        if (exchangeKey !== payload.instrumentKey) {
+          payload = { ...payload, exchange, instrumentKey: exchangeKey };
+        }
+      }
+
       const r = await stocksApi.getDetails(payload);
       setStock(r.data);
 
@@ -74,16 +85,22 @@ export const useStockDetails = (symbol: string | undefined, preloadedState?: any
         }
       }
     } catch (err: any) {
-      const status = err?.response?.status;
-      if (status === 404) {
-        setError(`Stock "${symbol}" not found.`);
+      if (exchange !== initialExchange) {
+        // the requested exchange has no instrument for this stock — revert
+        setSwitchError(`${exchange} stock does not exist for ${symbol}.`);
+        setExchange(initialExchange);
       } else {
-        setError('Failed to load stock data. Please try again.');
+        const status = err?.response?.status;
+        if (status === 404) {
+          setError(`Stock "${symbol}" not found.`);
+        } else {
+          setError('Failed to load stock data. Please try again.');
+        }
       }
     } finally {
       setLoading(false);
     }
-  }, [symbol, preloadedState]);
+  }, [symbol, preloadedState, exchange, initialExchange]);
 
   const loadWatchlists = useCallback(async () => {
     try {
@@ -93,6 +110,12 @@ export const useStockDetails = (symbol: string | undefined, preloadedState?: any
       // non-fatal — user may not be logged in
     }
   }, []);
+
+  const switchExchange = useCallback((ex: 'NSE' | 'BSE') => {
+    if (ex !== exchange && stock) setExchange(ex);
+  }, [exchange, stock]);
+
+  const clearSwitchError = useCallback(() => setSwitchError(null), []);
 
   useEffect(() => {
     loadStock();
@@ -173,6 +196,10 @@ export const useStockDetails = (symbol: string | undefined, preloadedState?: any
     ltp,
     ltt,
     cp,
+    exchange,
+    switchExchange,
+    switchError,
+    clearSwitchError,
     watchlists,
     wlLoading,
     addToWatchlist,
