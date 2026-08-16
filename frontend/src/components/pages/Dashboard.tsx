@@ -191,7 +191,7 @@ export const Dashboard = () => {
                   </div>
                   {idx.exchange && (
                     <span className={`flex-shrink-0 text-[8px] font-bold uppercase tracking-wider ${
-                      idx.exchange === 'BSE' ? 'text-amber-500' : 'text-accent'
+                      idx.exchange === 'BSE' ? 'text-amber-500 dark:text-amber-400' : 'text-accent'
                     }`}>
                       {idx.exchange}
                     </span>

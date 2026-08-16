@@ -58,7 +58,7 @@
   }
 
   ::selection {
-    background: rgba(29, 78, 216, 0.3); /* #1d4ed8 — same shade in both themes */
+    background: color-mix(in srgb, var(--color-play) 30%, transparent);
     color: var(--color-text-primary);
   }
 }

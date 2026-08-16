@@ -236,7 +236,7 @@ export const NSEIndexDetail = () => {
             </span>
             {exchange && (
               <span className={`text-[9px] font-bold uppercase tracking-wider ${
-                exchange === 'BSE' ? 'text-amber-500' : 'text-accent'
+                exchange === 'BSE' ? 'text-amber-500 dark:text-amber-400' : 'text-accent'
               }`}>
                 {exchange}
               </span>

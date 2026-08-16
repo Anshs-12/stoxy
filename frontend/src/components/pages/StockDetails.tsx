@@ -320,7 +320,7 @@ export const StockDetails = () => {
               <button
                 onClick={() => setExchangeOpen((v) => !v)}
                 className={`flex items-center gap-1.5 px-2.5 py-1 text-[11px] font-mono font-bold uppercase tracking-wider transition-opacity ${
-                  activeExchange === 'BSE' ? 'text-amber-500' : 'text-accent'
+                  activeExchange === 'BSE' ? 'text-amber-500 dark:text-amber-400' : 'text-accent'
                 } hover:opacity-75`}
               >
                 {activeExchange}
