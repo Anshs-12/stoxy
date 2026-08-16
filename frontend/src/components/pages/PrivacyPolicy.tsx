@@ -93,9 +93,15 @@ const PrivacyPolicy = () => {
 
         <Section title="Cookies & tracking">
           <p>
-            Essential cookies keep you signed in. Google Analytics helps understand usage in
-            aggregate — it doesn't identify you personally. You can block analytics cookies in
-            your browser without losing core functionality.
+            Essential cookies keep you signed in. Cookie-free pageview counts (Vercel
+            Analytics) run for everyone — no cookies, no personal data. Google Analytics,
+            which uses cookies, only runs after you accept. You can block analytics cookies
+            in your browser without losing core functionality.
+          </p>
+          <p>
+            We ask for your consent on your first visit, and Google Analytics loads nothing
+            until you choose. You can change your choice anytime via the "Cookies" link in the
+            footer — essential cookies stay on either way.
           </p>
         </Section>
 

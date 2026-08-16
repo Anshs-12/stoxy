@@ -11,6 +11,8 @@ import { Sidebar } from "./components/layout/Sidebar";
 import { MarketTicker } from "./components/layout/MarketTicker";
 import { Footer } from "./components/layout/Footer";
 import { PageBackground } from "./components/layout/AIInsight";
+import CookieConsent from "./components/ui/CookieConsent";
+import { getConsent } from "./lib/consent";
 import ReactGA from "react-ga4";
 import { useEffect } from "react";
 import { useLocation } from "react-router-dom";
@@ -91,12 +93,32 @@ const PageLoader = () => (
     </div>
 );
 
-ReactGA.initialize(import.meta.env.VITE_GA_MEASUREMENT_ID);
+// GA4 loads only after the user grants analytics consent (GDPR/ePrivacy).
+function AnalyticsGate() {
+    const [analytics, setAnalytics] = useState(() => getConsent()?.analytics ?? false);
+
+    useEffect(() => {
+        const apply = () => setAnalytics(getConsent()?.analytics ?? false);
+        window.addEventListener("stoxy:consent-change", apply);
+        return () => window.removeEventListener("stoxy:consent-change", apply);
+    }, []);
+
+    useEffect(() => {
+        if (analytics) {
+            ReactGA.initialize(import.meta.env.VITE_GA_MEASUREMENT_ID);
+            ReactGA.send({ hitType: "pageview", page: window.location.pathname });
+        }
+    }, [analytics]);
+
+    return null;
+}
 
 function RouteTracker() {
     const location = useLocation();
     useEffect(() => {
-        ReactGA.send({ hitType: "pageview", page: location.pathname });
+        if (getConsent()?.analytics) {
+            ReactGA.send({ hitType: "pageview", page: location.pathname });
+        }
     }, [location]);
     return null;
 }
@@ -112,6 +134,7 @@ function App() {
                         <TickerProvider>
                             <BrowserRouter>
                                 <RouteTracker />
+                                <AnalyticsGate />
                                 <PageBackground>
                                 <div className="flex flex-col h-screen bg-base relative text-primary">
                                     <Header
@@ -228,6 +251,7 @@ function App() {
                                         </main>
                                     </div>
                                 </div>
+                                <CookieConsent />
                                 </PageBackground>
                             </BrowserRouter>
                         </TickerProvider>
