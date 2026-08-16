@@ -39,8 +39,7 @@ const AI_CREDITS_TIP = (
     <p className="font-medium mb-1">3 free AI credits / day</p>
     <p className="opacity-90">
       We&apos;re expanding our AI services, so each user gets a limited number of
-      free analyses per day. Payments are coming soon to unlock higher limits,
-      chat-based analysis, and more.
+      free analyses per day.
     </p>
   </>
 );
