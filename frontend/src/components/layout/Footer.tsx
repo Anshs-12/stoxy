@@ -1,5 +1,6 @@
 import { Link } from 'react-router-dom';
-import { Github, TrendingUp, Coffee, Mail } from 'lucide-react';
+import { Github, TrendingUp, Coffee, Mail, ShieldCheck, ScrollText, Cookie } from 'lucide-react';
+import { requestConsentReopen } from '../../lib/consent';
 
 const productLinks = [
     { to: '/', label: 'Dashboard' },
@@ -83,7 +84,16 @@ export const Footer = () => {
                             About
                         </h3>
                         <p className="text-[12.5px] text-muted leading-[1.7] max-w-[280px]">
-                            Real-time market data, RAG-powered AI
+                            Real-time market data via{' '}
+                            <a
+                                href="https://upstox.com/developer"
+                                target="_blank"
+                                rel="noopener noreferrer"
+                                className="text-purple-600 dark:text-purple-400 font-medium hover:underline underline-offset-2"
+                            >
+                                Upstox
+                            </a>{' '}
+                            WebSocket feed, RAG-powered AI
                             analysis, and a UI built to cut through noise — not add to it.
                         </p>
                         <div className="flex items-center gap-1.5 mt-4 text-[11.5px] text-positive">
@@ -97,12 +107,24 @@ export const Footer = () => {
                 <div className="max-w-[1240px] mx-auto pt-5 border-t border-border-light flex justify-between items-center flex-wrap gap-3 text-[11.5px] text-muted">
                     <span>© {year} Stoxy Finance. All rights reserved.</span>
                     <div className="flex gap-5 items-center">
-                        <Link to="/privacy" className="text-muted no-underline hover:text-primary transition-colors">Privacy</Link>
                         <Link to="/contact" className="flex items-center gap-1.5 text-muted no-underline hover:text-primary transition-colors">
                             <Mail className="h-3 w-3" /> Contact
                         </Link>
-                        <Link to="/terms" className="text-muted no-underline hover:text-primary transition-colors">Terms</Link>
-                        <a href={GITHUB_URL} target="_blank" rel="noopener noreferrer" className="text-muted no-underline hover:text-primary transition-colors">GitHub</a>
+                        <Link to="/privacy" className="flex items-center gap-1.5 text-muted no-underline hover:text-primary transition-colors">
+                            <ShieldCheck className="h-3 w-3" /> Privacy
+                        </Link>
+                        <Link to="/terms" className="flex items-center gap-1.5 text-muted no-underline hover:text-primary transition-colors">
+                            <ScrollText className="h-3 w-3" /> Terms
+                        </Link>
+                        <button
+                            onClick={() => requestConsentReopen()}
+                            className="flex items-center gap-1.5 text-muted no-underline hover:text-primary transition-colors bg-transparent border-0 p-0 font-mono text-[11.5px] cursor-pointer"
+                        >
+                            <Cookie className="h-3 w-3" /> Cookies
+                        </button>
+                        <a href={GITHUB_URL} target="_blank" rel="noopener noreferrer" className="flex items-center gap-1.5 text-muted no-underline hover:text-primary transition-colors">
+                            <Github className="h-3 w-3" /> GitHub
+                        </a>
                     </div>
                 </div>
             </div>
