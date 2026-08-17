@@ -4,7 +4,7 @@ spring:
   main:
     allow-circular-references: true
   application:
-    name: live-stock-checker
+    name: stoxyfinance-backend
   # database
   datasource:
     url: ${database_url}
