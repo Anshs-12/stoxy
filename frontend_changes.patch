@@ -1,0 +1,532 @@
+diff --git a/frontend/bun.lock b/frontend/bun.lock
+index a5ecafa6..1a6a3c9a 100644
+--- a/frontend/bun.lock
++++ b/frontend/bun.lock
+@@ -7,8 +7,8 @@
+       "dependencies": {
+         "@base-ui/react": "^1.6.0",
+         "@radix-ui/react-scroll-area": "^1.2.12",
+-        "@radix-ui/react-slot": "^1.3.0",
+         "@tanstack/react-query": "^5.101.1",
++        "@vercel/analytics": "^2.0.1",
+         "axios": "^1.18.1",
+         "big.js": "^7.0.1",
+         "class-variance-authority": "^0.7.1",
+@@ -18,6 +18,7 @@
+         "lucide-react": "^0.577.0",
+         "react": "^19.2.7",
+         "react-dom": "^19.2.7",
++        "react-ga4": "^3.0.1",
+         "react-router-dom": "^7.18.0",
+         "recharts": "^3.9.0",
+         "tailwind-merge": "^3.6.0",
+@@ -297,6 +298,8 @@
+ 
+     "@types/use-sync-external-store": ["@types/use-sync-external-store@0.0.6", "", {}, "sha512-zFDAD+tlpf2r4asuHEj0XH6pY6i0g5NeAHPn+15wk3BV6JA69eERFXC1gyGThDkVa1zCyKr5jox1+2LbV/AMLg=="],
+ 
++    "@vercel/analytics": ["@vercel/analytics@2.0.1", "", { "peerDependencies": { "@remix-run/react": "^2", "@sveltejs/kit": "^1 || ^2", "next": ">= 13", "nuxt": ">= 3", "react": "^18 || ^19 || ^19.0.0-rc", "svelte": ">= 4", "vue": "^3", "vue-router": "^4" }, "optionalPeers": ["@remix-run/react", "@sveltejs/kit", "next", "nuxt", "react", "svelte", "vue", "vue-router"] }, "sha512-MTQG6V9qQrt1tsDeF+2Uoo5aPjqbVPys1xvnIftXSJYG2SrwXRHnqEvVoYID7BTruDz4lCd2Z7rM1BdkUehk2g=="],
++
+     "@vitejs/plugin-react": ["@vitejs/plugin-react@4.7.0", "", { "dependencies": { "@babel/core": "^7.28.0", "@babel/plugin-transform-react-jsx-self": "^7.27.1", "@babel/plugin-transform-react-jsx-source": "^7.27.1", "@rolldown/pluginutils": "1.0.0-beta.27", "@types/babel__core": "^7.20.5", "react-refresh": "^0.17.0" }, "peerDependencies": { "vite": "^4.2.0 || ^5.0.0 || ^6.0.0 || ^7.0.0" } }, "sha512-gUu9hwfWvvEDBBmgtAowQCojwZmJ5mcLn3aufeCsitijs3+f2NsrPtlAWIR6OPiqljl96GVCUbLe0HyqIpVaoA=="],
+ 
+     "agent-base": ["agent-base@6.0.2", "", { "dependencies": { "debug": "4" } }, "sha512-RZNwNclF7+MS/8bDg70amg32dyeZGZxiDuQmZxKLAlQjr3jGyLx+4Kkk58UO7D2QdgFIQCovuSuZESne6RG6XQ=="],
+@@ -533,6 +536,8 @@
+ 
+     "react-dom": ["react-dom@19.2.7", "", { "dependencies": { "scheduler": "^0.27.0" }, "peerDependencies": { "react": "^19.2.7" } }, "sha512-t0BRVXvbiE/o20Hfw669rLbMCDWtYZLvmJigy2f0MxsXF+71pxhR3xOkspmsO8h3ZlNzyibAmtCa3l4lYKk6gQ=="],
+ 
++    "react-ga4": ["react-ga4@3.0.1", "", {}, "sha512-GyCc01bSheWXjzGDyHsXMOqk/SP5Cf/JrcJTg4hcpKx4eeSwaJKpJUc+ipF4ffLTZkmabmf3ZGBv4OKHTXNXyA=="],
++
+     "react-is": ["react-is@19.2.4", "", {}, "sha512-W+EWGn2v0ApPKgKKCy/7s7WHXkboGcsrXE+2joLyVxkbyVQfO3MUEaUQDHoSmb8TFFrSKYa9mw64WZHNHSDzYA=="],
+ 
+     "react-redux": ["react-redux@9.2.0", "", { "dependencies": { "@types/use-sync-external-store": "^0.0.6", "use-sync-external-store": "^1.4.0" }, "peerDependencies": { "@types/react": "^18.2.25 || ^19", "react": "^18.0 || ^19", "redux": "^5.0.0" }, "optionalPeers": ["@types/react", "redux"] }, "sha512-ROY9fvHhwOD9ySfrF0wmvu//bKCQ6AeZZq1nJNtbDC+kk5DuSuNX/n6YWYF/SYy7bSba4D4FSz8DJeKY/S/r+g=="],
+diff --git a/frontend/package.json b/frontend/package.json
+index 8d1b130e..6419b69d 100644
+--- a/frontend/package.json
++++ b/frontend/package.json
+@@ -11,7 +11,6 @@
+   "dependencies": {
+     "@base-ui/react": "^1.6.0",
+     "@radix-ui/react-scroll-area": "^1.2.12",
+-    "@radix-ui/react-slot": "^1.3.0",
+     "@tanstack/react-query": "^5.101.1",
+     "@vercel/analytics": "^2.0.1",
+     "axios": "^1.18.1",
+diff --git a/frontend/src/components/layout/Header.tsx b/frontend/src/components/layout/Header.tsx
+index 93681e9b..c354d9fb 100644
+--- a/frontend/src/components/layout/Header.tsx
++++ b/frontend/src/components/layout/Header.tsx
+@@ -15,6 +15,12 @@ interface SearchResult {
+     isin: string;
+ }
+ 
++// ── Live clock + market status ── (module-scope: no local state → never rebuilt)
++const formatTime = () =>
++    new Date().toLocaleTimeString('en-IN', {hour: '2-digit', minute: '2-digit', second: '2-digit', hour12: false});
++const formatDate = () =>
++    new Date().toLocaleDateString('en-IN', {weekday: 'short', day: '2-digit', month: 'short'});
++
+ export const Header = ({onMenuClick}: { onMenuClick?: () => void }) => {
+     const [query, setQuery] = useState('');
+     const [results, setResults] = useState<SearchResult[]>([]);
+@@ -27,12 +33,6 @@ export const Header = ({onMenuClick}: { onMenuClick?: () => void }) => {
+     const {user, logout} = useAuth();
+     const {theme, setTheme, isDark} = useTheme();
+ 
+-    // ── Live clock + market status ──
+-    const formatTime = () =>
+-        new Date().toLocaleTimeString('en-IN', {hour: '2-digit', minute: '2-digit', second: '2-digit', hour12: false});
+-    const formatDate = () =>
+-        new Date().toLocaleDateString('en-IN', {weekday: 'short', day: '2-digit', month: 'short'});
+-
+     const [clockTime, setClockTime] = useState(formatTime);
+     const [clockDate, setClockDate] = useState(formatDate);
+     const [isMarketCurrentlyOpen, setIsMarketCurrentlyOpen] = useState(isMarketOpen);
+@@ -89,7 +89,7 @@ export const Header = ({onMenuClick}: { onMenuClick?: () => void }) => {
+         <header
+             className="bg-base border-b border-border-light px-4 md:px-6 h-14 flex items-center justify-between flex-shrink-0 transition-colors">
+             <div className="flex items-center gap-4 md:gap-10">
+-                <button className="md:hidden p-1 text-muted hover:text-primary transition-colors" onClick={onMenuClick}>
++                <button type="button" className="md:hidden p-1 text-muted hover:text-primary transition-colors" onClick={onMenuClick}>
+                     <Menu className="h-5 w-5"/>
+                 </button>
+                 <NavLink to="/"
+@@ -128,7 +128,7 @@ export const Header = ({onMenuClick}: { onMenuClick?: () => void }) => {
+                         <div
+                             className="absolute top-full left-0 right-0 mt-1 bg-surface border border-border rounded-md z-50 max-h-80 overflow-y-auto shadow-ambient">
+                             {results.map((r) => (
+-                                <button key={r.stockSymbol} onClick={() => selectStock(r)}
++                                <button type="button" key={r.stockSymbol} onClick={() => selectStock(r)}
+                                         className="w-full text-left px-4 py-2.5 hover:bg-neutral transition-colors flex justify-between items-center gap-2">
+                                     <div className="min-w-0">
+                                         <div
+@@ -178,19 +178,21 @@ export const Header = ({onMenuClick}: { onMenuClick?: () => void }) => {
+ 
+                 <div className="flex items-center gap-3 text-muted">
+                     <button
++                        type="button"
+                         onClick={() => setTheme(theme === 'dark' ? 'light' : theme === 'light' ? 'system' : 'dark')}
+                         className="hover:text-primary transition-colors p-1.5 rounded-md hover:bg-neutral"
+                         title={`Theme: ${theme}`}
+                     >
+                         {isDark ? <Sun className="h-4 w-4 text-accent"/> : <Moon className="h-4 w-4"/>}
+                     </button>
+-                    <button className="hover:text-primary transition-colors p-1.5 rounded-md hover:bg-neutral">
++                    <button type="button" className="hover:text-primary transition-colors p-1.5 rounded-md hover:bg-neutral">
+                         <Bell className="h-4 w-4"/>
+                     </button>
+ 
+                     {/* Profile */}
+                     <div className="relative" ref={profileRef}>
+                         <button
++                            type="button"
+                             onClick={() => setShowProfile(v => !v)}
+                             className="flex items-center gap-1.5 hover:text-primary transition-colors">
+                             {user ? (
+@@ -217,14 +219,14 @@ export const Header = ({onMenuClick}: { onMenuClick?: () => void }) => {
+                                             <p className="text-[13px] font-semibold truncate text-primary">{user.name}</p>
+                                             <p className="text-[11px] text-muted truncate mt-0.5">{user.email}</p>
+                                         </div>
+-                                        <button onClick={() => {
++                                        <button type="button" onClick={() => {
+                                             setShowProfile(false);
+                                             navigate('/portfolio');
+                                         }}
+                                                 className="w-full text-left px-4 py-2.5 text-[13px] hover:bg-neutral transition-colors text-primary">
+                                             Portfolio
+                                         </button>
+-                                        <button onClick={() => {
++                                        <button type="button" onClick={() => {
+                                             setShowProfile(false);
+                                             navigate('/watchlist');
+                                         }}
+@@ -232,7 +234,7 @@ export const Header = ({onMenuClick}: { onMenuClick?: () => void }) => {
+                                             Watchlist
+                                         </button>
+                                         <div className="border-t border-border-light"/>
+-                                        <button onClick={handleLogout}
++                                        <button type="button" onClick={handleLogout}
+                                                 className="w-full text-left px-4 py-2.5 text-[13px] text-negative hover:bg-negative/8 transition-colors flex items-center gap-2">
+                                             <LogOut className="h-3.5 w-3.5"/> Sign out
+                                         </button>
+diff --git a/frontend/src/components/pages/Dashboard.tsx b/frontend/src/components/pages/Dashboard.tsx
+index 629dcfa6..6b4b4f27 100644
+--- a/frontend/src/components/pages/Dashboard.tsx
++++ b/frontend/src/components/pages/Dashboard.tsx
+@@ -76,6 +76,7 @@ export const Dashboard = () => {
+       <div className="flex flex-col items-center justify-center py-24 gap-4">
+         <p className="text-sm text-negative text-center max-w-sm">{error}</p>
+         <button
++          type="button"
+           onClick={handleRefresh}
+           className="px-5 py-2.5 bg-accent text-white font-sans text-sm rounded-lg hover:bg-accent/90 transition-colors"
+         >
+@@ -102,6 +103,7 @@ export const Dashboard = () => {
+             <p className="text-[12px] font-mono text-muted mt-1.5">Real-time NSE &amp; BSE indices · live via Upstox</p>
+           </div>
+           <button
++            type="button"
+             onClick={handleRefresh}
+             disabled={loading}
+             className="flex items-center gap-2 px-4 py-2 bg-surface border border-border hover:border-border text-[11px] font-mono text-primary rounded-lg disabled:opacity-50 group transition-all hover:shadow-ambient"
+diff --git a/frontend/src/components/pages/IndexDetail.tsx b/frontend/src/components/pages/IndexDetail.tsx
+index fa88581b..c3e8429d 100644
+--- a/frontend/src/components/pages/IndexDetail.tsx
++++ b/frontend/src/components/pages/IndexDetail.tsx
+@@ -49,6 +49,7 @@ export const NSEIndexDetail = () => {
+           <ArrowLeft className="h-3 w-3" /> Back to Dashboard
+         </Link>
+         <button
++          type="button"
+           onClick={refreshIndex}
+           className="flex items-center gap-1.5 text-[11px] text-muted hover:text-primary transition-colors p-1.5 rounded-md hover:bg-neutral"
+         >
+diff --git a/frontend/src/components/pages/Portfolio.tsx b/frontend/src/components/pages/Portfolio.tsx
+index ef3ee558..b6d60e80 100644
+--- a/frontend/src/components/pages/Portfolio.tsx
++++ b/frontend/src/components/pages/Portfolio.tsx
+@@ -43,7 +43,7 @@ const TradeModal = ({type, stock, onClose, onConfirm, loadingLTP}: TradeModalPro
+                             <p className="text-[11px] text-muted mt-0.5">{stock.stockName}</p>
+                         )}
+                     </div>
+-                    <button onClick={onClose}
++                    <button type="button" onClick={onClose}
+                             className="text-muted hover:text-primary transition-colors p-1 rounded-md hover:bg-neutral">
+                         <X className="h-4 w-4"/>
+                     </button>
+@@ -95,11 +95,12 @@ const TradeModal = ({type, stock, onClose, onConfirm, loadingLTP}: TradeModalPro
+                     </div>
+ 
+                     <div className="flex gap-2">
+-                        <button onClick={onClose}
++                        <button type="button" onClick={onClose}
+                                 className="flex-1 py-2.5 bg-neutral text-[12px] font-medium hover:bg-neutral/80 transition-colors rounded-lg text-primary">
+                             Cancel
+                         </button>
+                         <button
++                            type="button"
+                             onClick={() => onConfirm(stock.stockSymbol, qty)}
+                             disabled={overSell || loadingLTP}
+                             className={`flex-1 py-2.5 text-[12px] font-semibold transition-colors disabled:opacity-40 rounded-lg text-white ${
+@@ -228,7 +229,7 @@ export const Portfolio = () => {
+                     <p className="text-[11px] text-muted tracking-[0.15em] uppercase mt-2 font-medium">Holdings &amp; P&amp;L
+                         Analysis</p>
+                 </div>
+-                <button onClick={loadPortfolio} disabled={loading}
++                <button type="button" onClick={loadPortfolio} disabled={loading}
+                         className="flex items-center gap-1.5 px-3 py-2 bg-surface border border-border hover:border-border text-[11px] font-medium disabled:opacity-50 text-primary rounded-lg transition-all">
+                     <RefreshCw className={`h-3.5 w-3.5 ${loading ? 'animate-spin' : ''}`}/>
+                     Refresh
+@@ -244,7 +245,7 @@ export const Portfolio = () => {
+                         <div
+                             className="absolute top-full left-0 right-0 bg-neutral border border-border rounded-lg z-10 text-left shadow-ambient mt-1">
+                             {buyResults.map((s) => (
+-                                <button key={s.stockSymbol} onClick={() => {
++                                <button type="button" key={s.stockSymbol} onClick={() => {
+                                     setBuySearch('');
+                                     openBuyModal(s.stockSymbol, s.stockName, s.instrumentKey);
+                                 }}
+@@ -293,7 +294,7 @@ export const Portfolio = () => {
+                             <div
+                                 className="absolute top-full right-0 w-64 bg-neutral border border-border rounded-lg z-10 shadow-ambient mt-1">
+                                 {buyResults.map((s) => (
+-                                    <button key={s.stockSymbol} onClick={() => {
++                                    <button type="button" key={s.stockSymbol} onClick={() => {
+                                         setBuySearch('');
+                                         openBuyModal(s.stockSymbol, s.stockName, s.instrumentKey);
+                                     }}
+@@ -305,7 +306,7 @@ export const Portfolio = () => {
+                             </div>
+                         )}
+                     </div>
+-                    <button onClick={loadPortfolio} disabled={loading}
++                    <button type="button" onClick={loadPortfolio} disabled={loading}
+                             className="flex items-center gap-1.5 px-3 py-2 bg-surface border border-border hover:border-border text-[11px] font-medium disabled:opacity-50 text-primary rounded-lg transition-all">
+                         <RefreshCw className={`h-3.5 w-3.5 ${loading ? 'animate-spin' : ''}`}/>
+                         Refresh
+@@ -345,7 +346,7 @@ export const Portfolio = () => {
+                     <h3 className="text-[10px] text-muted tracking-[0.12em] uppercase font-medium">
+                         Holdings ({portfolio.stocks?.length ?? 0})
+                     </h3>
+-                    <button onClick={toggleTx}
++                    <button type="button" onClick={toggleTx}
+                             className="flex items-center gap-1.5 text-[11px] text-muted hover:text-primary transition-colors">
+                         Transaction History <ChevronDown
+                         className={`h-3 w-3 transition-transform ${showTx ? 'rotate-180' : ''}`}/>
+@@ -372,7 +373,7 @@ export const Portfolio = () => {
+                                 <tr key={s.stockSymbol}
+                                     className="hover:bg-neutral transition-colors group border-t border-border-light">
+                                     <td className="py-3">
+-                                        <button onClick={() => navigate(`/stocks/${s.stockSymbol}`)}
++                                        <button type="button" onClick={() => navigate(`/stocks/${s.stockSymbol}`)}
+                                                 className="font-medium text-primary hover:text-accent transition-colors text-left">
+                                             <div>{s.stockSymbol}</div>
+                                             <div className="text-[10px] text-muted font-normal">{s.stockName}</div>
+@@ -395,17 +396,17 @@ export const Portfolio = () => {
+                                     <td className="py-3 text-right">
+                                         <div
+                                             className="flex gap-1 justify-end opacity-0 group-hover:opacity-100 transition-opacity">
+-                                            <button onClick={() => openStockTx(s.stockSymbol)}
++                                            <button type="button" onClick={() => openStockTx(s.stockSymbol)}
+                                                     title="Transactions"
+                                                     className="p-1.5 bg-neutral hover:bg-border-light transition-colors rounded-md">
+                                                 <List className="h-3 w-3 text-muted"/>
+                                             </button>
+-                                            <button onClick={() => setTradeModal({type: 'buy', stock: s})}
++                                            <button type="button" onClick={() => setTradeModal({type: 'buy', stock: s})}
+                                                     title="Buy more"
+                                                     className="p-1.5 bg-positive/10 hover:bg-positive/20 transition-colors rounded-md">
+                                                 <Plus className="h-3 w-3 text-positive"/>
+                                             </button>
+-                                            <button onClick={() => setTradeModal({type: 'sell', stock: s})}
++                                            <button type="button" onClick={() => setTradeModal({type: 'sell', stock: s})}
+                                                     title="Sell"
+                                                     className="p-1.5 bg-negative/10 hover:bg-negative/20 transition-colors rounded-md">
+                                                 <Minus className="h-3 w-3 text-negative"/>
+@@ -457,7 +458,7 @@ export const Portfolio = () => {
+                         <h3 className="text-[10px] text-muted tracking-[0.12em] uppercase font-medium">
+                             {selectedStockForTx ? `${selectedStockForTx} Transactions` : 'All Transactions'}
+                         </h3>
+-                        <button onClick={exportPDF} title="Download Statement"
++                        <button type="button" onClick={exportPDF} title="Download Statement"
+                                 className="flex items-center gap-1.5 text-[11px] text-muted hover:text-primary transition-colors rounded-md p-1.5 hover:bg-neutral">
+                             <Download className="h-3.5 w-3.5"/> Export PDF
+                         </button>
+diff --git a/frontend/src/components/pages/StockDetails.tsx b/frontend/src/components/pages/StockDetails.tsx
+index e9e6edc1..76cd8817 100644
+--- a/frontend/src/components/pages/StockDetails.tsx
++++ b/frontend/src/components/pages/StockDetails.tsx
+@@ -121,6 +121,7 @@ export const StockDetails = () => {
+             {/* Watchlist */}
+             <div className="relative">
+               <button
++                type="button"
+                 onClick={() => { setWlOpen(v => !v); setBuyOpen(false); setSellOpen(false); }}
+                 disabled={wlLoading}
+                 className="px-3 py-2 bg-neutral text-[12px] font-medium hover:bg-neutral/80 transition-colors flex items-center gap-1.5 disabled:opacity-50 border border-border-light rounded-lg"
+@@ -134,7 +135,7 @@ export const StockDetails = () => {
+                     <div className="px-4 py-3 text-[11px] text-muted">No watchlists. Create one in the Watchlist tab.</div>
+                   ) : (
+                     watchlists.map(wl => (
+-                      <button key={wl.watchlistId}
++                      <button type="button" key={wl.watchlistId}
+                         onClick={() => { addToWatchlist(wl.watchlistId, wl.watchlistName); setWlOpen(false); }}
+                         className="w-full text-left px-4 py-2.5 hover:bg-neutral text-[12px] transition-colors truncate"
+                       >
+@@ -146,12 +147,14 @@ export const StockDetails = () => {
+               )}
+             </div>
+             <button
++              type="button"
+               onClick={() => { setBuyOpen(true); setSellOpen(false); setWlOpen(false); }}
+               className="px-4 py-2 bg-accent text-white text-[12px] font-semibold flex items-center gap-1.5 hover:bg-accent/90 transition-all rounded-lg"
+             >
+               <ShoppingCart className="h-3.5 w-3.5" /> Buy
+             </button>
+             <button
++              type="button"
+               onClick={() => { setSellOpen(true); setBuyOpen(false); setWlOpen(false); }}
+               className="px-4 py-2 bg-surface text-primary text-[12px] font-medium hover:bg-neutral transition-colors border border-border rounded-lg"
+             >
+@@ -164,7 +167,7 @@ export const StockDetails = () => {
+             <div className="mt-3 bg-surface border border-border-light rounded-xl p-4 text-left shadow-ambient w-72">
+               <div className="flex justify-between items-center mb-3">
+                 <span className="text-[11px] font-medium uppercase tracking-widest">{buyOpen ? 'Buy' : 'Sell'} {symbol}</span>
+-                <button onClick={() => { setBuyOpen(false); setSellOpen(false); }} className="text-muted hover:text-primary p-0.5">
++                <button type="button" onClick={() => { setBuyOpen(false); setSellOpen(false); }} className="text-muted hover:text-primary p-0.5">
+                   <X className="h-3.5 w-3.5" />
+                 </button>
+               </div>
+@@ -198,6 +201,7 @@ export const StockDetails = () => {
+                   </div>
+                 </div>
+                 <button
++                  type="button"
+                   onClick={buyOpen ? handleBuy : handleSell}
+                   disabled={buyOpen ? buyLoading : sellLoading}
+                   className={`w-full py-2.5 text-white text-[12px] font-semibold transition-colors disabled:opacity-50 flex items-center justify-center gap-2 rounded-lg ${
+diff --git a/frontend/src/components/pages/StockScreener.tsx b/frontend/src/components/pages/StockScreener.tsx
+index a9e33c55..71addd1d 100644
+--- a/frontend/src/components/pages/StockScreener.tsx
++++ b/frontend/src/components/pages/StockScreener.tsx
+@@ -119,13 +119,13 @@ export const StockScreener = () => {
+             </span>
+             {data.totalPages > 1 && (
+               <div className="flex items-center gap-2 text-[11px]">
+-                <button disabled={data.pageNumber === 0}
++                <button type="button" disabled={data.pageNumber === 0}
+                   onClick={() => handlePageChange(data.pageNumber - 1)}
+                   className="px-3 py-1 bg-neutral disabled:opacity-30 hover:bg-neutral transition-colors">
+                   ← Prev
+                 </button>
+                 <span className="text-muted">Page {data.pageNumber + 1} of {data.totalPages}</span>
+-                <button disabled={data.pageNumber >= data.totalPages - 1}
++                <button type="button" disabled={data.pageNumber >= data.totalPages - 1}
+                   onClick={() => handlePageChange(data.pageNumber + 1)}
+                   className="px-3 py-1 bg-neutral disabled:opacity-30 hover:bg-neutral transition-colors">
+                   Next →
+diff --git a/frontend/src/components/pages/Watchlist.tsx b/frontend/src/components/pages/Watchlist.tsx
+index 7e239916..a9010c12 100644
+--- a/frontend/src/components/pages/Watchlist.tsx
++++ b/frontend/src/components/pages/Watchlist.tsx
+@@ -98,7 +98,7 @@ export const Watchlist = () => {
+                         Curated Watchlists & Tracking
+                     </p>
+                 </div>
+-                <button onClick={() => setShowCreate(true)}
++                <button type="button" onClick={() => setShowCreate(true)}
+                         className="px-4 py-2.5 bg-accent text-white text-[12px] font-semibold flex items-center gap-1.5 hover:bg-accent/90 transition-all rounded-lg shadow-ambient">
+                     <Plus className="h-3 w-3"/> Create Watchlist
+                 </button>
+@@ -114,10 +114,10 @@ export const Watchlist = () => {
+                                className="w-full bg-surface text-[13px] px-3 py-2.5 border border-border outline-none focus:border-accent font-sans rounded-lg text-primary transition-colors"
+                                placeholder="e.g. Tech Growth" autoFocus/>
+                     </div>
+-                    <button onClick={handleCreate}
++                    <button type="button" onClick={handleCreate}
+                             className="px-4 py-2.5 bg-accent text-white text-[12px] font-semibold hover:bg-accent/90 rounded-lg transition-colors">Create
+                     </button>
+-                    <button onClick={() => setShowCreate(false)}
++                    <button type="button" onClick={() => setShowCreate(false)}
+                             className="px-3 py-2.5 text-muted hover:text-primary rounded-lg hover:bg-neutral transition-colors">
+                         <X className="h-4 w-4"/></button>
+                 </div>
+@@ -132,23 +132,21 @@ export const Watchlist = () => {
+                     )}
+                     {lists.map(w => (
+                         <div key={w.watchlistId}>
+-                            <button onClick={() => loadDetail(w.watchlistId)}
+-                                    className={`w-full text-left p-4 rounded-xl transition-all border ${
++                            {/* Card — outer is now a div; two sibling buttons replace the nested-button pattern */}
++                            <div className={`w-full text-left p-4 rounded-xl transition-all border ${
+                                         activeId === w.watchlistId
+                                             ? 'bg-surface border-accent/30 shadow-ambient'
+                                             : 'bg-surface border-border-light hover:border-border'
+                                     }`}>
+                                 <div className="flex justify-between items-center">
+-                                    <div className="flex items-center gap-2">
++                                    <button type="button" onClick={() => loadDetail(w.watchlistId)}
++                                            className="flex items-center gap-2 flex-1 min-w-0 text-left">
+                                         {activeId === w.watchlistId &&
+-                                            <div className="w-1.5 h-1.5 rounded-full bg-accent"/>}
+-                                        <span className="text-[13px] font-medium text-primary">{w.watchlistName}</span>
+-                                    </div>
+-                                    <button onClick={e => {
+-                                        e.stopPropagation();
+-                                        setDeleteConfirmId(w.watchlistId);
+-                                    }}
+-                                            className="text-muted hover:text-negative transition-colors">
++                                            <div className="w-1.5 h-1.5 rounded-full bg-accent flex-shrink-0"/>}
++                                        <span className="text-[13px] font-medium text-primary truncate">{w.watchlistName}</span>
++                                    </button>
++                                    <button type="button" onClick={() => setDeleteConfirmId(w.watchlistId)}
++                                            className="text-muted hover:text-negative transition-colors flex-shrink-0 ml-2">
+                                         <Trash2 className="h-3.5 w-3.5"/>
+                                     </button>
+                                 </div>
+@@ -159,7 +157,7 @@ export const Watchlist = () => {
+                                     year: 'numeric'
+                                 })}
+                                 </p>
+-                            </button>
++                            </div>
+                             {deleteConfirmId === w.watchlistId && (
+                                 <div
+                                     className="bg-negative/10 p-3 flex justify-between items-center border border-negative/30">
+@@ -167,10 +165,10 @@ export const Watchlist = () => {
+                     <AlertTriangle className="h-3 w-3"/> Delete {w.watchlistName}?
+                   </span>
+                                     <div className="flex gap-2">
+-                                        <button onClick={() => setDeleteConfirmId(null)}
++                                        <button type="button" onClick={() => setDeleteConfirmId(null)}
+                                                 className="text-[11px] px-2 py-1 bg-surface border border-negative/30 text-negative hover:bg-negative/20 transition-colors">Cancel
+                                         </button>
+-                                        <button onClick={() => handleDelete(w.watchlistId)}
++                                        <button type="button" onClick={() => handleDelete(w.watchlistId)}
+                                                 className="text-[11px] px-2 py-1 bg-negative text-white hover:bg-negative/90 transition-colors">Delete
+                                         </button>
+                                     </div>
+@@ -211,7 +209,7 @@ export const Watchlist = () => {
+                                         <div
+                                             className="absolute top-full right-0 mt-1 bg-neutral card-border border border-border-light rounded z-50 w-64 max-h-48 overflow-y-auto">
+                                             {searchResults.map((s) => (
+-                                                <button key={s.stockSymbol} onClick={() => handleAddStock(s as any)}
++                                                <button type="button" key={s.stockSymbol} onClick={() => handleAddStock(s as any)}
+                                                         className="w-full text-left px-3 py-2 hover:bg-neutral transition-colors flex justify-between">
+                                                     <span className="text-[12px] text-primary">{s.stockName}</span>
+                                                     <span className="text-[10px] text-muted">{s.stockSymbol}</span>
+@@ -246,7 +244,7 @@ export const Watchlist = () => {
+                                             <tr key={s.stockSymbol}
+                                                 className="hover:bg-neutral transition-colors group border-t border-border-light">
+                                                 <td className="py-3">
+-                                                    <button onClick={() => navigate(`/stocks/${s.stockSymbol}`)}
++                                                    <button type="button" onClick={() => navigate(`/stocks/${s.stockSymbol}`)}
+                                                             className="font-medium text-primary hover:underline">{s.stockSymbol}</button>
+                                                 </td>
+                                                 <td className="py-3 text-muted text-[12px]">{s.stockName}</td>
+@@ -273,7 +271,7 @@ export const Watchlist = () => {
+                                                     )}
+                                                 </td>
+                                                 <td className="py-3 text-right">
+-                                                    <button onClick={() => removeStock(s.instrumentKey)}
++                                                    <button type="button" onClick={() => removeStock(s.instrumentKey)}
+                                                             className="text-muted hover:text-negative transition-colors opacity-0 group-hover:opacity-100">
+                                                         <Trash2 className="h-3.5 w-3.5"/>
+                                                     </button>
+diff --git a/frontend/src/components/ui/StockChart.tsx b/frontend/src/components/ui/StockChart.tsx
+index 990ad55a..06525d48 100644
+--- a/frontend/src/components/ui/StockChart.tsx
++++ b/frontend/src/components/ui/StockChart.tsx
+@@ -310,6 +310,7 @@ export const StockChart = ({ instrumentKey }: { instrumentKey: string }) => {
+                 <div className="flex gap-1 flex-wrap">
+                     {INTERVAL_OPTIONS[range].map(opt => (
+                         <button
++                            type="button"
+                             key={opt.label}
+                             onClick={() => setSelectedInterval(opt)}
+                             className={`px-2 py-1 text-[10px] font-mono rounded-md transition-colors ${
+@@ -364,6 +365,7 @@ export const StockChart = ({ instrumentKey }: { instrumentKey: string }) => {
+                 <div className="flex gap-1 flex-wrap">
+                     {RANGES.map(r => (
+                         <button
++                            type="button"
+                             key={r}
+                             onClick={() => handleRangeChange(r)}
+                             className={`px-2.5 py-1 text-[10px] font-mono rounded-md transition-colors ${
+@@ -379,6 +381,7 @@ export const StockChart = ({ instrumentKey }: { instrumentKey: string }) => {
+                 <div className="flex gap-1">
+                     {(['area', 'candle'] as ChartType[]).map(t => (
+                         <button
++                            type="button"
+                             key={t}
+                             onClick={() => setChartType(t)}
+                             className={`px-2.5 py-1 text-[10px] font-mono rounded-md transition-colors capitalize ${
+diff --git a/frontend/src/context/TickerContext.tsx b/frontend/src/context/TickerContext.tsx
+index 04dd689b..96da57b1 100644
+--- a/frontend/src/context/TickerContext.tsx
++++ b/frontend/src/context/TickerContext.tsx
+@@ -95,7 +95,7 @@ export function TickerProvider({ children }: { children: React.ReactNode }) {
+         setLastError(parseApiError(err));
+         setConsecutiveFailures(prev => prev + 1);
+       });
+-    // eslint-disable-next-line react-hooks/exhaustive-deps
++    // eslint-disable-next-line react-hooks/exhaustive-deps, react-doctor/exhaustive-deps
+   }, [activeLtpcKeys.join(',')]);
+ 
+   // ── REST snapshot: fetch once whenever the set of FullFeed keys changes ──
+@@ -114,7 +114,7 @@ export function TickerProvider({ children }: { children: React.ReactNode }) {
+         setLastError(parseApiError(err));
+         setConsecutiveFailures(prev => prev + 1);
+       });
+-    // eslint-disable-next-line react-hooks/exhaustive-deps
++    // eslint-disable-next-line react-hooks/exhaustive-deps, react-doctor/exhaustive-deps
+   }, [activeFullFeedKeys.join(',')]);
+ 
+   // ── Page Visibility: re-fetch REST snapshot when tab regains focus ──
+@@ -135,7 +135,7 @@ export function TickerProvider({ children }: { children: React.ReactNode }) {
+     };
+     document.addEventListener('visibilitychange', handleVisibility);
+     return () => document.removeEventListener('visibilitychange', handleVisibility);
+-    // eslint-disable-next-line react-hooks/exhaustive-deps
++    // eslint-disable-next-line react-hooks/exhaustive-deps, react-doctor/exhaustive-deps
+   }, [activeLtpcKeys.length, activeFullFeedKeys.length]);
+ 
+   // ── Subscription management ──

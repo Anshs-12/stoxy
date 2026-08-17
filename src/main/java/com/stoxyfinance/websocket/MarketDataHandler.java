@@ -112,13 +112,21 @@ public class MarketDataHandler implements WebSocket.Listener {
                         broadcastHandler.broadcastTick(instrumentKey, ltpcPayload, null);
 //                        log.info("5. after broadcast {}", Instant.now());
                     } else if (stockData.hasFullFeed()) {
-                        LtpcDataDTO ltpcPayload = generateLtpcDTO(instrumentKey, stockData.getFullFeed().getMarketFF().getLtpc());
+                        var fullFeed = stockData.getFullFeed();
+                        MarketDataFeedV3.LTPC rawLtpc = fullFeed.hasMarketFF()
+                                ? fullFeed.getMarketFF().getLtpc()
+                                : fullFeed.hasIndexFF() ? fullFeed.getIndexFF().getLtpc() : null;
+                        if (rawLtpc == null) continue;
+
+                        LtpcDataDTO ltpcPayload = generateLtpcDTO(instrumentKey, rawLtpc);
                         try {
                             redisTemplate.opsForValue().set("LTPC:" + instrumentKey, ltpcPayload, Duration.ofMinutes(3));
                         } catch (Exception e) {
                             log.debug("Redis write skipped during shutdown: {}", e.getMessage());
                         }
-                        FullFeedDataDTO fullFeedPayload = generateFullFeedDTO(instrumentKey, stockData);
+                        FullFeedDataDTO fullFeedPayload = fullFeed.hasIndexFF()
+                                ? generateIndexFullFeedDTO(instrumentKey, fullFeed)
+                                : generateFullFeedDTO(instrumentKey, stockData);
                         try {
                             redisTemplate.opsForValue().set("FULL:" + instrumentKey, fullFeedPayload, Duration.ofMinutes(3));
                         } catch (Exception e) {
@@ -161,6 +169,29 @@ public class MarketDataHandler implements WebSocket.Listener {
                 .totalSellQuantity((long) stockData.getFullFeed().getMarketFF().getTsq())
                 .upperCircuit(upperCircuit)
                 .lowerCircuit(lowerCircuit)
+                .build();
+    }
+
+    private FullFeedDataDTO generateIndexFullFeedDTO(String instrumentKey, MarketDataFeedV3.FullFeed fullFeed) {
+        var indexFF = fullFeed.getIndexFF();
+        FullFeedDataDTO existing = (FullFeedDataDTO) redisTemplate.opsForValue().get("FULL:" + instrumentKey);
+        double upperCircuit = existing != null ? existing.getUpperCircuit() : 0.0;
+        double lowerCircuit = existing != null ? existing.getLowerCircuit() : 0.0;
+
+        return FullFeedDataDTO.builder()
+                .instrumentKey(instrumentKey)
+                .lastTradedPrice(BigDecimal.valueOf(indexFF.getLtpc().getLtp()))
+                .lastTradedTime(indexFF.getLtpc().getLtt())
+                .closePrice(BigDecimal.valueOf(indexFF.getLtpc().getCp()))
+                .averageTradedPrice(BigDecimal.ZERO)
+                .volumeTradedToday(0L)
+                .openInterest(BigDecimal.ZERO)
+                .impliedVolatility(BigDecimal.ZERO)
+                .totalBuyQuantity(0L)
+                .totalSellQuantity(0L)
+                .upperCircuit(upperCircuit)
+                .lowerCircuit(lowerCircuit)
+                .marketLevel(new ArrayList<>())
                 .build();
     }
 
