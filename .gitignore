@@ -50,3 +50,4 @@ session*.json
 gitHistory.md
 summary*.md
 websockets.md
+node_modules/
